@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 import {
   StorefrontIcon,
   DocumentTextIcon,
+  LockClosedIcon,
   ClockIcon,
   UserIcon,
+  ArchiveBoxIcon,
 } from './Icons';
 
-export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
+export function Navbar({
+  activeTab,
+  onTabChange,
+  invoicesCount = 0,
+  shiftStatus = 'open',
+}) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -29,7 +36,7 @@ export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
   return (
     <nav className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between select-none shadow-xs z-30">
       {/* Brand & Tabs */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 lg:gap-6">
         {/* Brand */}
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-xs">
@@ -44,11 +51,12 @@ export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+          {/* 1. POS */}
           <button
             type="button"
             onClick={() => onTabChange('sales')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'sales'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
@@ -58,10 +66,11 @@ export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
             <span>نقطة البيع (POS)</span>
           </button>
 
+          {/* 2. Invoices & Returns */}
           <button
             type="button"
             onClick={() => onTabChange('invoices')}
-            className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'invoices'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
@@ -80,6 +89,34 @@ export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
                 {invoicesCount}
               </span>
             )}
+          </button>
+
+          {/* 3. Products & Inventory */}
+          <button
+            type="button"
+            onClick={() => onTabChange('inventory')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'inventory'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+            }`}
+          >
+            <ArchiveBoxIcon className="w-4 h-4" />
+            <span>المخزون والمنتجات</span>
+          </button>
+
+          {/* 4. Shift Closing */}
+          <button
+            type="button"
+            onClick={() => onTabChange('shift')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'shift'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+            }`}
+          >
+            <LockClosedIcon className="w-4 h-4" />
+            <span>إغلاق الوردية (Z)</span>
           </button>
         </div>
       </div>
@@ -101,7 +138,16 @@ export function Navbar({ activeTab, onTabChange, invoicesCount = 0 }) {
           </div>
           <div className="text-right">
             <p className="text-xs font-bold text-gray-800 leading-tight">سامر النجار</p>
-            <p className="text-[10px] text-emerald-600 font-medium">الوردية #102</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  shiftStatus === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+                }`}
+              ></span>
+              <p className="text-[10px] text-gray-500">
+                {shiftStatus === 'open' ? 'الوردية #102' : 'وردية مغلقة'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

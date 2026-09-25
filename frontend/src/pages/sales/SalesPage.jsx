@@ -8,7 +8,12 @@ import { useCart } from '../../hooks/useCart';
 import { MOCK_PRODUCTS } from '../../data/mockProducts';
 import { PauseIcon } from '../../components/common/Icons';
 
-export function SalesPage({ onSaleCompleted }) {
+export function SalesPage({
+  products = MOCK_PRODUCTS,
+  onSaleCompleted,
+  isShiftOpen = true,
+  onNavigateToShift,
+}) {
   const {
     items,
     customer,
@@ -84,7 +89,11 @@ export function SalesPage({ onSaleCompleted }) {
         <div className="flex items-center gap-2 text-gray-600">
           <span className="font-bold text-gray-800">نقطة البيع #01</span>
           <span>•</span>
-          <span className="text-emerald-700 font-medium">الوردية الصباحية مفتوحة</span>
+          {isShiftOpen ? (
+            <span className="text-emerald-700 font-medium">الوردية الصباحية مفتوحة ومستعدة للبيع</span>
+          ) : (
+            <span className="text-red-600 font-bold">الوردية مغلقة حالياً</span>
+          )}
         </div>
 
         <button
@@ -102,11 +111,33 @@ export function SalesPage({ onSaleCompleted }) {
         </button>
       </div>
 
+      {/* Closed Shift Alert Banner */}
+      {!isShiftOpen && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs flex items-center justify-between text-amber-900 font-bold">
+          <span>تنبيه: تم إغلاق الوردية الحالية. يرجى فتح وردية جديدة للتمكن من إتمام عمليات البيع.</span>
+          {onNavigateToShift && (
+            <button
+              type="button"
+              onClick={onNavigateToShift}
+              className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+            >
+              الانتقال لإدارة الوردية
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Main Screen: Split Products & Cart */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Products Area */}
         <main className="flex-1 h-full overflow-hidden order-2 lg:order-1">
-          <ProductGrid products={MOCK_PRODUCTS} onAddToCart={addToCart} />
+          <ProductGrid
+            products={products}
+            onAddToCart={(prod) => {
+              if (!isShiftOpen) return;
+              addToCart(prod);
+            }}
+          />
         </main>
 
         {/* Cart & Billing Area */}
@@ -119,7 +150,10 @@ export function SalesPage({ onSaleCompleted }) {
             onRemove={removeFromCart}
             onClearCart={clearCart}
             onHoldOrder={holdOrder}
-            onOpenPayment={() => setIsPaymentOpen(true)}
+            onOpenPayment={() => {
+              if (!isShiftOpen) return;
+              setIsPaymentOpen(true);
+            }}
             discountPercent={discountPercent}
             setDiscountPercent={setDiscountPercent}
             subtotal={subtotal}
