@@ -47,7 +47,9 @@ export function ReceiptModal({
             </p>
             <p className="text-[10px] text-gray-400">الرقم الضريبي: 310123456700003</p>
             <p className="text-[10px] bg-gray-100 inline-block px-2 py-0.5 rounded mt-1 font-sans font-bold">
-              فاتورة ضريبية مبسطة
+              {saleData.customer?.type === 'company'
+                ? 'فاتورة ضريبية (B2B)'
+                : 'فاتورة ضريبية مبسطة (B2C)'}
             </p>
           </div>
 
@@ -67,8 +69,14 @@ export function ReceiptModal({
             </div>
             <div className="flex justify-between">
               <span>العميل:</span>
-              <span className="font-sans">{saleData.customer?.name || 'عميل نقدي'}</span>
+              <span className="font-sans font-bold">{saleData.customer?.name || 'عميل نقدي'}</span>
             </div>
+            {saleData.customer?.taxNumber && (
+              <div className="flex justify-between">
+                <span>الرقم الضريبي للعميل:</span>
+                <span className="font-mono font-bold">{saleData.customer.taxNumber}</span>
+              </div>
+            )}
           </div>
 
           {/* Items Table */}
@@ -120,7 +128,11 @@ export function ReceiptModal({
             <div className="flex justify-between">
               <span>طريقة السداد:</span>
               <span className="font-bold">
-                {saleData.payment.method === 'cash' ? 'نقدي (كاش)' : 'بطاقة / مدى'}
+                {saleData.payment.method === 'cash'
+                  ? 'نقدي (كاش)'
+                  : saleData.payment.method === 'credit'
+                  ? 'آجل / على الحساب'
+                  : 'بطاقة / مدى'}
               </span>
             </div>
             {saleData.payment.method === 'cash' && (

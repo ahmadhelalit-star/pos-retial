@@ -10,6 +10,8 @@ import { PauseIcon } from '../../components/common/Icons';
 
 export function SalesPage({
   products = MOCK_PRODUCTS,
+  customers = [],
+  onQuickAddCustomer,
   onSaleCompleted,
   isShiftOpen = true,
   onNavigateToShift,
@@ -17,6 +19,7 @@ export function SalesPage({
   const {
     items,
     customer,
+    setCustomer,
     discountPercent,
     setDiscountPercent,
     heldOrders,
@@ -60,8 +63,14 @@ export function SalesPage({
       taxAmount,
       grandTotal,
       payment: paymentDetails,
-      paymentMethod: paymentDetails.method === 'cash' ? 'نقدي' : 'شبكة',
-      status: 'مدفوعة', // 'مدفوعة' | 'مسترجعة' | 'مسترجع جزئي'
+      paymentMethod:
+        paymentDetails.paymentMethod ||
+        (paymentDetails.method === 'cash'
+          ? 'نقدي'
+          : paymentDetails.method === 'credit'
+          ? 'آجل'
+          : 'شبكة'),
+      status: paymentDetails.method === 'credit' ? 'آجل' : 'مدفوعة', // 'مدفوعة' | 'آجل' | 'مسترجعة' | 'مسترجع جزئي'
       cashier: 'سامر النجار',
     };
 
@@ -145,6 +154,9 @@ export function SalesPage({
           <CartPanel
             items={items}
             customer={customer}
+            setCustomer={setCustomer}
+            customers={customers}
+            onQuickAddCustomer={onQuickAddCustomer}
             onIncrement={incrementQty}
             onDecrement={decrementQty}
             onRemove={removeFromCart}
@@ -170,6 +182,7 @@ export function SalesPage({
         isOpen={isPaymentOpen}
         onClose={() => setIsPaymentOpen(false)}
         grandTotal={grandTotal}
+        customer={customer}
         onCompleteSale={handleCompleteSale}
       />
 

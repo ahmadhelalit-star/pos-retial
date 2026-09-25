@@ -6,12 +6,19 @@ import {
   UserIcon,
   TagIcon,
   CreditCardIcon,
+  BuildingOfficeIcon,
+  GiftIcon,
+  ArrowsUpDownIcon,
 } from '../../../components/common/Icons';
 import { CartItem } from './CartItem';
+import { CustomerSelectModal } from './CustomerSelectModal';
 
 export function CartPanel({
   items,
   customer,
+  setCustomer,
+  customers = [],
+  onQuickAddCustomer,
   onIncrement,
   onDecrement,
   onRemove,
@@ -27,20 +34,55 @@ export function CartPanel({
   totalItemsCount,
 }) {
   const [showDiscountInput, setShowDiscountInput] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
+  const isCompany = customer?.type === 'company';
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200 shadow-xs">
       {/* Customer Bar */}
-      <div className="p-3 bg-gray-50/90 border-b border-gray-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <UserIcon className="w-4 h-4" />
+      <div className="p-2.5 bg-gray-50/90 border-b border-gray-200 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setIsCustomerModalOpen(true)}
+          className="flex items-center gap-2 hover:bg-white p-1 rounded-xl transition-all cursor-pointer group text-right"
+          title="انقر لتغيير عميل الفاتورة"
+        >
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              isCompany
+                ? 'bg-blue-100 text-blue-700'
+                : customer?.id !== 'walk-in'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            {isCompany ? (
+              <BuildingOfficeIcon className="w-4 h-4" />
+            ) : (
+              <UserIcon className="w-4 h-4" />
+            )}
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-800">{customer.name}</p>
-            <p className="text-[10px] text-gray-500">فاتورة ضريبية مبسطة</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-bold text-gray-800 group-hover:text-emerald-700 transition-colors">
+                {customer?.name || 'عميل نقدي (عام)'}
+              </p>
+              <span className="text-[10px] text-gray-400 group-hover:text-emerald-600">
+                [تغيير]
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+              <span>{isCompany ? 'فاتورة ضريبية B2B' : 'فاتورة مبسطة B2C'}</span>
+              {customer?.points > 0 && (
+                <span className="text-purple-700 font-bold flex items-center gap-0.5">
+                  <GiftIcon className="w-3 h-3" />
+                  {customer.points}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        </button>
 
         <div className="flex items-center gap-1">
           <span className="text-xs bg-gray-200/70 text-gray-700 font-bold px-2 py-0.5 rounded-md">
@@ -48,6 +90,16 @@ export function CartPanel({
           </span>
         </div>
       </div>
+
+      {/* Customer Select Modal */}
+      <CustomerSelectModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        customers={customers}
+        currentCustomer={customer}
+        onSelectCustomer={setCustomer}
+        onQuickAddCustomer={onQuickAddCustomer}
+      />
 
       {/* Cart Items List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">

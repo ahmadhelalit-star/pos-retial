@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { Navbar } from './components/common/Navbar';
 import { SalesPage } from './pages/sales/SalesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
-import { ShiftPage } from './pages/shift/ShiftPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
+import { CustomersPage } from './pages/customers/CustomersPage';
+import { ShiftPage } from './pages/shift/ShiftPage';
 import { INITIAL_INVOICES } from './data/mockInvoices';
 import { MOCK_PRODUCTS } from './data/mockProducts';
+import { INITIAL_CUSTOMERS } from './data/mockCustomers';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'shift'
+  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'customers' | 'shift'
   const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
 
   // إدارة حالة الوردية
   const [shift, setShift] = useState({
@@ -34,7 +37,6 @@ export default function App() {
 
   // إعادة المخزون عند مرتجع
   const restoreStock = (prevInvoices, nextInvoices) => {
-    // احسب الفرق في الكميات المرتجعة بين القديم والجديد
     const deltas = {};
     nextInvoices.forEach((inv) => {
       const prevInv = prevInvoices.find((p) => p.id === inv.id);
@@ -64,6 +66,26 @@ export default function App() {
   const handleSaleCompleted = (newInvoice) => {
     setInvoices((prev) => [newInvoice, ...prev]);
     deductStock(newInvoice.items ?? []);
+
+    // تحديث رصيد العميل الآجل ونقاط الولاء وسجل مشترياته
+    if (newInvoice.customer && newInvoice.customer.id !== 'walk-in') {
+      const custId = newInvoice.customer.id;
+      const isCredit = newInvoice.payment?.method === 'credit';
+      const earnedPoints = Math.floor((newInvoice.grandTotal || 0) / 10);
+
+      setCustomers((prev) =>
+        prev.map((c) => {
+          if (c.id !== custId) return c;
+          return {
+            ...c,
+            balance: isCredit ? (c.balance || 0) + newInvoice.grandTotal : c.balance,
+            points: (c.points || 0) + earnedPoints,
+            totalPurchases: (c.totalPurchases || 0) + newInvoice.grandTotal,
+            invoicesCount: (c.invoicesCount || 0) + 1,
+          };
+        })
+      );
+    }
   };
 
   // تحديث الفواتير (بعد مرتجع) مع إعادة المخزون
@@ -91,6 +113,29 @@ export default function App() {
     setProducts((prev) =>
       prev.map((p) =>
         p.id === id ? { ...p, stock: Math.max(0, (p.stock ?? 0) + delta) } : p
+      )
+    );
+  };
+
+  // ---- إدارة العملاء (Customers CRUD & Balance) ----
+  const handleSaveCustomer = (customer) => {
+    setCustomers((prev) => {
+      const exists = prev.find((c) => c.id === customer.id);
+      if (exists) return prev.map((c) => (c.id === customer.id ? customer : c));
+      return [customer, ...prev];
+    });
+  };
+
+  const handleDeleteCustomer = (id) => {
+    setCustomers((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleAdjustCustomerBalance = (customerId, delta) => {
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c.id === customerId
+          ? { ...c, balance: Math.max(0, (c.balance || 0) + delta) }
+          : c
       )
     );
   };
@@ -136,6 +181,8 @@ export default function App() {
         {activeTab === 'sales' && (
           <SalesPage
             products={products}
+            customers={customers}
+            onQuickAddCustomer={handleSaveCustomer}
             onSaleCompleted={handleSaleCompleted}
             isShiftOpen={shift.status === 'open'}
             onNavigateToShift={() => setActiveTab('shift')}
@@ -155,6 +202,16 @@ export default function App() {
             onSaveProduct={handleSaveProduct}
             onDeleteProduct={handleDeleteProduct}
             onAdjustStock={handleAdjustStock}
+          />
+        )}
+
+        {activeTab === 'customers' && (
+          <CustomersPage
+            customers={customers}
+            invoices={invoices}
+            onSaveCustomer={handleSaveCustomer}
+            onDeleteCustomer={handleDeleteCustomer}
+            onAdjustCustomerBalance={handleAdjustCustomerBalance}
           />
         )}
 
