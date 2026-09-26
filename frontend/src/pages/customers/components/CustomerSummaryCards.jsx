@@ -14,7 +14,7 @@ export function CustomerSummaryCards({ customers = [] }) {
   const debtorsCount = customers.filter((c) => (c.balance || 0) > 0).length;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-white border-b border-gray-200">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white border-b border-gray-200">
       {/* 1. إجمالي العملاء */}
       <div className="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl flex items-center justify-between">
         <div>

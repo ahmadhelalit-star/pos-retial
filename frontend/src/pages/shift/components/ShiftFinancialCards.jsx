@@ -16,7 +16,7 @@ export function ShiftFinancialCards({
   invoicesCount,
 }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 select-none">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-3 sm:p-4 select-none">
       {/* 1. Cash in Drawer Expected */}
       <div className="bg-white p-4 rounded-2xl border-2 border-emerald-500/80 shadow-2xs relative overflow-hidden">
         <div className="flex items-center justify-between">

@@ -6,7 +6,7 @@ import { HeldOrdersModal } from './components/HeldOrdersModal';
 import { ReceiptModal } from './components/ReceiptModal';
 import { useCart } from '../../hooks/useCart';
 import { MOCK_PRODUCTS } from '../../data/mockProducts';
-import { PauseIcon } from '../../components/common/Icons';
+import { PauseIcon, ShoppingBagIcon, StorefrontIcon } from '../../components/common/Icons';
 
 export function SalesPage({
   products = MOCK_PRODUCTS,
@@ -43,6 +43,7 @@ export function SalesPage({
   const [isHeldOrdersOpen, setIsHeldOrdersOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSaleData, setCompletedSaleData] = useState(null);
+  const [mobileTab, setMobileTab] = useState('products'); // 'products' | 'cart'
 
   // إتمام عملية البيع وفتح الإيصال وتمرير الفاتورة للسجل العام
   const handleCompleteSale = (paymentDetails) => {
@@ -136,10 +137,14 @@ export function SalesPage({
         </div>
       )}
 
-      {/* Main Screen: Split Products & Cart */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      {/* Main Screen: Split Products & Cart on desktop, Tabbed on mobile */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden pb-14 lg:pb-0 relative">
         {/* Products Area */}
-        <main className="flex-1 h-full overflow-hidden order-2 lg:order-1">
+        <main
+          className={`flex-1 h-full overflow-hidden ${
+            mobileTab === 'products' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'
+          }`}
+        >
           <ProductGrid
             products={products}
             onAddToCart={(prod) => {
@@ -150,7 +155,11 @@ export function SalesPage({
         </main>
 
         {/* Cart & Billing Area */}
-        <aside className="w-full lg:w-[400px] xl:w-[440px] h-full overflow-hidden order-1 lg:order-2 border-t lg:border-t-0 lg:border-r border-gray-200">
+        <aside
+          className={`w-full lg:w-[400px] xl:w-[440px] h-full overflow-hidden border-t lg:border-t-0 lg:border-r border-gray-200 ${
+            mobileTab === 'cart' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'
+          }`}
+        >
           <CartPanel
             items={items}
             customer={customer}
@@ -175,6 +184,51 @@ export function SalesPage({
             totalItemsCount={totalItemsCount}
           />
         </aside>
+
+        {/* Mobile Sticky Bottom Tab Bar (< lg) */}
+        <div className="lg:hidden absolute bottom-0 inset-x-0 bg-white border-t border-gray-200 px-3 py-2 flex items-center justify-around z-20 shadow-lg">
+          <button
+            type="button"
+            onClick={() => setMobileTab('products')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              mobileTab === 'products'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <StorefrontIcon className="w-4 h-4" />
+            <span>المنتجات</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab('cart')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
+              mobileTab === 'cart'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <ShoppingBagIcon className="w-4 h-4" />
+            <span>السلة</span>
+            {totalItemsCount > 0 && (
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
+                  mobileTab === 'cart'
+                    ? 'bg-white text-emerald-800'
+                    : 'bg-emerald-600 text-white'
+                }`}
+              >
+                {totalItemsCount}
+              </span>
+            )}
+            {grandTotal > 0 && (
+              <span className="text-[11px] font-mono font-bold">
+                ({grandTotal.toFixed(2)} ر.س)
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Modals */}

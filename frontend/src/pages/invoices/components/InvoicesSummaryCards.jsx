@@ -18,7 +18,7 @@ export function InvoicesSummaryCards({ invoices = [] }) {
   const netSales = Math.max(0, totalSales - totalRefunded);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 pb-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-3 sm:p-4 pb-2">
       {/* Total Sales */}
       <div className="bg-white p-3.5 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center justify-between">
         <div>

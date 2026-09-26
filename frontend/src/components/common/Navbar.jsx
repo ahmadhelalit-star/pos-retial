@@ -7,9 +7,11 @@ import {
   UserIcon,
   ArchiveBoxIcon,
   UsersIcon,
-  ChevronDownIcon,
-  Bars3Icon,
+  BuildingOfficeIcon,
+  ArrowUturnLeftIcon,
+  BarcodeIcon,
   CheckIcon,
+  ChevronDownIcon,
 } from './Icons';
 
 export function Navbar({
@@ -18,29 +20,30 @@ export function Navbar({
   invoicesCount = 0,
   shiftStatus = 'open',
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [openMenu, setOpenMenu] = useState(null); // 'sales' | 'inventory' | 'customers' | 'shift' | null
+  const menuBarRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // تحديث الساعة الرقمية
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // إغلاق القائمة المنسدلة عند النقر خارجها أو الضغط على Escape
+  // إغلاق القوائم عند النقر بالخارج أو بالضغط على Escape
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
+      if (menuBarRef.current && !menuBarRef.current.contains(event.target)) {
+        setOpenMenu(null);
       }
     }
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
-        setIsOpen(false);
+        setOpenMenu(null);
       }
     }
 
-    if (isOpen) {
+    if (openMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
     }
@@ -48,7 +51,32 @@ export function Navbar({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [openMenu]);
+
+  // اختصارات لوحة المفاتيح
+  useEffect(() => {
+    function handleGlobalShortcuts(e) {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        onTabChange('sales');
+        setOpenMenu(null);
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        onTabChange('invoices');
+        setOpenMenu(null);
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        onTabChange('inventory');
+        setOpenMenu(null);
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        onTabChange('customers');
+        setOpenMenu(null);
+      }
+    }
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, [onTabChange]);
 
   const timeString = currentTime.toLocaleTimeString('ar-SA', {
     hour: '2-digit',
@@ -62,228 +90,273 @@ export function Navbar({
     day: 'numeric',
   });
 
-  const navItems = [
+  // قوائم شريط القوائم
+  const menus = [
     {
       id: 'sales',
-      title: 'نقطة البيع (POS)',
-      description: 'شاشة تسجيل المبيعات والسلة السريعة',
-      icon: StorefrontIcon,
-      badge: null,
-    },
-    {
-      id: 'invoices',
-      title: 'الفواتير والمرتجعات',
-      description: 'سجل المبيعات، الاسترجاع، والطباعة',
-      icon: DocumentTextIcon,
-      badge: invoicesCount > 0 ? `${invoicesCount} فاتورة` : null,
-      badgeColor: 'bg-emerald-100 text-emerald-800',
+      title: 'المبيعات',
+      primaryTab: 'sales',
+      items: [
+        {
+          id: 'sales-pos',
+          label: 'شاشة الكاشير المباشرة',
+          icon: StorefrontIcon,
+          shortcut: 'F1',
+          action: () => onTabChange('sales'),
+          active: activeTab === 'sales',
+        },
+        {
+          id: 'sales-list',
+          label: 'سجل فواتير المبيعات',
+          icon: DocumentTextIcon,
+          shortcut: 'F2',
+          badge: invoicesCount > 0 ? `${invoicesCount} فاتورة` : null,
+          action: () => onTabChange('invoices'),
+          active: activeTab === 'invoices',
+        },
+        {
+          id: 'sales-returns',
+          label: 'إدارة مرتجعات الفواتير',
+          icon: ArrowUturnLeftIcon,
+          action: () => onTabChange('invoices'),
+          active: false,
+        },
+      ],
     },
     {
       id: 'inventory',
-      title: 'المخزون والمنتجات',
-      description: 'الكميات، الأسعار، وتوليد الباركود',
-      icon: ArchiveBoxIcon,
-      badge: null,
+      title: 'المخزون',
+      primaryTab: 'inventory',
+      items: [
+        {
+          id: 'inv-list',
+          label: 'قائمة الأصناف والأرصدة',
+          icon: ArchiveBoxIcon,
+          shortcut: 'F3',
+          action: () => onTabChange('inventory'),
+          active: activeTab === 'inventory',
+        },
+        {
+          id: 'inv-labels',
+          label: 'طباعة ملصقات الباركود',
+          icon: BarcodeIcon,
+          action: () => onTabChange('inventory'),
+          active: false,
+        },
+      ],
     },
     {
       id: 'customers',
-      title: 'العملاء والولاء',
-      description: 'حسابات الآجل، نقاط المكافآت، وشركات B2B',
-      icon: UsersIcon,
-      badge: null,
+      title: 'العملاء',
+      primaryTab: 'customers',
+      items: [
+        {
+          id: 'cust-dir',
+          label: 'دليل العملاء ونقاط الولاء',
+          icon: UsersIcon,
+          shortcut: 'F4',
+          action: () => onTabChange('customers'),
+          active: activeTab === 'customers',
+        },
+        {
+          id: 'cust-b2b',
+          label: 'حسابات المنشآت والشركات',
+          icon: BuildingOfficeIcon,
+          action: () => onTabChange('customers'),
+          active: false,
+        },
+      ],
     },
     {
       id: 'shift',
-      title: 'إغلاق الوردية (Z)',
-      description: 'جرد الصندوق المالي والتقرير النهائي',
-      icon: LockClosedIcon,
-      badge: shiftStatus === 'open' ? 'مفتوحة' : 'مغلقة',
-      badgeColor:
-        shiftStatus === 'open'
-          ? 'bg-emerald-100 text-emerald-800'
-          : 'bg-gray-100 text-gray-700',
+      title: 'الوردية',
+      primaryTab: 'shift',
+      items: [
+        {
+          id: 'shift-panel',
+          label: 'إدارة الوردية والصندوق المالي',
+          icon: LockClosedIcon,
+          action: () => onTabChange('shift'),
+          active: activeTab === 'shift',
+        },
+        {
+          id: 'shift-state',
+          label: shiftStatus === 'open' ? 'حالة الوردية: مفتوحة' : 'حالة الوردية: مغلقة',
+          icon: ClockIcon,
+          badge: shiftStatus === 'open' ? 'نشطة' : 'مغلقة',
+          action: () => onTabChange('shift'),
+          active: false,
+        },
+      ],
     },
   ];
 
-  const currentItem = navItems.find((item) => item.id === activeTab) || navItems[0];
-  const CurrentIcon = currentItem.icon;
-
-  const handleSelectItem = (id) => {
-    onTabChange(id);
-    setIsOpen(false);
+  // مسميات الصفحات باللغة العربية
+  const activeTabLabels = {
+    sales: 'نقطة البيع',
+    invoices: 'الفواتير والمرتجعات',
+    inventory: 'المخزون والمنتجات',
+    customers: 'العملاء والولاء',
+    shift: 'إغلاق الوردية',
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between select-none shadow-xs z-30">
-      {/* Brand & Dropdown Navigation Menu */}
-      <div className="flex items-center gap-3 sm:gap-5">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-xs">
-            ش
-          </div>
-          <div className="hidden sm:block">
-            <h1 className="text-sm font-black text-gray-900 tracking-tight leading-tight">
-              Sham Touch POS
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold">نقاط البيع والتجزئة</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
-
-        {/* Dropdown Navigation Menu Component */}
-        <div className="relative" ref={dropdownRef}>
-          {/* Dropdown Trigger Button */}
-          <button
-            type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            aria-expanded={isOpen}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-              isOpen
-                ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-xs ring-2 ring-emerald-500/10'
-                : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-800'
-            }`}
-          >
-            <div className="flex items-center gap-1.5 text-gray-500">
-              <Bars3Icon className="w-4 h-4 text-emerald-600" />
-              <span className="hidden md:inline text-[11px] text-gray-400 font-normal">
-                القائمة:
-              </span>
+    <nav className="bg-white border-b border-gray-200 select-none shadow-xs z-30">
+      {/* شريط القوائم العلوي */}
+      <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100 bg-gray-50/70 text-xs">
+        {/* الشعار وشريط القوائم */}
+        <div className="flex items-center gap-2 sm:gap-4" ref={menuBarRef}>
+          {/* شعار النظام */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+              ش
             </div>
+            <span className="font-black text-xs text-gray-900 tracking-tight hidden sm:inline">
+              شام تاتش
+            </span>
+          </div>
 
-            <div className="flex items-center gap-1.5 font-bold text-gray-900">
-              <CurrentIcon className="w-4 h-4 text-emerald-600" />
-              <span>{currentItem.title}</span>
-            </div>
+          <div className="h-4 w-px bg-gray-300 mx-0.5 hidden sm:block shrink-0" />
 
-            {/* Badge on button if applicable */}
-            {currentItem.badge && (
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${currentItem.badgeColor || 'bg-gray-200 text-gray-800'}`}>
-                {currentItem.badge}
-              </span>
-            )}
+          {/* أزرار القوائم المنسدلة: المبيعات، المخزون، العملاء، الوردية */}
+          <div className="flex items-center gap-1 shrink-0">
+            {menus.map((menu) => {
+              const isOpen = openMenu === menu.id;
+              const isSectionActive =
+                (menu.id === 'sales' && (activeTab === 'sales' || activeTab === 'invoices')) ||
+                (menu.id === 'inventory' && activeTab === 'inventory') ||
+                (menu.id === 'customers' && activeTab === 'customers') ||
+                (menu.id === 'shift' && activeTab === 'shift');
 
-            <ChevronDownIcon
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${
-                isOpen ? 'rotate-180 text-emerald-600' : ''
-              }`}
-            />
-          </button>
-
-          {/* Floating Dropdown Menu Panel */}
-          {isOpen && (
-            <div className="absolute top-full mt-2 right-0 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200/90 p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  أقسام النظام
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = activeTab === item.id;
-
-                  return (
+              return (
+                <div key={menu.id} className="relative">
+                  <div
+                    className={`flex items-center rounded-lg transition-all ${
+                      isSectionActive
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-200/80'
+                    }`}
+                  >
+                    {/* النقر على اسم الصفحة ينتقل إليها فوراً */}
                     <button
-                      key={item.id}
                       type="button"
-                      onClick={() => handleSelectItem(item.id)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-right ${
-                        isSelected
-                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200/80 shadow-xs'
-                          : 'hover:bg-gray-50 text-gray-700'
+                      onClick={() => {
+                        onTabChange(menu.primaryTab);
+                        setOpenMenu(null);
+                      }}
+                      onMouseEnter={() => {
+                        if (openMenu) {
+                          setOpenMenu(menu.id);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      {menu.title}
+                    </button>
+
+                    {/* زر السهم المنسدل يفتح الخيارات الفرعية */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenu(isOpen ? null : menu.id);
+                      }}
+                      title="الخيارات الفرعية"
+                      className={`p-1.5 rounded-l-lg cursor-pointer transition-colors ${
+                        isSectionActive
+                          ? 'text-white/80 hover:text-white hover:bg-emerald-700'
+                          : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-900 leading-tight">
-                            {item.title}
-                          </p>
-                          <p className="text-[11px] text-gray-400 font-normal mt-0.5 line-clamp-1">
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
+                      <ChevronDownIcon
+                        className={`w-3 h-3 transition-transform duration-150 ${
+                          isOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
 
-                      <div className="flex items-center gap-2">
-                        {item.badge && (
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                              item.badgeColor || 'bg-gray-100 text-gray-600'
+                  {/* نافذة القائمة المنسدلة */}
+                  {isOpen && (
+                    <div className="absolute top-full mt-1.5 right-0 min-w-[220px] bg-white rounded-xl shadow-2xl border border-gray-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-75">
+                      {menu.items.map((item, idx) => {
+                        if (item.divider) {
+                          return (
+                            <div
+                              key={`div-${idx}`}
+                              className="my-1 border-t border-gray-100"
+                            />
+                          );
+                        }
+
+                        const Icon = item.icon;
+
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              item.action();
+                              setOpenMenu(null);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors cursor-pointer text-right ${
+                              item.active
+                                ? 'bg-emerald-50 text-emerald-900 font-bold'
+                                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                           >
-                            {item.badge}
-                          </span>
-                        )}
-                        {isSelected && (
-                          <CheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                            <div className="flex items-center gap-2">
+                              {Icon && (
+                                <Icon
+                                  className={`w-4 h-4 ${
+                                    item.active ? 'text-emerald-600' : 'text-gray-400'
+                                  }`}
+                                />
+                              )}
+                              <span>{item.label}</span>
+                            </div>
 
-              <div className="mt-2 pt-2 border-t border-gray-100 px-3 py-1 flex items-center justify-between text-[11px] text-gray-400">
-                <span>اضغط Esc أو انقر بالخارج للإغلاق</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Back to POS Button (when not currently in POS) */}
-        {activeTab !== 'sales' && (
-          <button
-            type="button"
-            onClick={() => onTabChange('sales')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-            title="العودة السريعة لشاشة البيع"
-          >
-            <StorefrontIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">نقطة البيع</span>
-          </button>
-        )}
-      </div>
-
-      {/* Right Side: Clock & Cashier Info */}
-      <div className="flex items-center gap-3">
-        {/* Live Clock */}
-        <div className="hidden md:flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700">
-          <ClockIcon className="w-3.5 h-3.5 text-gray-400" />
-          <span>{dateString}</span>
-          <span className="text-gray-300">|</span>
-          <span className="font-mono text-emerald-700 font-bold">{timeString}</span>
-        </div>
-
-        {/* Cashier Badge */}
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1 rounded-xl">
-          <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <UserIcon className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-2">
+                              {item.badge && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-100 text-emerald-800 font-bold">
+                                  {item.badge}
+                                </span>
+                              )}
+                              {item.active && (
+                                <CheckIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <div className="text-right">
-            <p className="text-xs font-bold text-gray-800 leading-tight">سامر النجار</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  shiftStatus === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
-                }`}
-              ></span>
-              <p className="text-[10px] text-gray-500">
-                {shiftStatus === 'open' ? 'الوردية #102' : 'وردية مغلقة'}
-              </p>
-            </div>
+        </div>
+
+        {/* الجانب الأيسر: شارة الصفحة الحالية والساعة والكاشير */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* شارة توضيحية للصفحة النشطة حالياً */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{activeTabLabels[activeTab] || activeTab}</span>
+          </div>
+
+          {/* الساعة والتاريخ */}
+          <div className="hidden lg:flex items-center gap-1.5 text-gray-500 font-mono text-[11px]">
+            <ClockIcon className="w-3.5 h-3.5 text-gray-400" />
+            <span>{dateString}</span>
+            <span>-</span>
+            <span className="font-bold text-gray-800">{timeString}</span>
+          </div>
+
+          {/* شارة الكاشير */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1 rounded-lg text-xs">
+            <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="font-bold text-gray-800">سامر النجار</span>
           </div>
         </div>
       </div>
