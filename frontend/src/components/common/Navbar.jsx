@@ -12,6 +12,8 @@ import {
   BarcodeIcon,
   CheckIcon,
   ChevronDownIcon,
+  TruckIcon,
+  Cog6ToothIcon,
 } from './Icons';
 
 export function Navbar({
@@ -19,8 +21,9 @@ export function Navbar({
   onTabChange,
   invoicesCount = 0,
   shiftStatus = 'open',
+  storeSettings = {},
 }) {
-  const [openMenu, setOpenMenu] = useState(null); // 'sales' | 'inventory' | 'customers' | 'shift' | null
+  const [openMenu, setOpenMenu] = useState(null); // 'sales' | 'inventory' | 'purchases' | 'customers' | 'shift' | 'settings' | null
   const menuBarRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -71,6 +74,14 @@ export function Navbar({
       } else if (e.key === 'F4') {
         e.preventDefault();
         onTabChange('customers');
+        setOpenMenu(null);
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        onTabChange('purchases');
+        setOpenMenu(null);
+      } else if (e.key === 'F6') {
+        e.preventDefault();
+        onTabChange('settings');
         setOpenMenu(null);
       }
     }
@@ -146,6 +157,28 @@ export function Navbar({
       ],
     },
     {
+      id: 'purchases',
+      title: 'المشتريات والموردين',
+      primaryTab: 'purchases',
+      items: [
+        {
+          id: 'purchases-invoices',
+          label: 'فواتير الشراء والتوريد',
+          icon: TruckIcon,
+          shortcut: 'F5',
+          action: () => onTabChange('purchases'),
+          active: activeTab === 'purchases',
+        },
+        {
+          id: 'purchases-suppliers',
+          label: 'دليل حسابات الموردين',
+          icon: BuildingOfficeIcon,
+          action: () => onTabChange('purchases'),
+          active: false,
+        },
+      ],
+    },
+    {
       id: 'customers',
       title: 'العملاء',
       primaryTab: 'customers',
@@ -196,8 +229,10 @@ export function Navbar({
     sales: 'نقطة البيع',
     invoices: 'الفواتير والمرتجعات',
     inventory: 'المخزون والمنتجات',
+    purchases: 'المشتريات والموردين',
     customers: 'العملاء والولاء',
     shift: 'إغلاق الوردية',
+    settings: 'إعدادات المتجر',
   };
 
   return (
@@ -206,25 +241,26 @@ export function Navbar({
       <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100 bg-gray-50/70 text-xs">
         {/* الشعار وشريط القوائم */}
         <div className="flex items-center gap-2 sm:gap-4" ref={menuBarRef}>
-          {/* شعار النظام */}
+          {/* شعار النظام - يعرض اسم/إيموجي المتجر من الإعدادات */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
-              ش
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-xs overflow-hidden">
+              {storeSettings?.logoEmoji || 'ش'}
             </div>
             <span className="font-black text-xs text-gray-900 tracking-tight hidden sm:inline">
-              شام تاتش
+              {storeSettings?.storeName || 'شام تاتش'}
             </span>
           </div>
 
           <div className="h-4 w-px bg-gray-300 mx-0.5 hidden sm:block shrink-0" />
 
-          {/* أزرار القوائم المنسدلة: المبيعات، المخزون، العملاء، الوردية */}
+          {/* أزرار القوائم المنسدلة: المبيعات، المخزون، المشتريات، العملاء، الوردية */}
           <div className="flex items-center gap-1 shrink-0">
             {menus.map((menu) => {
               const isOpen = openMenu === menu.id;
               const isSectionActive =
                 (menu.id === 'sales' && (activeTab === 'sales' || activeTab === 'invoices')) ||
                 (menu.id === 'inventory' && activeTab === 'inventory') ||
+                (menu.id === 'purchases' && activeTab === 'purchases') ||
                 (menu.id === 'customers' && activeTab === 'customers') ||
                 (menu.id === 'shift' && activeTab === 'shift');
 
@@ -322,6 +358,11 @@ export function Navbar({
                                   {item.badge}
                                 </span>
                               )}
+                              {item.shortcut && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-gray-100 text-gray-500 border border-gray-200">
+                                  {item.shortcut}
+                                </span>
+                              )}
                               {item.active && (
                                 <CheckIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               )}
@@ -337,7 +378,7 @@ export function Navbar({
           </div>
         </div>
 
-        {/* الجانب الأيسر: شارة الصفحة الحالية والساعة والكاشير */}
+        {/* الجانب الأيسر: شارة الصفحة الحالية والساعة والكاشير وزر الإعدادات */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* شارة توضيحية للصفحة النشطة حالياً */}
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
@@ -353,6 +394,22 @@ export function Navbar({
             <span className="font-bold text-gray-800">{timeString}</span>
           </div>
 
+          {/* زر الإعدادات السريع */}
+          <button
+            type="button"
+            onClick={() => onTabChange('settings')}
+            title="إعدادات المتجر (F6)"
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer border text-[10px] font-bold flex items-center gap-1 ${
+              activeTab === 'settings'
+                ? 'bg-gray-700 text-white border-gray-700 shadow-xs'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <Cog6ToothIcon className={`w-3.5 h-3.5 ${activeTab === 'settings' ? 'text-white' : 'text-gray-500'}`} />
+            <span className="hidden sm:inline">إعدادات</span>
+            <span className="hidden lg:inline text-[9px] opacity-60">F6</span>
+          </button>
+
           {/* شارة الكاشير */}
           <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1 rounded-lg text-xs">
             <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
@@ -362,4 +419,4 @@ export function Navbar({
       </div>
     </nav>
   );
-}
+}

@@ -15,6 +15,7 @@ export function SalesPage({
   onSaleCompleted,
   isShiftOpen = true,
   onNavigateToShift,
+  storeSettings = {},
 }) {
   const {
     items,
@@ -253,6 +254,7 @@ export function SalesPage({
         onClose={() => setIsReceiptOpen(false)}
         saleData={completedSaleData}
         onNewSale={handleNewSale}
+        storeSettings={storeSettings}
       />
     </div>
   );

@@ -4,16 +4,40 @@ import { SalesPage } from './pages/sales/SalesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
+import { PurchasesPage } from './pages/purchases/PurchasesPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 import { ShiftPage } from './pages/shift/ShiftPage';
 import { INITIAL_INVOICES } from './data/mockInvoices';
 import { MOCK_PRODUCTS } from './data/mockProducts';
 import { INITIAL_CUSTOMERS } from './data/mockCustomers';
+import { INITIAL_SUPPLIERS } from './data/mockSuppliers';
+import { INITIAL_PURCHASE_INVOICES } from './data/mockPurchaseInvoices';
+import { DEFAULT_STORE_SETTINGS } from './data/defaultSettings';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'customers' | 'shift'
+  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'purchases' | 'customers' | 'shift' | 'settings'
   const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [products, setProducts] = useState(MOCK_PRODUCTS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
+  const [suppliers, setSuppliers] = useState(INITIAL_SUPPLIERS);
+  const [purchaseInvoices, setPurchaseInvoices] = useState(INITIAL_PURCHASE_INVOICES);
+  const [storeSettings, setStoreSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('shamtouch_store_settings');
+      return saved ? JSON.parse(saved) : DEFAULT_STORE_SETTINGS;
+    } catch {
+      return DEFAULT_STORE_SETTINGS;
+    }
+  });
+
+  const handleSaveSettings = (newSettings) => {
+    setStoreSettings(newSettings);
+    try {
+      localStorage.setItem('shamtouch_store_settings', JSON.stringify(newSettings));
+    } catch (e) {
+      console.error('Failed to save settings to localStorage', e);
+    }
+  };
 
   // إدارة حالة الوردية
   const [shift, setShift] = useState({
@@ -140,6 +164,106 @@ export default function App() {
     );
   };
 
+  // ---- إدارة الموردين وفواتير الشراء (Purchases & Suppliers) ----
+  const handleSaveSupplier = (supplier) => {
+    setSuppliers((prev) => {
+      const exists = prev.find((s) => s.id === supplier.id);
+      if (exists) return prev.map((s) => (s.id === supplier.id ? supplier : s));
+      return [supplier, ...prev];
+    });
+  };
+
+  const handleDeleteSupplier = (id) => {
+    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handlePaySupplier = (supplierId, amount, paymentDetails) => {
+    // 1. خصم الرصيد المستحق للمورد
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === supplierId
+          ? { ...s, balance: Math.max(0, (s.balance || 0) - amount) }
+          : s
+      )
+    );
+
+    // 2. تحديث حالة الفواتير غير المسددة لهذا المورد
+    setPurchaseInvoices((prev) => {
+      let remainingToPay = amount;
+      return prev.map((inv) => {
+        if (
+          inv.supplierId !== supplierId ||
+          inv.paymentStatus === 'paid' ||
+          remainingToPay <= 0
+        ) {
+          return inv;
+        }
+        const rem = inv.remainingAmount || 0;
+        if (rem <= 0) return inv;
+
+        const paymentForThis = Math.min(rem, remainingToPay);
+        remainingToPay -= paymentForThis;
+        const newRem = rem - paymentForThis;
+
+        return {
+          ...inv,
+          paidAmount: (inv.paidAmount || 0) + paymentForThis,
+          remainingAmount: newRem,
+          paymentStatus: newRem <= 0.001 ? 'paid' : 'partial',
+        };
+      });
+    });
+  };
+
+  const handleSavePurchaseInvoice = (newInvoice) => {
+    // 1. إضافة الفاتورة لقائمة فواتير الشراء
+    setPurchaseInvoices((prev) => [newInvoice, ...prev]);
+
+    // 2. زيادة كميات المخزون وتحديث أسعار التكلفة للمنتجات
+    setProducts((prev) => {
+      let updated = [...prev];
+      newInvoice.items.forEach((item) => {
+        const existingIdx = updated.findIndex((p) => p.id === item.id);
+        if (existingIdx >= 0) {
+          const currentProd = updated[existingIdx];
+          updated[existingIdx] = {
+            ...currentProd,
+            stock: (currentProd.stock ?? 0) + item.qty,
+            costPrice: item.costPrice,
+            price: item.sellingPrice || currentProd.price,
+          };
+        } else {
+          // إذا كان صنفاً جديداً تمت إضافته عبر فاتورة الشراء
+          updated.push({
+            id: item.id || Date.now(),
+            name: item.name,
+            barcode: item.barcode,
+            category: 'canned',
+            unit: item.unit || 'حبة',
+            price: item.sellingPrice || item.costPrice * 1.3,
+            costPrice: item.costPrice,
+            stock: item.qty,
+            color: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+          });
+        }
+      });
+      return updated;
+    });
+
+    // 3. تحديث حساب المورد (زيادة المشتريات وإضافة المتبقي الآجل للرصيد)
+    setSuppliers((prev) =>
+      prev.map((s) => {
+        if (s.id !== newInvoice.supplierId) return s;
+        return {
+          ...s,
+          balance: (s.balance || 0) + (newInvoice.remainingAmount || 0),
+          totalPurchases: (s.totalPurchases || 0) + (newInvoice.grandTotal || 0),
+          invoicesCount: (s.invoicesCount || 0) + 1,
+        };
+      })
+    );
+  };
+
   // إغلاق الوردية
   const handleCloseShift = (zReport) => {
     setShift((prev) => ({
@@ -174,6 +298,7 @@ export default function App() {
         onTabChange={setActiveTab}
         invoicesCount={invoices.length}
         shiftStatus={shift.status}
+        storeSettings={storeSettings}
       />
 
       {/* Main Content Area */}
@@ -186,6 +311,7 @@ export default function App() {
             onSaleCompleted={handleSaleCompleted}
             isShiftOpen={shift.status === 'open'}
             onNavigateToShift={() => setActiveTab('shift')}
+            storeSettings={storeSettings}
           />
         )}
 
@@ -202,6 +328,18 @@ export default function App() {
             onSaveProduct={handleSaveProduct}
             onDeleteProduct={handleDeleteProduct}
             onAdjustStock={handleAdjustStock}
+          />
+        )}
+
+        {activeTab === 'purchases' && (
+          <PurchasesPage
+            suppliers={suppliers}
+            purchaseInvoices={purchaseInvoices}
+            products={products}
+            onSavePurchaseInvoice={handleSavePurchaseInvoice}
+            onSaveSupplier={handleSaveSupplier}
+            onDeleteSupplier={handleDeleteSupplier}
+            onPaySupplier={handlePaySupplier}
           />
         )}
 
@@ -223,6 +361,13 @@ export default function App() {
             onUpdateShift={setShift}
             onCloseShift={handleCloseShift}
             onOpenNewShift={handleOpenNewShift}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsPage
+            settings={storeSettings}
+            onSaveSettings={handleSaveSettings}
           />
         )}
       </div>
