@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navbar } from './components/common/Navbar';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { SalesPage } from './pages/sales/SalesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
@@ -303,6 +304,16 @@ export default function App() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
+        {activeTab === 'dashboard' && (
+          <DashboardPage
+            invoices={invoices}
+            products={products}
+            customers={customers}
+            storeSettings={storeSettings}
+            onNavigateToPurchases={() => setActiveTab('purchases')}
+          />
+        )}
+
         {activeTab === 'sales' && (
           <SalesPage
             products={products}

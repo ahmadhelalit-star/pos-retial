@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   TruckIcon,
   Cog6ToothIcon,
+  DocumentChartBarIcon,
 } from './Icons';
 
 export function Navbar({
@@ -83,6 +84,10 @@ export function Navbar({
         e.preventDefault();
         onTabChange('settings');
         setOpenMenu(null);
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        onTabChange('dashboard');
+        setOpenMenu(null);
       }
     }
     window.addEventListener('keydown', handleGlobalShortcuts);
@@ -103,6 +108,21 @@ export function Navbar({
 
   // قوائم شريط القوائم
   const menus = [
+    {
+      id: 'dashboard',
+      title: 'لوحة التحكم',
+      primaryTab: 'dashboard',
+      items: [
+        {
+          id: 'dash-analytics',
+          label: 'مؤشرات الأداء والأرباح',
+          icon: DocumentChartBarIcon,
+          shortcut: 'F8',
+          action: () => onTabChange('dashboard'),
+          active: activeTab === 'dashboard',
+        },
+      ],
+    },
     {
       id: 'sales',
       title: 'المبيعات',
@@ -226,6 +246,7 @@ export function Navbar({
 
   // مسميات الصفحات باللغة العربية
   const activeTabLabels = {
+    dashboard: 'لوحة التحكم والتحليلات',
     sales: 'نقطة البيع',
     invoices: 'الفواتير والمرتجعات',
     inventory: 'المخزون والمنتجات',
@@ -253,11 +274,12 @@ export function Navbar({
 
           <div className="h-4 w-px bg-gray-300 mx-0.5 hidden sm:block shrink-0" />
 
-          {/* أزرار القوائم المنسدلة: المبيعات، المخزون، المشتريات، العملاء، الوردية */}
+          {/* أزرار القوائم المنسدلة: لوحة التحكم، المبيعات، المخزون، المشتريات، العملاء، الوردية */}
           <div className="flex items-center gap-1 shrink-0">
             {menus.map((menu) => {
               const isOpen = openMenu === menu.id;
               const isSectionActive =
+                (menu.id === 'dashboard' && activeTab === 'dashboard') ||
                 (menu.id === 'sales' && (activeTab === 'sales' || activeTab === 'invoices')) ||
                 (menu.id === 'inventory' && activeTab === 'inventory') ||
                 (menu.id === 'purchases' && activeTab === 'purchases') ||
