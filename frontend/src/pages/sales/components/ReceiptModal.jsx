@@ -154,9 +154,23 @@ export function ReceiptModal({
                   ? 'نقدي (كاش)'
                   : saleData.payment.method === 'credit'
                   ? 'آجل / على الحساب'
+                  : saleData.payment.method === 'split'
+                  ? 'كاش + شبكة'
                   : 'بطاقة / مدى'}
               </span>
             </div>
+            {saleData.payment.method === 'split' && (
+              <>
+                <div className="flex justify-between">
+                  <span>المدفوع نقداً:</span>
+                  <span className="font-mono">{(saleData.payment.cashAmount || 0).toFixed(2)} ر.س</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>المدفوع عبر الشبكة:</span>
+                  <span className="font-mono">{(saleData.payment.cardAmount || 0).toFixed(2)} ر.س</span>
+                </div>
+              </>
+            )}
             {saleData.payment.method === 'cash' && (
               <>
                 <div className="flex justify-between">

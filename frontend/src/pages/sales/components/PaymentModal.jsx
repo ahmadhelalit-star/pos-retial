@@ -17,8 +17,10 @@ export function PaymentModal({
   customer,
   onCompleteSale,
 }) {
-  const [method, setMethod] = useState('cash'); // 'cash' | 'card' | 'credit'
+  const [method, setMethod] = useState('cash'); // cash, card, split, credit
   const [cashTendered, setCashTendered] = useState('');
+  const [splitCashAmount, setSplitCashAmount] = useState('');
+  const [splitCardAmount, setSplitCardAmount] = useState('');
 
   const isWalkIn = !customer || customer.id === 'walk-in';
 
@@ -26,12 +28,17 @@ export function PaymentModal({
     if (isOpen) {
       setMethod('cash');
       setCashTendered(grandTotal.toFixed(2));
+      setSplitCashAmount('');
+      setSplitCardAmount(grandTotal.toFixed(2));
     }
   }, [isOpen, grandTotal]);
 
   if (!isOpen) return null;
 
   const numericCash = parseFloat(cashTendered) || 0;
+  const numericSplitCash = parseFloat(splitCashAmount) || 0;
+  const numericSplitCard = parseFloat(splitCardAmount) || 0;
+  const splitDifference = grandTotal - numericSplitCash - numericSplitCard;
   const changeDue = Math.max(0, numericCash - grandTotal);
   
   let isCashSufficient = true;
@@ -39,6 +46,8 @@ export function PaymentModal({
     isCashSufficient = numericCash >= grandTotal;
   } else if (method === 'credit') {
     isCashSufficient = !isWalkIn;
+  } else if (method === 'split') {
+    isCashSufficient = numericSplitCash >= 0 && numericSplitCard >= 0 && Math.abs(splitDifference) < 0.01;
   }
 
   const handleExactCash = () => {
@@ -53,10 +62,12 @@ export function PaymentModal({
     if (!isCashSufficient) return;
     onCompleteSale({
       method,
-      paymentMethod: method === 'cash' ? 'نقدي' : method === 'card' ? 'شبكة' : 'آجل',
+      paymentMethod: method === 'cash' ? 'نقدي' : method === 'card' ? 'شبكة' : method === 'split' ? 'مختلط' : 'آجل',
       amount: grandTotal,
-      tendered: method === 'cash' ? numericCash : method === 'card' ? grandTotal : 0,
+      tendered: method === 'cash' ? numericCash : method === 'split' ? numericSplitCash + numericSplitCard : method === 'card' ? grandTotal : 0,
       change: method === 'cash' ? changeDue : 0,
+      cashAmount: method === 'split' ? numericSplitCash : method === 'cash' ? grandTotal : 0,
+      cardAmount: method === 'split' ? numericSplitCard : method === 'card' ? grandTotal : 0,
     });
   };
 
@@ -95,7 +106,7 @@ export function PaymentModal({
           {/* Payment Method Selector */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-2">طريقة الدفع</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setMethod('cash')}
@@ -120,6 +131,19 @@ export function PaymentModal({
               >
                 <CreditCardIcon className="w-5 h-5" />
                 <span>شبكة / مدى</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMethod('split')}
+                className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-2xl border-2 font-bold text-xs transition-all cursor-pointer ${
+                  method === 'split'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-800 shadow-xs'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <BanknotesIcon className="w-5 h-5" />
+                <span>كاش + شبكة</span>
               </button>
 
               <button
@@ -206,6 +230,39 @@ export function PaymentModal({
               <p className="text-sm font-bold text-gray-800">جاهز للدفع عبر جهاز نقاط البيع (POS)</p>
               <p className="text-xs text-gray-500">
                 مرر البطاقة أو استخدم الدفع الذكي (Apple Pay / mada)
+              </p>
+            </div>
+          )}
+
+          {method === 'split' && (
+            <div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
+              <p className="text-xs font-bold text-gray-700">وزّع المبلغ بين الكاش والشبكة، ويجب أن يساوي مجموعهما قيمة الفاتورة.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1 text-xs font-bold text-gray-700">
+                  <span>المبلغ النقدي</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCashAmount}
+                    onChange={(event) => setSplitCashAmount(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-mono text-base"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-bold text-gray-700">
+                  <span>المبلغ عبر الشبكة</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCardAmount}
+                    onChange={(event) => setSplitCardAmount(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-mono text-base"
+                  />
+                </label>
+              </div>
+              <p className={`text-center text-xs font-bold ${isCashSufficient ? 'text-emerald-700' : 'text-red-600'}`}>
+                {isCashSufficient ? 'المبلغ موزع بالكامل' : `المتبقي للتوزيع: ${splitDifference.toFixed(2)} ر.س`}
               </p>
             </div>
           )}

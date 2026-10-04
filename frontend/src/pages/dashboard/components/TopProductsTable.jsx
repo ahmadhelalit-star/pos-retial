@@ -70,7 +70,7 @@ export function TopProductsTable({
                     {p.profit.toFixed(2)} {currency}
                   </td>
                   <td className="py-2.5 px-3.5 text-center">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${Number(p.margin) < 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                       {p.margin}%
                     </span>
                   </td>

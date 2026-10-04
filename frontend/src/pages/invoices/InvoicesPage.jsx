@@ -34,6 +34,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
       let matchesPayment = true;
       if (paymentFilter === 'cash') matchesPayment = inv.paymentMethod === 'نقدي';
       if (paymentFilter === 'card') matchesPayment = inv.paymentMethod === 'شبكة';
+      if (paymentFilter === 'split') matchesPayment = inv.paymentMethod === 'مختلط' || inv.payment?.method === 'split';
 
       // Status filter
       let matchesStatus = true;
@@ -69,6 +70,8 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
           return {
             ...it,
             returnedQty: (it.returnedQty || 0) + foundReturn.qtyToReturn,
+            restockedQty:
+              (it.restockedQty ?? it.returnedQty ?? 0) + (foundReturn.restockQty ?? foundReturn.qtyToReturn),
           };
         }
         return it;
@@ -112,7 +115,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
       taxAmount: inv.taxAmount,
       grandTotal: inv.grandTotal,
       payment: inv.payment || {
-        method: inv.paymentMethod === 'نقدي' ? 'cash' : 'card',
+        method: inv.paymentMethod === 'نقدي' ? 'cash' : inv.paymentMethod === 'مختلط' ? 'split' : 'card',
         tendered: inv.grandTotal,
         change: 0,
       },

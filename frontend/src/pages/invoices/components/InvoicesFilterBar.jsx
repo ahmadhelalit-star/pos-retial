@@ -62,6 +62,7 @@ export function InvoicesFilterBar({
               { id: 'all', label: 'الكل' },
               { id: 'cash', label: 'نقدي' },
               { id: 'card', label: 'شبكة' },
+              { id: 'split', label: 'مختلط' },
             ].map((tab) => (
               <button
                 key={tab.id}

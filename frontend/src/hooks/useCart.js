@@ -4,7 +4,7 @@ const TAX_RATE = 0.15; // 15% ضريبة القيمة المضافة
 
 export function useCart() {
   const [items, setItems] = useState([]);
-  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountPercent, setDiscountPercentState] = useState(0);
   const [customer, setCustomer] = useState({
     id: 'walk-in',
     name: 'عميل نقدي (عام)',
@@ -12,20 +12,45 @@ export function useCart() {
   });
   const [heldOrders, setHeldOrders] = useState([]);
 
+  const setDiscountPercent = useCallback((value) => {
+    const parsed = Number(value);
+    setDiscountPercentState(Number.isFinite(parsed) ? Math.min(100, Math.max(0, parsed)) : 0);
+  }, []);
+
   // إضافة منتج إلى السلة
   const addToCart = useCallback((product) => {
+    let added = false;
     setItems((prevItems) => {
       const existingIndex = prevItems.findIndex((item) => item.id === product.id);
+      const currentQty = existingIndex > -1 ? prevItems[existingIndex].qty : 0;
+      const maxQty = Number.isFinite(Number(product.stock))
+        ? Math.max(0, Number(product.stock))
+        : Infinity;
+      if (currentQty >= maxQty) return prevItems;
+
       if (existingIndex > -1) {
         const updated = [...prevItems];
         updated[existingIndex] = {
           ...updated[existingIndex],
           qty: updated[existingIndex].qty + 1,
         };
+        added = true;
         return updated;
       }
-      return [...prevItems, { ...product, qty: 1 }];
+      added = true;
+      return [...prevItems, { ...product, qty: 1, discountPercent: 0 }];
     });
+    return added;
+  }, []);
+
+  const setItemDiscountPercent = useCallback((productId, value) => {
+    const parsed = Number(value);
+    const discountPercent = Number.isFinite(parsed)
+      ? Math.min(100, Math.max(0, parsed))
+      : 0;
+    setItems((prevItems) => prevItems.map((item) =>
+      item.id === productId ? { ...item, discountPercent } : item
+    ));
   }, []);
 
   // تعديل كمية مادة معينة
@@ -42,11 +67,19 @@ export function useCart() {
 
   // زيادة بمقدار 1
   const incrementQty = useCallback((productId) => {
+    let incremented = false;
     setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === productId ? { ...item, qty: item.qty + 1 } : item
-      )
+      prevItems.map((item) => {
+        if (item.id !== productId) return item;
+        const maxQty = Number.isFinite(Number(item.stock))
+          ? Math.max(0, Number(item.stock))
+          : Infinity;
+        if (item.qty >= maxQty) return item;
+        incremented = true;
+        return { ...item, qty: item.qty + 1 };
+      })
     );
+    return incremented;
   }, []);
 
   // إنقاص بمقدار 1
@@ -75,10 +108,24 @@ export function useCart() {
   }, []);
 
   // الحسابات المالية
-  const { subtotal, discountAmount, taxableAmount, taxAmount, grandTotal, totalItemsCount } =
+  const {
+    subtotal,
+    itemDiscountAmount,
+    invoiceDiscountAmount,
+    discountAmount,
+    taxableAmount,
+    taxAmount,
+    grandTotal,
+    totalItemsCount,
+  } =
     useMemo(() => {
       const sub = items.reduce((acc, item) => acc + item.price * item.qty, 0);
-      const disc = (sub * (discountPercent || 0)) / 100;
+      const itemDiscount = items.reduce(
+        (acc, item) => acc + item.price * item.qty * (item.discountPercent || 0) / 100,
+        0
+      );
+      const invoiceDiscount = ((sub - itemDiscount) * (discountPercent || 0)) / 100;
+      const disc = itemDiscount + invoiceDiscount;
       const taxable = Math.max(0, sub - disc);
       const tax = taxable * TAX_RATE;
       const total = taxable + tax;
@@ -86,6 +133,8 @@ export function useCart() {
 
       return {
         subtotal: sub,
+        itemDiscountAmount: itemDiscount,
+        invoiceDiscountAmount: invoiceDiscount,
         discountAmount: disc,
         taxableAmount: taxable,
         taxAmount: tax,
@@ -103,6 +152,8 @@ export function useCart() {
       items: [...items],
       customer: { ...customer },
       discountPercent,
+      itemDiscountAmount,
+      invoiceDiscountAmount,
       grandTotal,
       createdAt: new Date().toLocaleTimeString('ar-SA', {
         hour: '2-digit',
@@ -113,17 +164,32 @@ export function useCart() {
     setHeldOrders((prev) => [newHeldOrder, ...prev]);
     clearCart();
     return true;
-  }, [items, customer, discountPercent, grandTotal, clearCart]);
+  }, [items, customer, discountPercent, itemDiscountAmount, invoiceDiscountAmount, grandTotal, clearCart]);
 
   // استرجاع فاتورة معلقة
-  const restoreHeldOrder = useCallback((orderId) => {
+  const restoreHeldOrder = useCallback((orderId, currentProducts = []) => {
     const order = heldOrders.find((o) => o.id === orderId);
-    if (!order) return;
+    if (!order) return null;
 
-    setItems(order.items);
+    let adjusted = false;
+    const restoredItems = order.items.reduce((restored, item) => {
+      const currentProduct = currentProducts.find((product) => product.id === item.id);
+      const maxQty = currentProduct && Number.isFinite(Number(currentProduct.stock))
+        ? Math.max(0, Number(currentProduct.stock))
+        : item.qty;
+      const qty = Math.min(item.qty, maxQty);
+      if (qty < item.qty) adjusted = true;
+      if (qty > 0) {
+        restored.push({ ...item, ...(currentProduct || {}), qty });
+      }
+      return restored;
+    }, []);
+
+    setItems(restoredItems);
     setCustomer(order.customer);
     setDiscountPercent(order.discountPercent);
     setHeldOrders((prev) => prev.filter((o) => o.id !== orderId));
+    return { adjusted, restoredCount: restoredItems.length };
   }, [heldOrders]);
 
   // حذف فاتورة معلقة
@@ -137,6 +203,9 @@ export function useCart() {
     setCustomer,
     discountPercent,
     setDiscountPercent,
+    setItemDiscountPercent,
+    itemDiscountAmount,
+    invoiceDiscountAmount,
     heldOrders,
     addToCart,
     updateQty,

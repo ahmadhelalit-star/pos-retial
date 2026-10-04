@@ -23,6 +23,9 @@ export function SalesPage({
     setCustomer,
     discountPercent,
     setDiscountPercent,
+    setItemDiscountPercent,
+    itemDiscountAmount,
+    invoiceDiscountAmount,
     heldOrders,
     addToCart,
     incrementQty,
@@ -45,6 +48,36 @@ export function SalesPage({
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSaleData, setCompletedSaleData] = useState(null);
   const [mobileTab, setMobileTab] = useState('products'); // 'products' | 'cart'
+  const [stockNotice, setStockNotice] = useState('');
+
+  const handleAddToCart = (product) => {
+    if (!isShiftOpen) return;
+    const added = addToCart(product);
+    if (!added) {
+      setStockNotice(`لا توجد كمية متاحة إضافية من ${product.name}`);
+      window.clearTimeout(handleAddToCart.noticeTimer);
+      handleAddToCart.noticeTimer = window.setTimeout(() => setStockNotice(''), 2800);
+    }
+  };
+
+  const handleIncrementQty = (productId) => {
+    const incremented = incrementQty(productId);
+    if (!incremented) {
+      const product = products.find((item) => item.id === productId);
+      setStockNotice(product ? `وصلت للحد المتاح من ${product.name}` : 'وصلت للحد المتاح من هذا المنتج');
+      window.clearTimeout(handleIncrementQty.noticeTimer);
+      handleIncrementQty.noticeTimer = window.setTimeout(() => setStockNotice(''), 2800);
+    }
+  };
+
+  const handleRestoreHeldOrder = (orderId) => {
+    const result = restoreHeldOrder(orderId, products);
+    if (result?.adjusted) {
+      setStockNotice('تم تعديل كميات الفاتورة المعلقة حسب المخزون المتاح حاليًا');
+      window.clearTimeout(handleRestoreHeldOrder.noticeTimer);
+      handleRestoreHeldOrder.noticeTimer = window.setTimeout(() => setStockNotice(''), 3500);
+    }
+  };
 
   // إتمام عملية البيع وفتح الإيصال وتمرير الفاتورة للسجل العام
   const handleCompleteSale = (paymentDetails) => {
@@ -57,10 +90,17 @@ export function SalesPage({
       date: now.toLocaleDateString('ar-SA'),
       time: now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
       timestamp: now.getTime(),
-      items: items.map((it) => ({ ...it, returnedQty: 0 })),
+      items: items.map((it) => ({
+        ...it,
+        productDiscountAmount: it.price * it.qty * (it.discountPercent || 0) / 100,
+        returnedQty: 0,
+      })),
       customer,
       subtotal,
       discountAmount,
+      itemDiscountAmount,
+      invoiceDiscountAmount,
+      invoiceDiscountPercent: discountPercent,
       taxableAmount,
       taxAmount,
       grandTotal,
@@ -148,10 +188,7 @@ export function SalesPage({
         >
           <ProductGrid
             products={products}
-            onAddToCart={(prod) => {
-              if (!isShiftOpen) return;
-              addToCart(prod);
-            }}
+            onAddToCart={handleAddToCart}
           />
         </main>
 
@@ -167,9 +204,10 @@ export function SalesPage({
             setCustomer={setCustomer}
             customers={customers}
             onQuickAddCustomer={onQuickAddCustomer}
-            onIncrement={incrementQty}
+            onIncrement={handleIncrementQty}
             onDecrement={decrementQty}
             onRemove={removeFromCart}
+            onDiscountChange={setItemDiscountPercent}
             onClearCart={clearCart}
             onHoldOrder={holdOrder}
             onOpenPayment={() => {
@@ -179,7 +217,8 @@ export function SalesPage({
             discountPercent={discountPercent}
             setDiscountPercent={setDiscountPercent}
             subtotal={subtotal}
-            discountAmount={discountAmount}
+            itemDiscountAmount={itemDiscountAmount}
+            invoiceDiscountAmount={invoiceDiscountAmount}
             taxAmount={taxAmount}
             grandTotal={grandTotal}
             totalItemsCount={totalItemsCount}
@@ -232,6 +271,12 @@ export function SalesPage({
         </div>
       </div>
 
+      {stockNotice && (
+        <div role="status" className="fixed bottom-20 lg:bottom-5 left-5 z-40 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 shadow-lg">
+          {stockNotice}
+        </div>
+      )}
+
       {/* Modals */}
       <PaymentModal
         isOpen={isPaymentOpen}
@@ -245,7 +290,7 @@ export function SalesPage({
         isOpen={isHeldOrdersOpen}
         onClose={() => setIsHeldOrdersOpen(false)}
         heldOrders={heldOrders}
-        onRestoreOrder={restoreHeldOrder}
+        onRestoreOrder={handleRestoreHeldOrder}
         onDeleteOrder={deleteHeldOrder}
       />
 

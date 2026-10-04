@@ -16,6 +16,7 @@ export function ReturnModal({
   onConfirmReturn,
 }) {
   const [returnQuantities, setReturnQuantities] = useState({});
+  const [restockSelections, setRestockSelections] = useState({});
   const [refundMethod, setRefundMethod] = useState('cash');
   const [reason, setReason] = useState('رغبة العميل');
 
@@ -27,6 +28,7 @@ export function ReturnModal({
         initial[it.id] = 0;
       });
       setReturnQuantities(initial);
+      setRestockSelections(Object.fromEntries(invoice.items.map((it) => [it.id, true])));
       setRefundMethod(invoice.payment?.method === 'card' ? 'card' : 'cash');
     }
   }, [invoice]);
@@ -53,18 +55,46 @@ export function ReturnModal({
 
   // Calculations for return
   const { refundSubtotal, refundTax, totalRefundAmount, totalReturnUnits } = useMemo(() => {
-    let sub = 0;
+    let returnedGross = 0;
+    let returnedProductDiscount = 0;
     let units = 0;
 
     availableItems.forEach((it) => {
       const qtyToReturn = returnQuantities[it.id] || 0;
       if (qtyToReturn > 0) {
-        sub += qtyToReturn * it.price;
+        returnedGross += qtyToReturn * it.price;
+        const itemGross = it.price * it.qty;
+        const itemDiscountRate = Number.isFinite(it.discountPercent)
+          ? it.discountPercent / 100
+          : itemGross > 0
+          ? (it.productDiscountAmount || 0) / itemGross
+          : 0;
+        returnedProductDiscount += qtyToReturn * it.price * itemDiscountRate;
         units += qtyToReturn;
       }
     });
 
-    const tax = sub * 0.15;
+    const originalGross = invoice?.items?.reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    ) ?? 0;
+    const originalProductDiscount = invoice?.items?.reduce((sum, item) => {
+      const itemGross = item.price * item.qty;
+      return sum + (item.productDiscountAmount ?? itemGross * (item.discountPercent || 0) / 100);
+    }, 0) ?? 0;
+    const originalAfterItemDiscount = Math.max(0, originalGross - originalProductDiscount);
+    const invoiceDiscountAmount = invoice?.invoiceDiscountAmount ?? Math.max(
+      0,
+      (invoice?.discountAmount || 0) - originalProductDiscount
+    );
+    const discountRatio = originalAfterItemDiscount > 0
+      ? Math.min(1, Math.max(0, invoiceDiscountAmount / originalAfterItemDiscount))
+      : 0;
+    const sub = Math.max(0, returnedGross - returnedProductDiscount) * (1 - discountRatio);
+    const taxRate = invoice?.taxableAmount > 0
+      ? (invoice.taxAmount || 0) / invoice.taxableAmount
+      : 0.15;
+    const tax = sub * taxRate;
     const total = sub + tax;
 
     return {
@@ -73,7 +103,7 @@ export function ReturnModal({
       totalRefundAmount: total,
       totalReturnUnits: units,
     };
-  }, [availableItems, returnQuantities]);
+  }, [availableItems, returnQuantities, invoice]);
 
   if (!isOpen || !invoice) return null;
 
@@ -88,6 +118,7 @@ export function ReturnModal({
         price: it.price,
         unit: it.unit,
         qtyToReturn: returnQuantities[it.id],
+        restockQty: restockSelections[it.id] ? returnQuantities[it.id] : 0,
       }));
 
     onConfirmReturn({
@@ -161,6 +192,20 @@ export function ReturnModal({
                           المتاح للإرجاع: {item.availableQty}
                         </span>
                       </div>
+                      {currentReturnQty > 0 && (
+                        <label className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={restockSelections[item.id] ?? true}
+                            onChange={(event) => setRestockSelections((prev) => ({
+                              ...prev,
+                              [item.id]: event.target.checked,
+                            }))}
+                            className="h-4 w-4 accent-emerald-600"
+                          />
+                          <span>الصنف صالح للبيع وإعادته للمخزون</span>
+                        </label>
+                      )}
                     </div>
 
                     {/* Quantity Selector */}

@@ -14,6 +14,12 @@ import { INITIAL_CUSTOMERS } from './data/mockCustomers';
 import { INITIAL_SUPPLIERS } from './data/mockSuppliers';
 import { INITIAL_PURCHASE_INVOICES } from './data/mockPurchaseInvoices';
 import { DEFAULT_STORE_SETTINGS } from './data/defaultSettings';
+import {
+  adjustProductStock,
+  applyRestockedReturns,
+  deductSoldItems,
+  receivePurchasedItems,
+} from './domain/inventory';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'purchases' | 'customers' | 'shift' | 'settings'
@@ -49,48 +55,10 @@ export default function App() {
     status: 'open', // 'open' | 'closed'
   });
 
-  // خصم المخزون عند إتمام بيع
-  const deductStock = (items) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        const soldItem = items.find((i) => i.id === p.id);
-        if (!soldItem) return p;
-        return { ...p, stock: Math.max(0, (p.stock ?? 0) - soldItem.qty) };
-      })
-    );
-  };
-
-  // إعادة المخزون عند مرتجع
-  const restoreStock = (prevInvoices, nextInvoices) => {
-    const deltas = {};
-    nextInvoices.forEach((inv) => {
-      const prevInv = prevInvoices.find((p) => p.id === inv.id);
-      if (!prevInv || !inv.items) return;
-      inv.items.forEach((item) => {
-        const prevItem = prevInv.items?.find((pi) => pi.id === item.id);
-        const prevReturned = prevItem?.returnedQty ?? 0;
-        const currReturned = item.returnedQty ?? 0;
-        const diff = currReturned - prevReturned;
-        if (diff > 0) {
-          deltas[item.id] = (deltas[item.id] ?? 0) + diff;
-        }
-      });
-    });
-
-    if (Object.keys(deltas).length === 0) return;
-
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (!deltas[p.id]) return p;
-        return { ...p, stock: (p.stock ?? 0) + deltas[p.id] };
-      })
-    );
-  };
-
   // عند إتمام بيع جديد في نقطة البيع
   const handleSaleCompleted = (newInvoice) => {
     setInvoices((prev) => [newInvoice, ...prev]);
-    deductStock(newInvoice.items ?? []);
+    setProducts((prev) => deductSoldItems(prev, newInvoice.items));
 
     // تحديث رصيد العميل الآجل ونقاط الولاء وسجل مشترياته
     if (newInvoice.customer && newInvoice.customer.id !== 'walk-in') {
@@ -115,10 +83,8 @@ export default function App() {
 
   // تحديث الفواتير (بعد مرتجع) مع إعادة المخزون
   const handleUpdateInvoices = (nextInvoices) => {
-    setInvoices((prev) => {
-      restoreStock(prev, nextInvoices);
-      return nextInvoices;
-    });
+    setProducts((prev) => applyRestockedReturns(prev, invoices, nextInvoices));
+    setInvoices(nextInvoices);
   };
 
   // ---- إدارة المنتجات (Inventory CRUD) ----
@@ -135,11 +101,7 @@ export default function App() {
   };
 
   const handleAdjustStock = (id, delta) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, stock: Math.max(0, (p.stock ?? 0) + delta) } : p
-      )
-    );
+    setProducts((prev) => adjustProductStock(prev, id, delta));
   };
 
   // ---- إدارة العملاء (Customers CRUD & Balance) ----
@@ -221,35 +183,7 @@ export default function App() {
     setPurchaseInvoices((prev) => [newInvoice, ...prev]);
 
     // 2. زيادة كميات المخزون وتحديث أسعار التكلفة للمنتجات
-    setProducts((prev) => {
-      let updated = [...prev];
-      newInvoice.items.forEach((item) => {
-        const existingIdx = updated.findIndex((p) => p.id === item.id);
-        if (existingIdx >= 0) {
-          const currentProd = updated[existingIdx];
-          updated[existingIdx] = {
-            ...currentProd,
-            stock: (currentProd.stock ?? 0) + item.qty,
-            costPrice: item.costPrice,
-            price: item.sellingPrice || currentProd.price,
-          };
-        } else {
-          // إذا كان صنفاً جديداً تمت إضافته عبر فاتورة الشراء
-          updated.push({
-            id: item.id || Date.now(),
-            name: item.name,
-            barcode: item.barcode,
-            category: 'canned',
-            unit: item.unit || 'حبة',
-            price: item.sellingPrice || item.costPrice * 1.3,
-            costPrice: item.costPrice,
-            stock: item.qty,
-            color: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-          });
-        }
-      });
-      return updated;
-    });
+    setProducts((prev) => receivePurchasedItems(prev, newInvoice.items));
 
     // 3. تحديث حساب المورد (زيادة المشتريات وإضافة المتبقي الآجل للرصيد)
     setSuppliers((prev) =>

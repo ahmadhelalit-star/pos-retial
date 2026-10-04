@@ -44,9 +44,13 @@ export function ShiftPage({
     let taxRef = 0;
 
     invoices.forEach((inv) => {
-      const isCash = inv.paymentMethod === 'نقدي';
+      const paymentMethod = inv.payment?.method;
+      const isCash = paymentMethod === 'cash' || (!paymentMethod && inv.paymentMethod === 'نقدي');
 
-      if (isCash) {
+      if (paymentMethod === 'split') {
+        cash += inv.payment.cashAmount || 0;
+        card += inv.payment.cardAmount || 0;
+      } else if (isCash) {
         cash += inv.grandTotal;
       } else {
         card += inv.grandTotal;

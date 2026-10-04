@@ -22,13 +22,15 @@ export function CartPanel({
   onIncrement,
   onDecrement,
   onRemove,
+  onDiscountChange,
   onClearCart,
   onHoldOrder,
   onOpenPayment,
   discountPercent,
   setDiscountPercent,
   subtotal,
-  discountAmount,
+  itemDiscountAmount,
+  invoiceDiscountAmount,
   taxAmount,
   grandTotal,
   totalItemsCount,
@@ -111,6 +113,7 @@ export function CartPanel({
               onIncrement={onIncrement}
               onDecrement={onDecrement}
               onRemove={onRemove}
+              onDiscountChange={onDiscountChange}
             />
           ))
         ) : (
@@ -141,6 +144,19 @@ export function CartPanel({
 
           {showDiscountInput && (
             <div className="flex items-center gap-1">
+              <label className="flex items-center gap-1 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] text-gray-600">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={discountPercent}
+                  onChange={(event) => setDiscountPercent(event.target.value)}
+                  className="w-10 text-center font-mono text-gray-800 outline-none"
+                  aria-label="نسبة خصم الفاتورة"
+                />
+                % مخصص
+              </label>
               {[5, 10, 15].map((pct) => (
                 <button
                   key={pct}
@@ -175,10 +191,16 @@ export function CartPanel({
             <span>{subtotal.toFixed(2)} ر.س</span>
           </div>
 
-          {discountAmount > 0 && (
+          {itemDiscountAmount > 0 && (
             <div className="flex justify-between text-red-600 font-medium">
-              <span className="font-sans">الخصم المطبق:</span>
-              <span>- {discountAmount.toFixed(2)} ر.س</span>
+              <span className="font-sans">خصم الأصناف:</span>
+              <span>- {itemDiscountAmount.toFixed(2)} ر.س</span>
+            </div>
+          )}
+          {invoiceDiscountAmount > 0 && (
+            <div className="flex justify-between text-red-600 font-medium">
+              <span className="font-sans">خصم الفاتورة:</span>
+              <span>- {invoiceDiscountAmount.toFixed(2)} ر.س</span>
             </div>
           )}
 

@@ -13,6 +13,25 @@ import {
   SparklesIcon,
 } from '../../components/common/Icons';
 
+function getInvoiceDiscountRate(invoice) {
+  if (Number.isFinite(invoice.invoiceDiscountPercent)) {
+    return Math.min(1, Math.max(0, invoice.invoiceDiscountPercent / 100));
+  }
+
+  const gross = (invoice.items || []).reduce((sum, item) => sum + item.price * item.qty, 0);
+  const itemDiscounts = (invoice.items || []).reduce((sum, item) => {
+    const lineGross = item.price * item.qty;
+    return sum + (item.productDiscountAmount ?? lineGross * (item.discountPercent || 0) / 100);
+  }, 0);
+  const invoiceDiscount = invoice.invoiceDiscountAmount ?? Math.max(0, (invoice.discountAmount || 0) - itemDiscounts);
+  return gross > itemDiscounts ? Math.min(1, Math.max(0, invoiceDiscount / (gross - itemDiscounts))) : 0;
+}
+
+function getDiscountedUnitPrice(invoice, item) {
+  const itemDiscountRate = Math.min(1, Math.max(0, (item.discountPercent || 0) / 100));
+  return item.price * (1 - itemDiscountRate) * (1 - getInvoiceDiscountRate(invoice));
+}
+
 export function DashboardPage({
   invoices = [],
   products = [],
@@ -40,12 +59,12 @@ export function DashboardPage({
         const netQty = (item.qty || 1) - (item.returnedQty || 0);
         if (netQty <= 0) return;
         const matchingProd = products.find((p) => p.id === item.id);
-        const unitCost = matchingProd?.costPrice ?? item.costPrice ?? (item.price * 0.7);
+        const unitCost = item.costPrice ?? matchingProd?.costPrice ?? (item.price * 0.7);
         totalCost += netQty * unitCost;
       });
     });
 
-    const netProfit = Math.max(0, totalRevenue - totalVat - totalCost);
+    const netProfit = totalRevenue - totalVat - totalCost;
     const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
 
     // 2. حركة الأيام السبعة الأخيرة (Daily Trend)
@@ -89,6 +108,19 @@ export function DashboardPage({
 
     validInvoices.forEach((inv) => {
       const m = inv.payment?.method || (inv.paymentMethod === 'شبكة' ? 'card' : inv.paymentMethod === 'آجل' ? 'credit' : 'cash');
+      if (m === 'split') {
+        const cashAmount = inv.payment?.cashAmount || 0;
+        const cardAmount = inv.payment?.cardAmount || 0;
+        if (cashAmount > 0) {
+          paymentBreakdown.cash.amount += cashAmount;
+          paymentBreakdown.cash.count += 1;
+        }
+        if (cardAmount > 0) {
+          paymentBreakdown.card.amount += cardAmount;
+          paymentBreakdown.card.count += 1;
+        }
+        return;
+      }
       const key = m === 'card' ? 'card' : m === 'credit' ? 'credit' : 'cash';
       paymentBreakdown[key].amount += inv.grandTotal || 0;
       paymentBreakdown[key].count += 1;
@@ -100,7 +132,7 @@ export function DashboardPage({
       (inv.items || []).forEach((item) => {
         const prod = products.find((p) => p.id === item.id);
         const catId = prod?.category || 'other';
-        const lineTotal = (item.qty - (item.returnedQty || 0)) * item.price;
+        const lineTotal = (item.qty - (item.returnedQty || 0)) * getDiscountedUnitPrice(inv, item);
         categoryTotals[catId] = (categoryTotals[catId] || 0) + Math.max(0, lineTotal);
       });
     });
@@ -128,13 +160,15 @@ export function DashboardPage({
             revenue: 0,
             profit: 0,
             unit: prod?.unit || item.unit || 'حبة',
-            costPrice: prod?.costPrice || item.price * 0.7,
-            price: item.price,
+            costPrice: item.costPrice ?? prod?.costPrice ?? item.price * 0.7,
+            price: getDiscountedUnitPrice(inv, item),
           };
         }
         productStats[item.id].qtySold += netQty;
-        productStats[item.id].revenue += netQty * item.price;
-        productStats[item.id].profit += netQty * (item.price - productStats[item.id].costPrice);
+        const netPrice = getDiscountedUnitPrice(inv, item);
+        productStats[item.id].revenue += netQty * netPrice;
+        const unitCost = item.costPrice ?? products.find((product) => product.id === item.id)?.costPrice ?? item.price * 0.7;
+        productStats[item.id].profit += netQty * (netPrice - unitCost);
       });
     });
 

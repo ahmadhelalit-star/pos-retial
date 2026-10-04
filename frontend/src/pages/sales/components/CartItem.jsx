@@ -1,7 +1,9 @@
 import { PlusIcon, MinusIcon, TrashIcon } from '../../../components/common/Icons';
 
-export function CartItem({ item, onIncrement, onDecrement, onRemove }) {
-  const lineTotal = (item.price * item.qty).toFixed(2);
+export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountChange }) {
+  const discountPercent = item.discountPercent || 0;
+  const discountedPrice = item.price * (1 - discountPercent / 100);
+  const lineTotal = (discountedPrice * item.qty).toFixed(2);
 
   return (
     <div className="flex items-center justify-between p-3 bg-white hover:bg-gray-50/80 rounded-xl border border-gray-200/70 transition-all select-none gap-2">
@@ -11,12 +13,26 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove }) {
           {item.name}
         </h4>
         <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 font-mono">
-          <span>{item.price.toFixed(2)} ر.س</span>
+          <span className={discountPercent > 0 ? 'line-through text-gray-400' : ''}>{item.price.toFixed(2)} ر.س</span>
+          {discountPercent > 0 && <span className="font-bold text-emerald-700">{discountedPrice.toFixed(2)}</span>}
           <span className="text-gray-300">×</span>
           <span className="text-emerald-700 font-bold font-sans">
             {item.qty} {item.unit}
           </span>
         </div>
+        <label className="mt-1 flex items-center gap-1 text-[10px] text-gray-500">
+          <span>خصم الصنف %</span>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={discountPercent}
+            onChange={(event) => onDiscountChange(item.id, event.target.value)}
+            className="w-12 rounded border border-gray-200 px-1 py-0.5 text-center font-mono text-gray-700"
+            aria-label={`نسبة الخصم على ${item.name}`}
+          />
+        </label>
       </div>
 
       {/* Quantity Stepper */}
