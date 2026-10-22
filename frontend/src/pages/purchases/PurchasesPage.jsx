@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useHeaderSearchSlot } from '../../components/layout/headerSearchSlot';
 import { PurchasesSummaryCards } from './components/PurchasesSummaryCards';
 import { PurchaseFilterBar } from './components/PurchaseFilterBar';
 import { PurchaseInvoicesList } from './components/PurchaseInvoicesList';
@@ -12,14 +13,19 @@ export function PurchasesPage({
   suppliers = [],
   purchaseInvoices = [],
   products = [],
+  initialView = 'invoices',
+  taxRatePercent = 15,
   onSavePurchaseInvoice,
   onSaveSupplier,
   onDeleteSupplier,
   onPaySupplier,
 }) {
-  const [activeView, setActiveView] = useState('invoices'); // 'invoices' | 'suppliers'
+  const [activeView, setActiveView] = useState(
+    initialView === 'suppliers' ? 'suppliers' : 'invoices'
+  ); // 'invoices' | 'suppliers'
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all'); // 'all' | 'unpaid' | 'paid' | 'partial'
+  const headerSearchSlot = useHeaderSearchSlot();
 
   // Modals state
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
@@ -120,6 +126,7 @@ export function PurchasesPage({
         onAddNewSupplier={handleOpenAddSupplier}
         invoicesCount={purchaseInvoices.length}
         suppliersCount={suppliers.length}
+        searchPortalTarget={headerSearchSlot}
       />
 
       {/* 3. Main List Content */}
@@ -147,8 +154,9 @@ export function PurchasesPage({
         onClose={() => setIsNewInvoiceOpen(false)}
         suppliers={suppliers}
         products={products}
+        purchaseInvoices={purchaseInvoices}
+        taxRatePercent={taxRatePercent}
         onSavePurchaseInvoice={onSavePurchaseInvoice}
-        onQuickAddSupplier={handleOpenAddSupplier}
       />
 
       {/* Purchase Invoice Details Modal */}

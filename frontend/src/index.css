@@ -13,3 +13,74 @@
   }
 }
 
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c5c5d3 transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #c5c5d3;
+  border-radius: 9999px;
+}
+
+@media (max-height: 720px) {
+  .sidebar-scroll {
+    gap: 2px;
+  }
+}
+
+@media print {
+  @page {
+    margin: 6mm;
+  }
+
+  body:has(.print-overlay) #root {
+    display: none !important;
+  }
+
+  body:has(.print-overlay) .print-overlay {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+  }
+
+  body:has(.print-overlay) .print-overlay > div {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  .print-area {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  #root,
+  #root > div {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+

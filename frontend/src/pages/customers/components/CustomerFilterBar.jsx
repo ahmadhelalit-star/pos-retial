@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import {
   SearchIcon,
   PlusIcon,
@@ -15,31 +16,36 @@ export function CustomerFilterBar({
   balanceFilter,
   onBalanceFilterChange,
   onAddNewCustomer,
+  searchPortalTarget,
 }) {
+  const searchField = (
+    <div className="relative w-full md:w-80">
+      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+        <SearchIcon className="w-4 h-4" />
+      </div>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="ابحث بالاسم، الجوال، أو الرقم الضريبي..."
+        className="w-full pl-3 pr-10 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-sans"
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => onSearchChange('')}
+          className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="p-4 bg-white border-b border-gray-200 flex flex-col md:flex-row items-center justify-between gap-3">
       {/* Search Input */}
-      <div className="relative w-full md:w-80">
-        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
-          <SearchIcon className="w-4 h-4" />
-        </div>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="ابحث بالاسم، الجوال، أو الرقم الضريبي..."
-          className="w-full pl-3 pr-10 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-sans"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => onSearchChange('')}
-            className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      {searchPortalTarget ? createPortal(searchField, searchPortalTarget) : searchField}
 
       {/* Filter Tabs & Add Button */}
       <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">

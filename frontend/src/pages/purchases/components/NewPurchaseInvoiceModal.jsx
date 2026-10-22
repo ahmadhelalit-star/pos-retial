@@ -1,21 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   XMarkIcon,
   CheckIcon,
   PlusIcon,
   TrashIcon,
   TruckIcon,
-  SearchIcon,
   BarcodeIcon,
 } from '../../../components/common/Icons';
+import { nextDocumentNumber } from '../../../domain/numbering';
 
 export function NewPurchaseInvoiceModal({
   isOpen,
   onClose,
   suppliers = [],
   products = [],
+  purchaseInvoices = [],
+  taxRatePercent = 15,
   onSavePurchaseInvoice,
-  onQuickAddSupplier,
 }) {
   // Invoice General Details
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
@@ -29,7 +30,7 @@ export function NewPurchaseInvoiceModal({
 
   // Item Selector State
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [, setItemSearchQuery] = useState('');
   const [qty, setQty] = useState('10');
   const [costPrice, setCostPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
@@ -42,18 +43,6 @@ export function NewPurchaseInvoiceModal({
 
   // Invoice Items List
   const [invoiceItems, setInvoiceItems] = useState([]);
-
-  // Filtered Products for Autocomplete
-  const filteredProducts = useMemo(() => {
-    if (!itemSearchQuery.trim()) return products.slice(0, 10);
-    const q = itemSearchQuery.toLowerCase().trim();
-    return products
-      .filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) || (p.barcode || '').includes(q)
-      )
-      .slice(0, 15);
-  }, [products, itemSearchQuery]);
 
   // When a product is selected from dropdown
   const handleSelectProduct = (prod) => {
@@ -144,7 +133,7 @@ export function NewPurchaseInvoiceModal({
 
   // Financial Calculations
   const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
-  const taxRate = 15; // 15% VAT
+  const taxRate = taxRatePercent;
   const taxAmount = subtotal * (taxRate / 100);
   const grandTotal = subtotal + taxAmount;
 
@@ -184,10 +173,11 @@ export function NewPurchaseInvoiceModal({
     }
 
     const supplier = suppliers.find((s) => s.id === selectedSupplierId);
+    const invoiceNumber = nextDocumentNumber(purchaseInvoices, 'PINV', 4);
 
     const newInvoice = {
-      id: `PINV-${Math.floor(1000 + Math.random() * 9000)}`,
-      invoiceNumber: `PINV-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: invoiceNumber,
+      invoiceNumber,
       supplierInvoiceNo: supplierInvoiceNo.trim() || undefined,
       supplierId: supplier.id,
       supplierName: supplier.name,
@@ -574,7 +564,7 @@ export function NewPurchaseInvoiceModal({
                 </span>
               </div>
               <div className="flex justify-between items-center py-0.5">
-                <span>ضريبة القيمة المضافة (15%):</span>
+                <span>ضريبة القيمة المضافة ({taxRatePercent}%):</span>
                 <span className="font-mono font-bold">
                   {taxAmount.toFixed(2)} ر.س
                 </span>

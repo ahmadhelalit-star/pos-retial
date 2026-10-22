@@ -17,6 +17,11 @@ export function CategoryBreakdownChart({
       </div>
 
       <div className="space-y-2.5 overflow-y-auto max-h-60 pr-1">
+        {totalSales <= 0 && (
+          <div className="py-8 text-center text-xs text-gray-400 font-bold">
+            لا توجد مبيعات مسجلة في الفترة المحددة
+          </div>
+        )}
         {categorySales.map((cat, idx) => {
           const pct = totalSales > 0 ? (cat.amount / totalSales) * 100 : 0;
 

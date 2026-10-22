@@ -11,6 +11,8 @@ export function ShiftPage({
   onUpdateShift,
   onCloseShift,
   onOpenNewShift,
+  taxRate = 0.15,
+  storeSettings = {},
 }) {
   // Counts of each currency denomination in drawer
   const [counts, setCounts] = useState(() => {
@@ -63,8 +65,8 @@ export function ShiftPage({
         inv.items.forEach((it) => {
           const ret = it.returnedQty || 0;
           if (ret > 0) {
-            const itemGross = ret * it.price * 1.15; // مع الضريبة
-            const itemTax = ret * it.price * 0.15;
+            const itemGross = ret * it.price * (1 + taxRate);
+            const itemTax = ret * it.price * taxRate;
             taxRef += itemTax;
 
             if (isCash) {
@@ -90,7 +92,7 @@ export function ShiftPage({
       expectedCashInDrawer: expectedCash,
       netSales: net,
     };
-  }, [invoices, shift.openingFloat]);
+  }, [invoices, shift.openingFloat, taxRate]);
 
   // Actual cash physically counted
   const actualCountedTotal = useMemo(() => {
@@ -136,6 +138,9 @@ export function ShiftPage({
   // Close Shift & Produce Z-Report
   const handleInitiateCloseShift = () => {
     const report = {
+      reportNumber: `Z-${Date.now().toString().slice(-6)}`,
+      generatedAt: Date.now(),
+      taxRatePercent: Math.round(taxRate * 100),
       shiftId: shift.id,
       cashier: shift.cashier,
       openedAt: shift.openedAt,
@@ -209,6 +214,7 @@ export function ShiftPage({
         isOpen={isZReportOpen}
         onClose={() => setIsZReportOpen(false)}
         reportData={zReportData}
+        storeSettings={storeSettings}
       />
     </div>
   );

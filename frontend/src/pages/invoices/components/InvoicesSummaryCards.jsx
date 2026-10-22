@@ -1,6 +1,6 @@
 import { BanknotesIcon, DocumentTextIcon, ArrowPathIcon, CheckIcon } from '../../../components/common/Icons';
 
-export function InvoicesSummaryCards({ invoices = [] }) {
+export function InvoicesSummaryCards({ invoices = [], taxRate = 0.15 }) {
   const totalInvoices = invoices.length;
 
   const totalSales = invoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
@@ -10,7 +10,7 @@ export function InvoicesSummaryCards({ invoices = [] }) {
     if (!inv.items) return sum;
     const itemRefunds = inv.items.reduce((itemSum, it) => {
       const returned = it.returnedQty || 0;
-      return itemSum + returned * it.price * 1.15; // مع الضريبة التقريبية
+      return itemSum + returned * it.price * (1 + taxRate); // مع الضريبة
     }, 0);
     return sum + itemRefunds;
   }, 0);

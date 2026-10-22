@@ -6,12 +6,17 @@ import { CategoryBreakdownChart } from './components/CategoryBreakdownChart';
 import { TopProductsTable } from './components/TopProductsTable';
 import { LowStockAlertCard } from './components/LowStockAlertCard';
 import { CATEGORIES } from '../../data/mockProducts';
-import {
-  DocumentChartBarIcon,
-  PrinterIcon,
-  ArrowPathIcon,
-  SparklesIcon,
-} from '../../components/common/Icons';
+import { DocumentChartBarIcon, PrinterIcon } from '../../components/common/Icons';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const LOW_STOCK_THRESHOLD = 10;
+const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+function getInvoiceTime(invoice) {
+  if (invoice?.timestamp == null) return null;
+  const time = new Date(invoice.timestamp).getTime();
+  return Number.isFinite(time) ? time : null;
+}
 
 function getInvoiceDiscountRate(invoice) {
   if (Number.isFinite(invoice.invoiceDiscountPercent)) {
@@ -35,80 +40,111 @@ function getDiscountedUnitPrice(invoice, item) {
 export function DashboardPage({
   invoices = [],
   products = [],
-  customers = [],
   storeSettings = {},
   onNavigateToPurchases,
 }) {
   const [timeRange, setTimeRange] = useState('all'); // 'today' | 'week' | 'month' | 'all'
 
   const currency = storeSettings?.currency || 'ر.س';
+  const taxRatePercent = Number(storeSettings?.defaultTaxRate) || 0;
 
-  // 1. حساب المؤشرات المالية العامة
   const analyticsData = useMemo(() => {
-    let validInvoices = invoices.filter((inv) => inv.status !== 'ملغاة');
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-    const totalRevenue = validInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-    const totalVat = validInvoices.reduce((sum, inv) => sum + (inv.taxAmount || 0), 0);
-    const totalTransactions = validInvoices.length;
+    let periodStart = null;
+    if (timeRange === 'today') periodStart = startOfToday;
+    if (timeRange === 'week') periodStart = startOfToday - 6 * DAY_MS;
+    if (timeRange === 'month') periodStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    const activeInvoices = invoices.filter((inv) => inv.status !== 'ملغاة');
+    const periodInvoices = activeInvoices.filter((inv) => {
+      if (periodStart === null) return true;
+      const time = getInvoiceTime(inv);
+      return time !== null && time >= periodStart;
+    });
+
+    const productById = new Map(products.map((product) => [product.id, product]));
+    const getUnitCost = (item) => {
+      const product = productById.get(item.id);
+      return item.costPrice ?? product?.costPrice ?? item.price * 0.7;
+    };
+    const getNetQty = (item) => (item.qty || 0) - (item.returnedQty || 0);
+
+    const totalRevenue = periodInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
+    const totalVat = periodInvoices.reduce((sum, inv) => sum + (inv.taxAmount || 0), 0);
+    const totalTransactions = periodInvoices.length;
     const averageTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
-    // حساب صافي الأرباح الدقيق بمقارنة سعر البيع مع سعر التكلفة
     let totalCost = 0;
-    validInvoices.forEach((inv) => {
+    periodInvoices.forEach((inv) => {
       (inv.items || []).forEach((item) => {
-        const netQty = (item.qty || 1) - (item.returnedQty || 0);
+        const netQty = getNetQty(item);
         if (netQty <= 0) return;
-        const matchingProd = products.find((p) => p.id === item.id);
-        const unitCost = item.costPrice ?? matchingProd?.costPrice ?? (item.price * 0.7);
-        totalCost += netQty * unitCost;
+        totalCost += netQty * getUnitCost(item);
       });
     });
 
     const netProfit = totalRevenue - totalVat - totalCost;
-    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
+    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0.0';
 
-    // 2. حركة الأيام السبعة الأخيرة (Daily Trend)
-    const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const now = new Date();
+    // حركة الأيام السبعة الأخيرة (Daily Trend) من بيانات فعلية فقط
     const dailyData = [];
-
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dayName = arabicDays[d.getDay()];
-      const dateStr = d.toLocaleDateString('ar-SA', { day: '2-digit', month: '2-digit' });
+      const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const dayStart = day.getTime();
+      const dayEnd = dayStart + DAY_MS;
 
-      // تجميع مبيعات اليوم
-      const daySales = validInvoices
-        .filter((inv) => {
-          const invTime = inv.timestamp || Date.now();
-          const invDate = new Date(invTime);
-          return invDate.toDateString() === d.toDateString();
-        })
-        .reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
+      const dayInvoices = activeInvoices.filter((inv) => {
+        const time = getInvoiceTime(inv);
+        return time !== null && time >= dayStart && time < dayEnd;
+      });
 
-      // في حال البيانات التجريبية ليس لها نفس اليوم بالضبط، نوزع مبيعات واقعية
-      const adjustedSales = daySales > 0 ? daySales : ((totalRevenue / 7) * (0.8 + (i % 3) * 0.25));
-      const adjustedProfit = adjustedSales * 0.28;
+      const sales = dayInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
+      const tax = dayInvoices.reduce((sum, inv) => sum + (inv.taxAmount || 0), 0);
+      let cost = 0;
+      dayInvoices.forEach((inv) => {
+        (inv.items || []).forEach((item) => {
+          const netQty = getNetQty(item);
+          if (netQty > 0) cost += netQty * getUnitCost(item);
+        });
+      });
 
       dailyData.push({
-        dayName,
-        date: dateStr,
-        sales: adjustedSales,
-        profit: adjustedProfit,
+        dayName: ARABIC_DAYS[day.getDay()],
+        date: day.toLocaleDateString('ar-SA', { day: '2-digit', month: '2-digit' }),
+        sales,
+        profit: sales - tax - cost,
       });
     }
 
-    // 3. تحليل طرق الدفع (Payment Breakdown)
+    // نمو المبيعات: آخر 7 أيام مقابل الـ 7 أيام السابقة
+    const lastWeekStart = startOfToday - 6 * DAY_MS;
+    const previousWeekStart = startOfToday - 13 * DAY_MS;
+    const previousWeekEnd = lastWeekStart;
+    const sumRange = (from, to) =>
+      activeInvoices.reduce((sum, inv) => {
+        const time = getInvoiceTime(inv);
+        if (time === null || time < from || time >= to) return sum;
+        return sum + (inv.grandTotal || 0);
+      }, 0);
+    const lastWeekRevenue = sumRange(lastWeekStart, startOfToday + DAY_MS);
+    const previousWeekRevenue = sumRange(previousWeekStart, previousWeekEnd);
+    const growthRate =
+      previousWeekRevenue > 0
+        ? Number((((lastWeekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100).toFixed(1))
+        : 0;
+
+    // تحليل طرق الدفع
     const paymentBreakdown = {
       card: { amount: 0, count: 0 },
       cash: { amount: 0, count: 0 },
       credit: { amount: 0, count: 0 },
     };
 
-    validInvoices.forEach((inv) => {
-      const m = inv.payment?.method || (inv.paymentMethod === 'شبكة' ? 'card' : inv.paymentMethod === 'آجل' ? 'credit' : 'cash');
-      if (m === 'split') {
+    periodInvoices.forEach((inv) => {
+      const method = inv.payment?.method || (inv.paymentMethod === 'شبكة' ? 'card' : inv.paymentMethod === 'آجل' ? 'credit' : 'cash');
+      if (method === 'split') {
         const cashAmount = inv.payment?.cashAmount || 0;
         const cardAmount = inv.payment?.cardAmount || 0;
         if (cashAmount > 0) {
@@ -121,83 +157,71 @@ export function DashboardPage({
         }
         return;
       }
-      const key = m === 'card' ? 'card' : m === 'credit' ? 'credit' : 'cash';
+      const key = method === 'card' ? 'card' : method === 'credit' ? 'credit' : 'cash';
       paymentBreakdown[key].amount += inv.grandTotal || 0;
       paymentBreakdown[key].count += 1;
     });
 
-    // 4. تحليل المبيعات حسب التصنيفات
+    // المبيعات حسب التصنيفات
     const categoryTotals = {};
-    validInvoices.forEach((inv) => {
+    periodInvoices.forEach((inv) => {
       (inv.items || []).forEach((item) => {
-        const prod = products.find((p) => p.id === item.id);
-        const catId = prod?.category || 'other';
-        const lineTotal = (item.qty - (item.returnedQty || 0)) * getDiscountedUnitPrice(inv, item);
-        categoryTotals[catId] = (categoryTotals[catId] || 0) + Math.max(0, lineTotal);
+        const category = productById.get(item.id)?.category || 'other';
+        const netQty = Math.max(0, getNetQty(item));
+        if (netQty === 0) return;
+        const lineTotal = netQty * getDiscountedUnitPrice(inv, item);
+        categoryTotals[category] = (categoryTotals[category] || 0) + lineTotal;
       });
     });
 
-    const categorySales = CATEGORIES.filter((c) => c.id !== 'all').map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      icon: cat.icon,
-      amount: categoryTotals[cat.id] || (totalRevenue * 0.15),
-    })).sort((a, b) => b.amount - a.amount);
+    const categorySales = CATEGORIES.filter((category) => category.id !== 'all')
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        icon: category.icon,
+        amount: categoryTotals[category.id] || 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
 
-    // 5. أفضل 5 منتجات مبيعاً
+    // أفضل 5 منتجات مبيعاً
     const productStats = {};
-    validInvoices.forEach((inv) => {
+    periodInvoices.forEach((inv) => {
       (inv.items || []).forEach((item) => {
-        const netQty = (item.qty || 1) - (item.returnedQty || 0);
+        const netQty = getNetQty(item);
         if (netQty <= 0) return;
+
+        const product = productById.get(item.id);
+        const unitCost = getUnitCost(item);
+        const netPrice = getDiscountedUnitPrice(inv, item);
+
         if (!productStats[item.id]) {
-          const prod = products.find((p) => p.id === item.id);
           productStats[item.id] = {
             id: item.id,
             name: item.name,
-            barcode: prod?.barcode || item.barcode || '---',
+            barcode: product?.barcode || item.barcode || '---',
             qtySold: 0,
             revenue: 0,
             profit: 0,
-            unit: prod?.unit || item.unit || 'حبة',
-            costPrice: item.costPrice ?? prod?.costPrice ?? item.price * 0.7,
-            price: getDiscountedUnitPrice(inv, item),
+            unit: product?.unit || item.unit || 'حبة',
           };
         }
+
         productStats[item.id].qtySold += netQty;
-        const netPrice = getDiscountedUnitPrice(inv, item);
         productStats[item.id].revenue += netQty * netPrice;
-        const unitCost = item.costPrice ?? products.find((product) => product.id === item.id)?.costPrice ?? item.price * 0.7;
         productStats[item.id].profit += netQty * (netPrice - unitCost);
       });
     });
 
-    // تحويل المصفوفة وترتيبها
-    let topProducts = Object.values(productStats)
-      .map((p) => ({
-        ...p,
-        margin: p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(0) : 30,
+    const topProducts = Object.values(productStats)
+      .map((product) => ({
+        ...product,
+        margin: product.revenue > 0 ? ((product.profit / product.revenue) * 100).toFixed(0) : '0',
       }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // إذا كانت البيانات المجمعة قليلة، نستعين بأوائل المنتجات من المخزون
-    if (topProducts.length === 0) {
-      topProducts = products.slice(0, 5).map((p, idx) => ({
-        id: p.id,
-        name: p.name,
-        barcode: p.barcode,
-        qtySold: 45 - idx * 6,
-        revenue: (45 - idx * 6) * p.price,
-        profit: (45 - idx * 6) * (p.price - (p.costPrice || p.price * 0.7)),
-        margin: 28,
-        unit: p.unit,
-      }));
-    }
-
-    // 6. أصناف المخزون المنخفض
     const lowStockProducts = products
-      .filter((p) => (p.stock ?? 0) <= 25)
+      .filter((product) => (product.stock ?? 0) <= LOW_STOCK_THRESHOLD)
       .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
       .slice(0, 6);
 
@@ -209,7 +233,7 @@ export function DashboardPage({
         totalTransactions,
         averageTicket,
         totalVat,
-        growthRate: 14.8,
+        growthRate,
       },
       dailyData,
       paymentBreakdown,
@@ -217,7 +241,7 @@ export function DashboardPage({
       topProducts,
       lowStockProducts,
     };
-  }, [invoices, products]);
+  }, [invoices, products, timeRange]);
 
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden select-none">
@@ -246,18 +270,18 @@ export function DashboardPage({
               { id: 'week', label: 'آخر 7 أيام' },
               { id: 'month', label: 'هذا الشهر' },
               { id: 'all', label: 'جميع الفترات' },
-            ].map((t) => (
+            ].map((range) => (
               <button
-                key={t.id}
+                key={range.id}
                 type="button"
-                onClick={() => setTimeRange(t.id)}
+                onClick={() => setTimeRange(range.id)}
                 className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  timeRange === t.id
+                  timeRange === range.id
                     ? 'bg-white text-emerald-800 shadow-xs border border-gray-200/60'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {t.label}
+                {range.label}
               </button>
             ))}
           </div>
@@ -280,6 +304,7 @@ export function DashboardPage({
         <DashboardSummaryCards
           metrics={analyticsData.metrics}
           currency={currency}
+          taxRatePercent={taxRatePercent}
         />
 
         {/* 2. Charts Section (Sales Trend + Payment Breakdown) */}

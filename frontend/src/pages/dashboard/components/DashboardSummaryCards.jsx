@@ -9,6 +9,7 @@ import {
 export function DashboardSummaryCards({
   metrics,
   currency = 'ر.س',
+  taxRatePercent = 15,
 }) {
   const {
     totalRevenue = 0,
@@ -17,7 +18,7 @@ export function DashboardSummaryCards({
     totalTransactions = 0,
     averageTicket = 0,
     totalVat = 0,
-    growthRate = 12.4, // نسبة نمو مقارنة بالفترة السابقة
+    growthRate = 0, // نسبة نمو مقارنة بالفترة السابقة
   } = metrics;
 
   return (
@@ -41,7 +42,7 @@ export function DashboardSummaryCards({
         </div>
         <div className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-700 font-bold">
           <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-emerald-600" />
-          <span>+{growthRate}%</span>
+          <span dir="ltr">{growthRate > 0 ? '+' : ''}{growthRate}%</span>
           <span className="text-gray-400 font-normal">مقارنة بالفترة السابقة</span>
         </div>
       </div>
@@ -108,7 +109,7 @@ export function DashboardSummaryCards({
           <span className="text-xs font-bold text-amber-600">{currency}</span>
         </div>
         <div className="mt-1.5 text-[11px] text-amber-700 font-medium">
-          المحصلة لإقرار الهيئة (15%)
+          المحصلة لإقرار الهيئة ({taxRatePercent}%)
         </div>
       </div>
     </div>

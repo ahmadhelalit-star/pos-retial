@@ -1,8 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 
-const TAX_RATE = 0.15; // 15% ضريبة القيمة المضافة
-
-export function useCart() {
+export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
   const [items, setItems] = useState([]);
   const [discountPercent, setDiscountPercentState] = useState(0);
   const [customer, setCustomer] = useState({
@@ -23,7 +21,9 @@ export function useCart() {
     setItems((prevItems) => {
       const existingIndex = prevItems.findIndex((item) => item.id === product.id);
       const currentQty = existingIndex > -1 ? prevItems[existingIndex].qty : 0;
-      const maxQty = Number.isFinite(Number(product.stock))
+      const maxQty = allowNegativeStock
+        ? Infinity
+        : Number.isFinite(Number(product.stock))
         ? Math.max(0, Number(product.stock))
         : Infinity;
       if (currentQty >= maxQty) return prevItems;
@@ -41,7 +41,7 @@ export function useCart() {
       return [...prevItems, { ...product, qty: 1, discountPercent: 0 }];
     });
     return added;
-  }, []);
+  }, [allowNegativeStock]);
 
   const setItemDiscountPercent = useCallback((productId, value) => {
     const parsed = Number(value);
@@ -71,7 +71,9 @@ export function useCart() {
     setItems((prevItems) =>
       prevItems.map((item) => {
         if (item.id !== productId) return item;
-        const maxQty = Number.isFinite(Number(item.stock))
+        const maxQty = allowNegativeStock
+          ? Infinity
+          : Number.isFinite(Number(item.stock))
           ? Math.max(0, Number(item.stock))
           : Infinity;
         if (item.qty >= maxQty) return item;
@@ -80,7 +82,7 @@ export function useCart() {
       })
     );
     return incremented;
-  }, []);
+  }, [allowNegativeStock]);
 
   // إنقاص بمقدار 1
   const decrementQty = useCallback((productId) => {
@@ -105,7 +107,7 @@ export function useCart() {
   const clearCart = useCallback(() => {
     setItems([]);
     setDiscountPercent(0);
-  }, []);
+  }, [setDiscountPercent]);
 
   // الحسابات المالية
   const {
@@ -127,7 +129,7 @@ export function useCart() {
       const invoiceDiscount = ((sub - itemDiscount) * (discountPercent || 0)) / 100;
       const disc = itemDiscount + invoiceDiscount;
       const taxable = Math.max(0, sub - disc);
-      const tax = taxable * TAX_RATE;
+      const tax = taxable * taxRate;
       const total = taxable + tax;
       const count = items.reduce((acc, item) => acc + item.qty, 0);
 
@@ -141,7 +143,7 @@ export function useCart() {
         grandTotal: total,
         totalItemsCount: count,
       };
-    }, [items, discountPercent]);
+    }, [items, discountPercent, taxRate]);
 
   // تعليق الفاتورة الحالية
   const holdOrder = useCallback(() => {
@@ -190,7 +192,7 @@ export function useCart() {
     setDiscountPercent(order.discountPercent);
     setHeldOrders((prev) => prev.filter((o) => o.id !== orderId));
     return { adjusted, restoredCount: restoredItems.length };
-  }, [heldOrders]);
+  }, [heldOrders, setDiscountPercent]);
 
   // حذف فاتورة معلقة
   const deleteHeldOrder = useCallback((orderId) => {

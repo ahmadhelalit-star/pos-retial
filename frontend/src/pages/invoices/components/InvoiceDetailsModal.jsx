@@ -17,6 +17,10 @@ export function InvoiceDetailsModal({
   if (!isOpen || !invoice) return null;
 
   const isFullyRefunded = invoice.status === 'مسترجعة';
+  const taxRatePercent =
+    invoice.taxableAmount > 0
+      ? Math.round((invoice.taxAmount / invoice.taxableAmount) * 100)
+      : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
@@ -136,7 +140,7 @@ export function InvoiceDetailsModal({
               </div>
             )}
             <div className="flex justify-between font-sans text-gray-600">
-              <span>ضريبة القيمة المضافة (15%):</span>
+              <span>ضريبة القيمة المضافة ({taxRatePercent}%):</span>
               <span className="font-mono">{invoice.taxAmount.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-200 text-gray-900 font-sans">

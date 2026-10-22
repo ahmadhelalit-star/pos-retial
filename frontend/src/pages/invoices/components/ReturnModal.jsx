@@ -14,6 +14,7 @@ export function ReturnModal({
   onClose,
   invoice,
   onConfirmReturn,
+  taxRate = 0.15,
 }) {
   const [returnQuantities, setReturnQuantities] = useState({});
   const [restockSelections, setRestockSelections] = useState({});
@@ -91,10 +92,10 @@ export function ReturnModal({
       ? Math.min(1, Math.max(0, invoiceDiscountAmount / originalAfterItemDiscount))
       : 0;
     const sub = Math.max(0, returnedGross - returnedProductDiscount) * (1 - discountRatio);
-    const taxRate = invoice?.taxableAmount > 0
+    const invoiceTaxRate = invoice?.taxableAmount > 0
       ? (invoice.taxAmount || 0) / invoice.taxableAmount
-      : 0.15;
-    const tax = sub * taxRate;
+      : taxRate;
+    const tax = sub * invoiceTaxRate;
     const total = sub + tax;
 
     return {
@@ -103,7 +104,7 @@ export function ReturnModal({
       totalRefundAmount: total,
       totalReturnUnits: units,
     };
-  }, [availableItems, returnQuantities, invoice]);
+  }, [availableItems, returnQuantities, invoice, taxRate]);
 
   if (!isOpen || !invoice) return null;
 
@@ -301,7 +302,7 @@ export function ReturnModal({
               <span>{refundSubtotal.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between font-sans text-amber-900">
-              <span>الضريبة المستردة (15%):</span>
+              <span>الضريبة المستردة ({Math.round(taxRate * 100)}%):</span>
               <span>{refundTax.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between text-base font-black pt-1 border-t border-amber-200 text-amber-950 font-sans">

@@ -162,7 +162,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
             },
             {
               field: 'showTaxBreakdown',
-              label: 'تفصيل ضريبة القيمة المضافة (15%)',
+              label: 'تفصيل ضريبة القيمة المضافة',
               hint: 'عرض سطر منفصل لقيمة الضريبة والمجموع غير الشامل',
             },
           ].map((toggle) => {

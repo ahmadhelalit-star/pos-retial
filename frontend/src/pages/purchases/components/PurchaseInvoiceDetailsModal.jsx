@@ -174,7 +174,7 @@ export function PurchaseInvoiceDetailsModal({
                 </span>
               </div>
               <div className="flex justify-between text-gray-600">
-                <span>ضريبة القيمة المضافة (15%):</span>
+                <span>ضريبة القيمة المضافة ({invoice.taxRate ?? 0}%):</span>
                 <span className="font-mono font-bold">
                   {(invoice.taxAmount || 0).toFixed(2)} ر.س
                 </span>

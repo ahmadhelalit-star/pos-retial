@@ -1,16 +1,22 @@
+import { createPortal } from 'react-dom';
 import { PrinterIcon, CheckIcon, XMarkIcon } from '../../../components/common/Icons';
 
 export function ZReportModal({
   isOpen,
   onClose,
   reportData,
+  storeSettings = {},
 }) {
   if (!isOpen || !reportData) return null;
 
-  const zReportNumber = `Z-${Date.now().toString().slice(-6)}`;
-  const now = new Date();
-  const closeDateStr = now.toLocaleDateString('ar-SA');
-  const closeTimeStr = now.toLocaleTimeString('ar-SA');
+  const zReportNumber = reportData.reportNumber || '—';
+  const generatedAt = new Date(reportData.generatedAt);
+  const closeDateStr = generatedAt.toLocaleDateString('ar-SA');
+  const closeTimeStr = generatedAt.toLocaleTimeString('ar-SA');
+  const storeName = storeSettings.storeName || 'Sham Touch Retail POS';
+  const companyName = storeSettings.companyName || 'مؤسسة شام تاتش للتجارة والتجزئة';
+  const taxNumber = storeSettings.taxNumber || '310123456700003';
+  const taxRatePercent = reportData.taxRatePercent ?? 15;
 
   const handlePrint = () => {
     window.print();
@@ -18,11 +24,11 @@ export function ZReportModal({
 
   const diff = reportData.actualCash - reportData.expectedCash;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+  return createPortal(
+    <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in duration-150">
         {/* Header */}
-        <div className="p-3 bg-emerald-700 text-white flex items-center justify-between">
+        <div className="no-print p-3 bg-emerald-700 text-white flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-bold text-sm">
             <CheckIcon className="w-5 h-5" />
             <span>تقرير إغلاق الوردية (Z-Report)</span>
@@ -37,16 +43,16 @@ export function ZReportModal({
         </div>
 
         {/* Report Body */}
-        <div className="p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
+        <div className="print-area p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
           {/* Store Info */}
           <div className="text-center pb-2 border-b border-dashed border-gray-300">
             <h3 className="text-base font-black font-sans text-gray-900">
-              Sham Touch Retail POS
+              {storeName}
             </h3>
             <p className="text-[11px] text-gray-500 font-sans mt-0.5">
-              مؤسسة شام تاتش للتجارة والتجزئة
+              {companyName}
             </p>
-            <p className="text-[10px] text-gray-400">الرقم الضريبي: 310123456700003</p>
+            <p className="text-[10px] text-gray-400">الرقم الضريبي: {taxNumber}</p>
             <p className="text-[10px] bg-gray-100 font-bold inline-block px-2 py-0.5 rounded mt-1 font-sans">
               تقرير الإغلاق المالي اليومي (Z - REPORT)
             </p>
@@ -99,7 +105,7 @@ export function ZReportModal({
 
           {/* Tax Breakdown */}
           <div className="space-y-1 text-[11px] border-b border-dashed border-gray-300 pb-2">
-            <p className="font-bold font-sans text-gray-900 mb-1">الضريبة المضافة (15%):</p>
+            <p className="font-bold font-sans text-gray-900 mb-1">الضريبة المضافة ({taxRatePercent}%):</p>
             <div className="flex justify-between">
               <span className="font-sans">ضريبة المبيعات المحصلة:</span>
               <span>{reportData.taxCollected.toFixed(2)} ر.س</span>
@@ -168,7 +174,7 @@ export function ZReportModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
+        <div className="no-print p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handlePrint}
@@ -187,6 +193,7 @@ export function ZReportModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

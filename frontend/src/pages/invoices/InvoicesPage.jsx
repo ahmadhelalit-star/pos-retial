@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useHeaderSearchSlot } from '../../components/layout/headerSearchSlot';
 import { InvoicesSummaryCards } from './components/InvoicesSummaryCards';
 import { InvoicesFilterBar } from './components/InvoicesFilterBar';
 import { InvoicesList } from './components/InvoicesList';
@@ -7,11 +8,23 @@ import { ReturnModal } from './components/ReturnModal';
 import { ReturnReceiptModal } from './components/ReturnReceiptModal';
 import { ReceiptModal } from '../sales/components/ReceiptModal';
 
-export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
+export function InvoicesPage({
+  invoices = [],
+  onUpdateInvoices,
+  initialStatusFilter = 'all',
+  taxRate = 0.15,
+  storeSettings = {},
+  cashier = 'سامر النجار',
+}) {
+  const validStatusFilters = ['all', 'paid', 'refunded'];
+  const headerSearchSlot = useHeaderSearchSlot();
+
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all'); // 'all' | 'cash' | 'card'
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'refunded'
+  const [statusFilter, setStatusFilter] = useState(
+    validStatusFilters.includes(initialStatusFilter) ? initialStatusFilter : 'all'
+  ); // 'all' | 'paid' | 'refunded'
 
   // Modals state
   const [detailsInvoice, setDetailsInvoice] = useState(null);
@@ -98,7 +111,11 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
     }
 
     setReturnInvoice(null);
-    setLatestReturnData(returnPayload);
+    setLatestReturnData({
+      ...returnPayload,
+      creditNoteNumber: `CR-${Date.now().toString().slice(-6)}`,
+      cashier,
+    });
   };
 
   // Format reprint data to match ReceiptModal contract
@@ -107,6 +124,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
       invoiceNumber: inv.invoiceNumber,
       date: inv.date,
       time: inv.time,
+      cashier: inv.cashier || cashier,
       customer: inv.customer,
       items: inv.items,
       subtotal: inv.subtotal,
@@ -125,7 +143,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
   return (
     <div className="h-full flex flex-col bg-gray-100 overflow-y-auto font-sans pb-8">
       {/* Top Summary Stats */}
-      <InvoicesSummaryCards invoices={invoices} />
+      <InvoicesSummaryCards invoices={invoices} taxRate={taxRate} />
 
       {/* Filter Bar */}
       <InvoicesFilterBar
@@ -137,6 +155,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
         onStatusFilterChange={setStatusFilter}
         onResetFilters={handleResetFilters}
         isFiltered={isFiltered}
+        searchPortalTarget={headerSearchSlot}
       />
 
       {/* Invoices List */}
@@ -168,6 +187,7 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
         isOpen={Boolean(returnInvoice)}
         onClose={() => setReturnInvoice(null)}
         invoice={returnInvoice}
+        taxRate={taxRate}
         onConfirmReturn={handleConfirmReturn}
       />
 
@@ -175,12 +195,14 @@ export function InvoicesPage({ invoices = [], onUpdateInvoices }) {
         isOpen={Boolean(latestReturnData)}
         onClose={() => setLatestReturnData(null)}
         returnData={latestReturnData}
+        storeSettings={storeSettings}
       />
 
       <ReceiptModal
         isOpen={Boolean(reprintData)}
         onClose={() => setReprintData(null)}
         saleData={reprintData}
+        storeSettings={storeSettings}
         onNewSale={() => setReprintData(null)}
       />
     </div>

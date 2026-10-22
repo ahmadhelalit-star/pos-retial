@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useHeaderSearchSlot } from '../../components/layout/headerSearchSlot';
 import { CustomerSummaryCards } from './components/CustomerSummaryCards';
 import { CustomerFilterBar } from './components/CustomerFilterBar';
 import { CustomerListTable } from './components/CustomerListTable';
@@ -8,12 +9,18 @@ import { CustomerStatementModal } from './components/CustomerStatementModal';
 export function CustomersPage({
   customers = [],
   invoices = [],
+  initialTypeFilter = 'all',
   onSaveCustomer,
   onDeleteCustomer,
   onAdjustCustomerBalance,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'individual' | 'company'
+  const headerSearchSlot = useHeaderSearchSlot();
+  const [typeFilter, setTypeFilter] = useState(
+    initialTypeFilter === 'individual' || initialTypeFilter === 'company'
+      ? initialTypeFilter
+      : 'all'
+  ); // 'all' | 'individual' | 'company'
   const [balanceFilter, setBalanceFilter] = useState('all'); // 'all' | 'debtors'
 
   // Modals state
@@ -89,6 +96,7 @@ export function CustomersPage({
         balanceFilter={balanceFilter}
         onBalanceFilterChange={setBalanceFilter}
         onAddNewCustomer={handleOpenAdd}
+        searchPortalTarget={headerSearchSlot}
       />
 
       {/* 3. Customers Table */}

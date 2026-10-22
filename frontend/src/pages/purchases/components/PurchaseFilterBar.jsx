@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import {
   SearchIcon,
   PlusIcon,
@@ -17,7 +18,34 @@ export function PurchaseFilterBar({
   onAddNewSupplier,
   invoicesCount = 0,
   suppliersCount = 0,
+  searchPortalTarget,
 }) {
+  const searchField = (
+    <div className="relative flex-1">
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder={
+          activeView === 'invoices'
+            ? 'بحث برقم الفاتورة، اسم المورد، أو رقم فاتورة المورد...'
+            : 'بحث باسم المورد، الشركة، رقم الهاتف، أو الرقم الضريبي...'
+        }
+        className="w-full pl-3 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400"
+      />
+      <SearchIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => onSearchChange('')}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-white p-3 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 select-none">
       {/* 1. التبديل بين فواتير الشراء ودليل الموردين */}
@@ -57,29 +85,7 @@ export function PurchaseFilterBar({
 
       {/* 2. شريط البحث والفلترة */}
       <div className="flex items-center gap-2 flex-1 max-w-xl">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={
-              activeView === 'invoices'
-                ? 'بحث برقم الفاتورة، اسم المورد، أو رقم فاتورة المورد...'
-                : 'بحث باسم المورد، الشركة، رقم الهاتف، أو الرقم الضريبي...'
-            }
-            className="w-full pl-3 pr-9 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400"
-          />
-          <SearchIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1"
-            >
-              ×
-            </button>
-          )}
-        </div>
+        {searchPortalTarget ? createPortal(searchField, searchPortalTarget) : searchField}
 
         {/* فلترة السداد (تظهر في تبويب الفواتير) */}
         {activeView === 'invoices' && (

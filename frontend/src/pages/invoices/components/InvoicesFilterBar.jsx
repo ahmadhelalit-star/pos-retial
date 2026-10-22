@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { SearchIcon, XMarkIcon, FunnelIcon } from '../../../components/common/Icons';
 
 export function InvoicesFilterBar({
@@ -9,32 +10,37 @@ export function InvoicesFilterBar({
   onStatusFilterChange,
   onResetFilters,
   isFiltered,
+  searchPortalTarget,
 }) {
+  const searchField = (
+    <div className="relative flex-1 w-full">
+      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+        <SearchIcon className="w-4 h-4" />
+      </div>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="ابحث برقم الفاتورة (مثال: INV-849) أو اسم العميل أو هاتفه..."
+        className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-10 py-2.5 text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => onSearchChange('')}
+          className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+        >
+          <XMarkIcon className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-white p-4 mx-4 mb-3 rounded-2xl border border-gray-200/80 shadow-2xs space-y-3">
       <div className="flex flex-col md:flex-row items-center gap-3">
         {/* Search Input */}
-        <div className="relative flex-1 w-full">
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
-            <SearchIcon className="w-4 h-4" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="ابحث برقم الفاتورة (مثال: INV-849) أو اسم العميل أو هاتفه..."
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-10 py-2.5 text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        {searchPortalTarget ? createPortal(searchField, searchPortalTarget) : searchField}
 
         {/* Reset button if filtered */}
         {isFiltered && (

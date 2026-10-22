@@ -1,24 +1,30 @@
 import { useState, useMemo } from 'react';
+import { useHeaderSearchSlot } from '../../components/layout/headerSearchSlot';
 import { InventorySummaryCards } from './components/InventorySummaryCards';
 import { InventoryFilterBar } from './components/InventoryFilterBar';
 import { ProductListTable } from './components/ProductListTable';
 import { ProductFormModal } from './components/ProductFormModal';
 import { BarcodeLabelModal } from './components/BarcodeLabelModal';
+import { BarcodeLabelPickerModal } from './components/BarcodeLabelPickerModal';
 
 export function InventoryPage({
   products = [],
+  initialLabelsOpen = false,
+  taxRatePercent = 15,
   onSaveProduct,
   onDeleteProduct,
   onAdjustStock,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const headerSearchSlot = useHeaderSearchSlot();
   const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState(null);
   const [barcodeProduct, setBarcodeProduct] = useState(null);
+  const [isLabelPickerOpen, setIsLabelPickerOpen] = useState(Boolean(initialLabelsOpen));
 
   // Filtered products list
   const filteredProducts = useMemo(() => {
@@ -91,6 +97,7 @@ export function InventoryPage({
         onOpenAddModal={handleOpenAdd}
         onResetFilters={handleResetFilters}
         isFiltered={isFiltered}
+        searchPortalTarget={headerSearchSlot}
       />
 
       {/* Products Table */}
@@ -112,11 +119,23 @@ export function InventoryPage({
         onSaveProduct={onSaveProduct}
       />
 
+      {/* Barcode Label Picker */}
+      <BarcodeLabelPickerModal
+        isOpen={isLabelPickerOpen}
+        onClose={() => setIsLabelPickerOpen(false)}
+        products={products}
+        onSelectProduct={(product) => {
+          setIsLabelPickerOpen(false);
+          setBarcodeProduct(product);
+        }}
+      />
+
       {/* Barcode Shelf Label Modal */}
       <BarcodeLabelModal
         isOpen={Boolean(barcodeProduct)}
         onClose={() => setBarcodeProduct(null)}
         product={barcodeProduct}
+        taxRatePercent={taxRatePercent}
       />
     </div>
   );

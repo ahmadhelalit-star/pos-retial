@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { SearchIcon, BarcodeIcon, XMarkIcon } from '../../../components/common/Icons';
+import { useHeaderSearchSlot } from '../../../components/layout/headerSearchSlot';
 import { CategoryBar } from './CategoryBar';
 import { ProductCard } from './ProductCard';
 import { CATEGORIES } from '../../../data/mockProducts';
@@ -7,6 +9,7 @@ import { CATEGORIES } from '../../../data/mockProducts';
 export function ProductGrid({ products, onAddToCart }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const searchSlot = useHeaderSearchSlot();
 
   // فلترة المنتجات حسب التصنيف ونص البحث / الباركود
   const filteredProducts = useMemo(() => {
@@ -38,33 +41,39 @@ export function ProductGrid({ products, onAddToCart }) {
     }
   };
 
+  const searchField = (
+    <div className="relative flex-1">
+      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+        <SearchIcon className="w-5 h-5" />
+      </div>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="ابحث بالاسم أو امسح الباركود... (Enter للإضافة)"
+        className="w-full bg-white border border-gray-200 rounded-xl pr-11 pl-10 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-2xs"
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => setSearchQuery('')}
+          className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+        >
+          <XMarkIcon className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50/50 p-4">
       {/* Search & Barcode Scan Bar */}
-      <div className="mb-3.5 flex items-center gap-2">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
-            <SearchIcon className="w-5 h-5" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="ابحث بالاسم أو امسح الباركود مباشرة... (Enter للإضافة)"
-            className="w-full bg-white border border-gray-200 rounded-xl pr-11 pl-10 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-2xs"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      {searchSlot ? (
+        createPortal(searchField, searchSlot)
+      ) : (
+        <div className="mb-3.5 flex items-center gap-2">{searchField}</div>
+      )}
 
       {/* Categories Bar */}
       <CategoryBar

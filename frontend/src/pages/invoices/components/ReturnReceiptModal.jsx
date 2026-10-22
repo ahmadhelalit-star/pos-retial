@@ -1,26 +1,35 @@
+import { createPortal } from 'react-dom';
 import { PrinterIcon, CheckIcon, XMarkIcon } from '../../../components/common/Icons';
 
 export function ReturnReceiptModal({
   isOpen,
   onClose,
   returnData,
+  storeSettings = {},
 }) {
   if (!isOpen || !returnData) return null;
 
-  const creditNoteNumber = `CR-${Date.now().toString().slice(-6)}`;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ar-SA');
-  const timeStr = now.toLocaleTimeString('ar-SA');
+  const creditNoteNumber = returnData.creditNoteNumber || '—';
+  const createdAt = new Date(returnData.timestamp);
+  const dateStr = createdAt.toLocaleDateString('ar-SA');
+  const timeStr = createdAt.toLocaleTimeString('ar-SA');
+  const taxRatePercent =
+    returnData.refundSubtotal > 0
+      ? Math.round((returnData.refundTax / returnData.refundSubtotal) * 100)
+      : 0;
+  const storeName = storeSettings.storeName || 'Sham Touch Retail POS';
+  const companyName = storeSettings.companyName || 'مؤسسة شام تاتش للتجارة والتجزئة';
+  const taxNumber = storeSettings.taxNumber || '310123456700003';
 
   const handlePrint = () => {
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+  return createPortal(
+    <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-150">
         {/* Header */}
-        <div className="p-3 bg-amber-600 text-white flex items-center justify-between">
+        <div className="no-print p-3 bg-amber-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-bold text-sm">
             <CheckIcon className="w-5 h-5" />
             <span>تمت معالجة المرتجع بنجاح</span>
@@ -35,16 +44,16 @@ export function ReturnReceiptModal({
         </div>
 
         {/* Receipt Body */}
-        <div className="p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
+        <div className="print-area p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
           {/* Store info */}
           <div className="text-center pb-2 border-b border-dashed border-gray-300">
             <h3 className="text-base font-black font-sans text-gray-900">
-              Sham Touch Retail POS
+              {storeName}
             </h3>
             <p className="text-[11px] text-gray-500 font-sans mt-0.5">
-              مؤسسة شام تاتش للتجارة والتجزئة
+              {companyName}
             </p>
-            <p className="text-[10px] text-gray-400">الرقم الضريبي: 310123456700003</p>
+            <p className="text-[10px] text-gray-400">الرقم الضريبي: {taxNumber}</p>
             <p className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 inline-block px-2 py-0.5 rounded mt-1 font-sans font-bold">
               إشعار دائن ضريبي مبسط (مرتجع)
             </p>
@@ -66,7 +75,7 @@ export function ReturnReceiptModal({
             </div>
             <div className="flex justify-between">
               <span>الكاشير:</span>
-              <span className="font-sans">سامر النجار</span>
+              <span className="font-sans">{returnData.cashier || '—'}</span>
             </div>
             <div className="flex justify-between">
               <span>سبب الإرجاع:</span>
@@ -105,7 +114,7 @@ export function ReturnReceiptModal({
               <span>{returnData.refundSubtotal.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-sans">الضريبة المستردة (15%):</span>
+              <span className="font-sans">الضريبة المستردة ({taxRatePercent}%):</span>
               <span>{returnData.refundTax.toFixed(2)} ر.س</span>
             </div>
             <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-200 text-red-600">
@@ -129,7 +138,7 @@ export function ReturnReceiptModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
+        <div className="no-print p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handlePrint}
@@ -148,6 +157,7 @@ export function ReturnReceiptModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

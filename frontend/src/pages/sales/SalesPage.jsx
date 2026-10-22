@@ -6,17 +6,23 @@ import { HeldOrdersModal } from './components/HeldOrdersModal';
 import { ReceiptModal } from './components/ReceiptModal';
 import { useCart } from '../../hooks/useCart';
 import { MOCK_PRODUCTS } from '../../data/mockProducts';
+import { nextDocumentNumber } from '../../domain/numbering';
 import { PauseIcon, ShoppingBagIcon, StorefrontIcon } from '../../components/common/Icons';
 
 export function SalesPage({
   products = MOCK_PRODUCTS,
   customers = [],
+  invoices = [],
   onQuickAddCustomer,
   onSaleCompleted,
   isShiftOpen = true,
   onNavigateToShift,
   storeSettings = {},
+  cashier = 'سامر النجار',
 }) {
+  const taxRate = (Number(storeSettings.defaultTaxRate) || 0) / 100;
+  const allowNegativeStock = Boolean(storeSettings.allowNegativeStock);
+
   const {
     items,
     customer,
@@ -41,7 +47,7 @@ export function SalesPage({
     taxAmount,
     grandTotal,
     totalItemsCount,
-  } = useCart();
+  } = useCart({ taxRate, allowNegativeStock });
 
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isHeldOrdersOpen, setIsHeldOrdersOpen] = useState(false);
@@ -81,7 +87,7 @@ export function SalesPage({
 
   // إتمام عملية البيع وفتح الإيصال وتمرير الفاتورة للسجل العام
   const handleCompleteSale = (paymentDetails) => {
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+    const invoiceNumber = nextDocumentNumber(invoices, 'INV', 6);
     const now = new Date();
 
     const saleRecord = {
@@ -113,7 +119,7 @@ export function SalesPage({
           ? 'آجل'
           : 'شبكة'),
       status: paymentDetails.method === 'credit' ? 'آجل' : 'مدفوعة', // 'مدفوعة' | 'آجل' | 'مسترجعة' | 'مسترجع جزئي'
-      cashier: 'سامر النجار',
+      cashier,
     };
 
     setCompletedSaleData(saleRecord);
@@ -220,6 +226,7 @@ export function SalesPage({
             itemDiscountAmount={itemDiscountAmount}
             invoiceDiscountAmount={invoiceDiscountAmount}
             taxAmount={taxAmount}
+            taxRate={taxRate}
             grandTotal={grandTotal}
             totalItemsCount={totalItemsCount}
           />

@@ -32,6 +32,7 @@ export function CartPanel({
   itemDiscountAmount,
   invoiceDiscountAmount,
   taxAmount,
+  taxRate = 0.15,
   grandTotal,
   totalItemsCount,
 }) {
@@ -205,7 +206,7 @@ export function CartPanel({
           )}
 
           <div className="flex justify-between">
-            <span className="font-sans">ضريبة القيمة المضافة (15%):</span>
+            <span className="font-sans">ضريبة القيمة المضافة ({Math.round(taxRate * 100)}%):</span>
             <span>{taxAmount.toFixed(2)} ر.س</span>
           </div>
         </div>

@@ -1,321 +1,362 @@
-import { useState } from 'react';
-import { Navbar } from './components/common/Navbar';
-import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { SalesPage } from './pages/sales/SalesPage';
-import { InvoicesPage } from './pages/invoices/InvoicesPage';
-import { InventoryPage } from './pages/inventory/InventoryPage';
-import { CustomersPage } from './pages/customers/CustomersPage';
-import { PurchasesPage } from './pages/purchases/PurchasesPage';
-import { SettingsPage } from './pages/settings/SettingsPage';
-import { ShiftPage } from './pages/shift/ShiftPage';
-import { INITIAL_INVOICES } from './data/mockInvoices';
-import { MOCK_PRODUCTS } from './data/mockProducts';
-import { INITIAL_CUSTOMERS } from './data/mockCustomers';
-import { INITIAL_SUPPLIERS } from './data/mockSuppliers';
-import { INITIAL_PURCHASE_INVOICES } from './data/mockPurchaseInvoices';
-import { DEFAULT_STORE_SETTINGS } from './data/defaultSettings';
-import {
-  adjustProductStock,
-  applyRestockedReturns,
-  deductSoldItems,
-  receivePurchasedItems,
-} from './domain/inventory';
+import { Suspense, lazy, useCallback, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { AppHeader } from './components/layout/AppHeader';
+import { Sidebar } from './components/layout/Sidebar';
+import { HeaderSearchSlotContext } from './components/layout/headerSearchSlot';
+import { ACTIONS } from './store/appReducer';
+import { useAppDispatch, useAppState } from './store/useAppStore';
+
+const TAB_PATHS = {
+  dashboard: '/dashboard',
+  sales: '/sales',
+  invoices: '/invoices',
+  inventory: '/inventory',
+  purchases: '/purchases',
+  customers: '/customers',
+  shift: '/shift',
+  settings: '/settings',
+};
+
+const PATH_TABS = Object.fromEntries(
+  Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab])
+);
+
+const DashboardPage = lazy(() =>
+  import('./pages/dashboard/DashboardPage').then((module) => ({
+    default: module.DashboardPage,
+  }))
+);
+const SalesPage = lazy(() =>
+  import('./pages/sales/SalesPage').then((module) => ({
+    default: module.SalesPage,
+  }))
+);
+const InvoicesPage = lazy(() =>
+  import('./pages/invoices/InvoicesPage').then((module) => ({
+    default: module.InvoicesPage,
+  }))
+);
+const InventoryPage = lazy(() =>
+  import('./pages/inventory/InventoryPage').then((module) => ({
+    default: module.InventoryPage,
+  }))
+);
+const PurchasesPage = lazy(() =>
+  import('./pages/purchases/PurchasesPage').then((module) => ({
+    default: module.PurchasesPage,
+  }))
+);
+const CustomersPage = lazy(() =>
+  import('./pages/customers/CustomersPage').then((module) => ({
+    default: module.CustomersPage,
+  }))
+);
+const ShiftPage = lazy(() =>
+  import('./pages/shift/ShiftPage').then((module) => ({
+    default: module.ShiftPage,
+  }))
+);
+const SettingsPage = lazy(() =>
+  import('./pages/settings/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  }))
+);
+
+function PageLoader() {
+  return (
+    <div className="h-full flex items-center justify-center text-sm font-bold text-gray-500">
+      جارٍ التحميل…
+    </div>
+  );
+}
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'invoices' | 'inventory' | 'purchases' | 'customers' | 'shift' | 'settings'
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
-  const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
-  const [suppliers, setSuppliers] = useState(INITIAL_SUPPLIERS);
-  const [purchaseInvoices, setPurchaseInvoices] = useState(INITIAL_PURCHASE_INVOICES);
-  const [storeSettings, setStoreSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('shamtouch_store_settings');
-      return saved ? JSON.parse(saved) : DEFAULT_STORE_SETTINGS;
-    } catch {
-      return DEFAULT_STORE_SETTINGS;
-    }
-  });
+  const {
+    invoices,
+    products,
+    customers,
+    suppliers,
+    purchaseInvoices,
+    storeSettings,
+    shift,
+  } = useAppState();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [headerSearchSlot, setHeaderSearchSlot] = useState(null);
 
-  const handleSaveSettings = (newSettings) => {
-    setStoreSettings(newSettings);
-    try {
-      localStorage.setItem('shamtouch_store_settings', JSON.stringify(newSettings));
-    } catch (e) {
-      console.error('Failed to save settings to localStorage', e);
-    }
-  };
+  const activeTab = PATH_TABS[location.pathname] || 'sales';
+  const searchParams = new URLSearchParams(location.search);
+  const cashier = shift.cashier || 'سامر النجار';
+  const taxRatePercent = Number(storeSettings.defaultTaxRate) || 0;
+  const taxRate = taxRatePercent / 100;
 
-  // إدارة حالة الوردية
-  const [shift, setShift] = useState({
-    id: '102',
-    cashier: 'سامر النجار',
-    openedAt: '08:00 ص',
-    openingFloat: 300.00,
-    status: 'open', // 'open' | 'closed'
-  });
+  const handleTabChange = useCallback(
+    (tab, query) => {
+      const path = TAB_PATHS[tab] || TAB_PATHS.sales;
+      const queryString = query ? new URLSearchParams(query).toString() : '';
+      navigate(queryString ? `${path}?${queryString}` : path);
+    },
+    [navigate]
+  );
 
-  // عند إتمام بيع جديد في نقطة البيع
-  const handleSaleCompleted = (newInvoice) => {
-    setInvoices((prev) => [newInvoice, ...prev]);
-    setProducts((prev) => deductSoldItems(prev, newInvoice.items));
+  const handleSaleCompleted = useCallback(
+    (invoice) => dispatch({ type: ACTIONS.SALE_COMPLETED, invoice }),
+    [dispatch]
+  );
 
-    // تحديث رصيد العميل الآجل ونقاط الولاء وسجل مشترياته
-    if (newInvoice.customer && newInvoice.customer.id !== 'walk-in') {
-      const custId = newInvoice.customer.id;
-      const isCredit = newInvoice.payment?.method === 'credit';
-      const earnedPoints = Math.floor((newInvoice.grandTotal || 0) / 10);
+  const handleUpdateInvoices = useCallback(
+    (nextInvoices) =>
+      dispatch({ type: ACTIONS.INVOICES_UPDATED, invoices: nextInvoices }),
+    [dispatch]
+  );
 
-      setCustomers((prev) =>
-        prev.map((c) => {
-          if (c.id !== custId) return c;
-          return {
-            ...c,
-            balance: isCredit ? (c.balance || 0) + newInvoice.grandTotal : c.balance,
-            points: (c.points || 0) + earnedPoints,
-            totalPurchases: (c.totalPurchases || 0) + newInvoice.grandTotal,
-            invoicesCount: (c.invoicesCount || 0) + 1,
-          };
-        })
-      );
-    }
-  };
+  const handleSaveProduct = useCallback(
+    (product) => dispatch({ type: ACTIONS.PRODUCT_SAVED, product }),
+    [dispatch]
+  );
 
-  // تحديث الفواتير (بعد مرتجع) مع إعادة المخزون
-  const handleUpdateInvoices = (nextInvoices) => {
-    setProducts((prev) => applyRestockedReturns(prev, invoices, nextInvoices));
-    setInvoices(nextInvoices);
-  };
+  const handleDeleteProduct = useCallback(
+    (id) => dispatch({ type: ACTIONS.PRODUCT_DELETED, id }),
+    [dispatch]
+  );
 
-  // ---- إدارة المنتجات (Inventory CRUD) ----
-  const handleSaveProduct = (prod) => {
-    setProducts((prev) => {
-      const exists = prev.find((p) => p.id === prod.id);
-      if (exists) return prev.map((p) => (p.id === prod.id ? prod : p));
-      return [...prev, prod];
-    });
-  };
+  const handleAdjustStock = useCallback(
+    (id, delta) => dispatch({ type: ACTIONS.STOCK_ADJUSTED, id, delta }),
+    [dispatch]
+  );
 
-  const handleDeleteProduct = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
+  const handleSaveCustomer = useCallback(
+    (customer) => dispatch({ type: ACTIONS.CUSTOMER_SAVED, customer }),
+    [dispatch]
+  );
 
-  const handleAdjustStock = (id, delta) => {
-    setProducts((prev) => adjustProductStock(prev, id, delta));
-  };
+  const handleDeleteCustomer = useCallback(
+    (id) => dispatch({ type: ACTIONS.CUSTOMER_DELETED, id }),
+    [dispatch]
+  );
 
-  // ---- إدارة العملاء (Customers CRUD & Balance) ----
-  const handleSaveCustomer = (customer) => {
-    setCustomers((prev) => {
-      const exists = prev.find((c) => c.id === customer.id);
-      if (exists) return prev.map((c) => (c.id === customer.id ? customer : c));
-      return [customer, ...prev];
-    });
-  };
+  const handleAdjustCustomerBalance = useCallback(
+    (customerId, delta) =>
+      dispatch({ type: ACTIONS.CUSTOMER_BALANCE_ADJUSTED, customerId, delta }),
+    [dispatch]
+  );
 
-  const handleDeleteCustomer = (id) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== id));
-  };
+  const handleSaveSupplier = useCallback(
+    (supplier) => dispatch({ type: ACTIONS.SUPPLIER_SAVED, supplier }),
+    [dispatch]
+  );
 
-  const handleAdjustCustomerBalance = (customerId, delta) => {
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === customerId
-          ? { ...c, balance: Math.max(0, (c.balance || 0) + delta) }
-          : c
-      )
-    );
-  };
+  const handleDeleteSupplier = useCallback(
+    (id) => dispatch({ type: ACTIONS.SUPPLIER_DELETED, id }),
+    [dispatch]
+  );
 
-  // ---- إدارة الموردين وفواتير الشراء (Purchases & Suppliers) ----
-  const handleSaveSupplier = (supplier) => {
-    setSuppliers((prev) => {
-      const exists = prev.find((s) => s.id === supplier.id);
-      if (exists) return prev.map((s) => (s.id === supplier.id ? supplier : s));
-      return [supplier, ...prev];
-    });
-  };
+  const handlePaySupplier = useCallback(
+    (supplierId, amount) =>
+      dispatch({ type: ACTIONS.SUPPLIER_PAID, supplierId, amount }),
+    [dispatch]
+  );
 
-  const handleDeleteSupplier = (id) => {
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
-  };
+  const handleSavePurchaseInvoice = useCallback(
+    (invoice) => dispatch({ type: ACTIONS.PURCHASE_INVOICE_SAVED, invoice }),
+    [dispatch]
+  );
 
-  const handlePaySupplier = (supplierId, amount, paymentDetails) => {
-    // 1. خصم الرصيد المستحق للمورد
-    setSuppliers((prev) =>
-      prev.map((s) =>
-        s.id === supplierId
-          ? { ...s, balance: Math.max(0, (s.balance || 0) - amount) }
-          : s
-      )
-    );
+  const handleUpdateShift = useCallback(
+    (nextShift) => dispatch({ type: ACTIONS.SHIFT_UPDATED, shift: nextShift }),
+    [dispatch]
+  );
 
-    // 2. تحديث حالة الفواتير غير المسددة لهذا المورد
-    setPurchaseInvoices((prev) => {
-      let remainingToPay = amount;
-      return prev.map((inv) => {
-        if (
-          inv.supplierId !== supplierId ||
-          inv.paymentStatus === 'paid' ||
-          remainingToPay <= 0
-        ) {
-          return inv;
-        }
-        const rem = inv.remainingAmount || 0;
-        if (rem <= 0) return inv;
+  const handleCloseShift = useCallback(
+    (zReport) =>
+      dispatch({
+        type: ACTIONS.SHIFT_CLOSED,
+        zReport,
+        closedAt: new Date().toLocaleTimeString('ar-SA', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      }),
+    [dispatch]
+  );
 
-        const paymentForThis = Math.min(rem, remainingToPay);
-        remainingToPay -= paymentForThis;
-        const newRem = rem - paymentForThis;
-
-        return {
-          ...inv,
-          paidAmount: (inv.paidAmount || 0) + paymentForThis,
-          remainingAmount: newRem,
-          paymentStatus: newRem <= 0.001 ? 'paid' : 'partial',
-        };
-      });
-    });
-  };
-
-  const handleSavePurchaseInvoice = (newInvoice) => {
-    // 1. إضافة الفاتورة لقائمة فواتير الشراء
-    setPurchaseInvoices((prev) => [newInvoice, ...prev]);
-
-    // 2. زيادة كميات المخزون وتحديث أسعار التكلفة للمنتجات
-    setProducts((prev) => receivePurchasedItems(prev, newInvoice.items));
-
-    // 3. تحديث حساب المورد (زيادة المشتريات وإضافة المتبقي الآجل للرصيد)
-    setSuppliers((prev) =>
-      prev.map((s) => {
-        if (s.id !== newInvoice.supplierId) return s;
-        return {
-          ...s,
-          balance: (s.balance || 0) + (newInvoice.remainingAmount || 0),
-          totalPurchases: (s.totalPurchases || 0) + (newInvoice.grandTotal || 0),
-          invoicesCount: (s.invoicesCount || 0) + 1,
-        };
-      })
-    );
-  };
-
-  // إغلاق الوردية
-  const handleCloseShift = (zReport) => {
-    setShift((prev) => ({
-      ...prev,
-      status: 'closed',
-      closedAt: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      zReport,
-    }));
-  };
-
-  // فتح وردية جديدة
-  const handleOpenNewShift = () => {
+  const handleOpenNewShift = useCallback(() => {
     const nextId = (parseInt(shift.id, 10) + 1).toString();
-    const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-
-    setShift({
-      id: nextId,
-      cashier: 'سامر النجار',
-      openedAt: nowTime,
-      openingFloat: 300.00,
-      status: 'open',
+    const nowTime = new Date().toLocaleTimeString('ar-SA', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
 
-    setActiveTab('sales');
-  };
+    dispatch({
+      type: ACTIONS.SHIFT_OPENED,
+      shift: {
+        id: nextId,
+        cashier: shift.cashier,
+        openedAt: nowTime,
+        openingFloat: Number(storeSettings.defaultOpeningFloat) || 300,
+        status: 'open',
+      },
+    });
+
+    navigate(TAB_PATHS.sales);
+  }, [dispatch, navigate, shift.cashier, shift.id, storeSettings.defaultOpeningFloat]);
+
+  const handleSaveSettings = useCallback(
+    (settings) => dispatch({ type: ACTIONS.SETTINGS_SAVED, settings }),
+    [dispatch]
+  );
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-100 font-sans">
-      {/* Global POS Navbar */}
-      <Navbar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        invoicesCount={invoices.length}
-        shiftStatus={shift.status}
-        storeSettings={storeSettings}
-      />
+    <HeaderSearchSlotContext.Provider value={headerSearchSlot}>
+      <div className="flex h-screen w-screen overflow-hidden bg-gray-100 font-sans">
+        <Sidebar
+          storeSettings={storeSettings}
+          cashier={cashier}
+          shiftStatus={shift.status}
+          invoicesCount={invoices.length}
+        />
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
-        {activeTab === 'dashboard' && (
-          <DashboardPage
-            invoices={invoices}
-            products={products}
-            customers={customers}
-            storeSettings={storeSettings}
-            onNavigateToPurchases={() => setActiveTab('purchases')}
-          />
-        )}
-
-        {activeTab === 'sales' && (
-          <SalesPage
-            products={products}
-            customers={customers}
-            onQuickAddCustomer={handleSaveCustomer}
-            onSaleCompleted={handleSaleCompleted}
-            isShiftOpen={shift.status === 'open'}
-            onNavigateToShift={() => setActiveTab('shift')}
-            storeSettings={storeSettings}
-          />
-        )}
-
-        {activeTab === 'invoices' && (
-          <InvoicesPage
-            invoices={invoices}
-            onUpdateInvoices={handleUpdateInvoices}
-          />
-        )}
-
-        {activeTab === 'inventory' && (
-          <InventoryPage
-            products={products}
-            onSaveProduct={handleSaveProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onAdjustStock={handleAdjustStock}
-          />
-        )}
-
-        {activeTab === 'purchases' && (
-          <PurchasesPage
-            suppliers={suppliers}
-            purchaseInvoices={purchaseInvoices}
-            products={products}
-            onSavePurchaseInvoice={handleSavePurchaseInvoice}
-            onSaveSupplier={handleSaveSupplier}
-            onDeleteSupplier={handleDeleteSupplier}
-            onPaySupplier={handlePaySupplier}
-          />
-        )}
-
-        {activeTab === 'customers' && (
-          <CustomersPage
-            customers={customers}
-            invoices={invoices}
-            onSaveCustomer={handleSaveCustomer}
-            onDeleteCustomer={handleDeleteCustomer}
-            onAdjustCustomerBalance={handleAdjustCustomerBalance}
-          />
-        )}
-
-        {activeTab === 'shift' && (
-          <ShiftPage
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppHeader
+            activeTab={activeTab}
             shift={shift}
-            invoices={invoices}
-            products={products}
-            onUpdateShift={setShift}
-            onCloseShift={handleCloseShift}
-            onOpenNewShift={handleOpenNewShift}
+            cashier={cashier}
+            onTabChange={handleTabChange}
+            searchSlotRef={setHeaderSearchSlot}
           />
-        )}
 
-        {activeTab === 'settings' && (
-          <SettingsPage
-            settings={storeSettings}
-            onSaveSettings={handleSaveSettings}
-          />
-        )}
+        <main className="min-h-0 flex-1 overflow-hidden">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+            <Route path="/" element={<Navigate to={TAB_PATHS.sales} replace />} />
+
+            <Route
+              path={TAB_PATHS.dashboard}
+              element={
+                <DashboardPage
+                  invoices={invoices}
+                  products={products}
+                  storeSettings={storeSettings}
+                  onNavigateToPurchases={() => handleTabChange('purchases')}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.sales}
+              element={
+                <SalesPage
+                  products={products}
+                  customers={customers}
+                  onQuickAddCustomer={handleSaveCustomer}
+                  onSaleCompleted={handleSaleCompleted}
+                  isShiftOpen={shift.status === 'open'}
+                  onNavigateToShift={() => handleTabChange('shift')}
+                  storeSettings={storeSettings}
+                  cashier={cashier}
+                  invoices={invoices}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.invoices}
+              element={
+                <InvoicesPage
+                  key={location.search}
+                  invoices={invoices}
+                  onUpdateInvoices={handleUpdateInvoices}
+                  initialStatusFilter={searchParams.get('status') || 'all'}
+                  taxRate={taxRate}
+                  storeSettings={storeSettings}
+                  cashier={cashier}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.inventory}
+              element={
+                <InventoryPage
+                  key={location.search}
+                  products={products}
+                  initialLabelsOpen={searchParams.get('labels') === '1'}
+                  taxRatePercent={taxRatePercent}
+                  onSaveProduct={handleSaveProduct}
+                  onDeleteProduct={handleDeleteProduct}
+                  onAdjustStock={handleAdjustStock}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.purchases}
+              element={
+                <PurchasesPage
+                  key={location.search}
+                  suppliers={suppliers}
+                  purchaseInvoices={purchaseInvoices}
+                  products={products}
+                  initialView={searchParams.get('view') || 'invoices'}
+                  taxRatePercent={taxRatePercent}
+                  onSavePurchaseInvoice={handleSavePurchaseInvoice}
+                  onSaveSupplier={handleSaveSupplier}
+                  onDeleteSupplier={handleDeleteSupplier}
+                  onPaySupplier={handlePaySupplier}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.customers}
+              element={
+                <CustomersPage
+                  key={location.search}
+                  customers={customers}
+                  invoices={invoices}
+                  initialTypeFilter={searchParams.get('type') || 'all'}
+                  onSaveCustomer={handleSaveCustomer}
+                  onDeleteCustomer={handleDeleteCustomer}
+                  onAdjustCustomerBalance={handleAdjustCustomerBalance}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.shift}
+              element={
+                <ShiftPage
+                  shift={shift}
+                  invoices={invoices}
+                  onUpdateShift={handleUpdateShift}
+                  onCloseShift={handleCloseShift}
+                  onOpenNewShift={handleOpenNewShift}
+                  taxRate={taxRate}
+                  storeSettings={storeSettings}
+                />
+              }
+            />
+
+            <Route
+              path={TAB_PATHS.settings}
+              element={
+                <SettingsPage
+                  settings={storeSettings}
+                  onSaveSettings={handleSaveSettings}
+                />
+              }
+            />
+
+            <Route
+              path="*"
+              element={<Navigate to={TAB_PATHS.sales} replace />}
+            />
+            </Routes>
+          </Suspense>
+        </main>
       </div>
-    </div>
+      </div>
+    </HeaderSearchSlotContext.Provider>
   );
 }

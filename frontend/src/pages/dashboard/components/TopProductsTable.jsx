@@ -35,6 +35,13 @@ export function TopProductsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
+            {topProducts.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-xs text-gray-400 font-bold">
+                  لا توجد مبيعات مسجلة في الفترة المحددة
+                </td>
+              </tr>
+            )}
             {topProducts.map((p, idx) => {
               const rankColor =
                 idx === 0

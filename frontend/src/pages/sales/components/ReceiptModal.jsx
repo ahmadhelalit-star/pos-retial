@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { PrinterIcon, CheckIcon, XMarkIcon } from '../../../components/common/Icons';
 
 export function ReceiptModal({
@@ -9,10 +10,13 @@ export function ReceiptModal({
 }) {
   if (!isOpen || !saleData) return null;
 
-  const invoiceNumber = saleData.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`;
-  const now = new Date();
-  const dateStr = saleData.date || now.toLocaleDateString('ar-SA');
-  const timeStr = saleData.time || now.toLocaleTimeString('ar-SA');
+  const invoiceNumber = saleData.invoiceNumber || '—';
+  const dateStr = saleData.date || '—';
+  const timeStr = saleData.time || '—';
+  const taxRatePercent =
+    saleData.taxableAmount > 0
+      ? Math.round((saleData.taxAmount / saleData.taxableAmount) * 100)
+      : Number(storeSettings.defaultTaxRate) || 0;
 
   const storeName = storeSettings.storeName || 'Sham Touch Retail POS';
   const companyName = storeSettings.companyName || 'مؤسسة شام تاتش للتجارة والتجزئة';
@@ -27,11 +31,11 @@ export function ReceiptModal({
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+  return createPortal(
+    <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className={`bg-white w-full ${is57mm ? 'max-w-[290px]' : 'max-w-sm'} rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]`}>
         {/* Header */}
-        <div className="p-3 bg-emerald-600 text-white flex items-center justify-between">
+        <div className="no-print p-3 bg-emerald-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-bold text-sm">
             <CheckIcon className="w-5 h-5" />
             <span>تمت عملية البيع بنجاح</span>
@@ -46,7 +50,7 @@ export function ReceiptModal({
         </div>
 
         {/* Receipt Body (Thermal print style) */}
-        <div className="p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
+        <div className="print-area p-5 overflow-y-auto font-mono text-xs text-gray-800 space-y-3 bg-white">
           {/* Store Info */}
           <div className="text-center pb-2 border-b border-dashed border-gray-300">
             <div className="text-xl mb-0.5">{logoEmoji}</div>
@@ -87,7 +91,7 @@ export function ReceiptModal({
             </div>
             <div className="flex justify-between">
               <span>الكاشير:</span>
-              <span className="font-sans">سامر النجار</span>
+              <span className="font-sans">{saleData.cashier || '—'}</span>
             </div>
             <div className="flex justify-between">
               <span>العميل:</span>
@@ -127,21 +131,21 @@ export function ReceiptModal({
           <div className="space-y-1 text-[11px] border-b border-dashed border-gray-300 pb-2">
             <div className="flex justify-between">
               <span className="font-sans">المجموع الخاضع للضريبة:</span>
-              <span>{saleData.taxableAmount.toFixed(2)} ر.س</span>
+              <span>{saleData.taxableAmount.toFixed(2)} {currency}</span>
             </div>
             {saleData.discountAmount > 0 && (
               <div className="flex justify-between text-red-600">
                 <span className="font-sans">إجمالي الخصم:</span>
-                <span>- {saleData.discountAmount.toFixed(2)} ر.س</span>
+                <span>- {saleData.discountAmount.toFixed(2)} {currency}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="font-sans">ضريبة القيمة المضافة (15%):</span>
-              <span>{saleData.taxAmount.toFixed(2)} ر.س</span>
+              <span className="font-sans">ضريبة القيمة المضافة ({taxRatePercent}%):</span>
+              <span>{saleData.taxAmount.toFixed(2)} {currency}</span>
             </div>
             <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-200 text-gray-900">
               <span className="font-sans">الإجمالي النهائي:</span>
-              <span>{saleData.grandTotal.toFixed(2)} ر.س</span>
+              <span>{saleData.grandTotal.toFixed(2)} {currency}</span>
             </div>
           </div>
 
@@ -163,11 +167,11 @@ export function ReceiptModal({
               <>
                 <div className="flex justify-between">
                   <span>المدفوع نقداً:</span>
-                  <span className="font-mono">{(saleData.payment.cashAmount || 0).toFixed(2)} ر.س</span>
+                  <span className="font-mono">{(saleData.payment.cashAmount || 0).toFixed(2)} {currency}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>المدفوع عبر الشبكة:</span>
-                  <span className="font-mono">{(saleData.payment.cardAmount || 0).toFixed(2)} ر.س</span>
+                  <span className="font-mono">{(saleData.payment.cardAmount || 0).toFixed(2)} {currency}</span>
                 </div>
               </>
             )}
@@ -175,11 +179,11 @@ export function ReceiptModal({
               <>
                 <div className="flex justify-between">
                   <span>المبلغ المدفوع:</span>
-                  <span className="font-mono">{saleData.payment.tendered.toFixed(2)} ر.س</span>
+                  <span className="font-mono">{saleData.payment.tendered.toFixed(2)} {currency}</span>
                 </div>
                 <div className="flex justify-between font-bold text-emerald-700">
                   <span>المبلغ المتبقي:</span>
-                  <span className="font-mono">{saleData.payment.change.toFixed(2)} ر.س</span>
+                  <span className="font-mono">{saleData.payment.change.toFixed(2)} {currency}</span>
                 </div>
               </>
             )}
@@ -213,7 +217,7 @@ export function ReceiptModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
+        <div className="no-print p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handlePrint}
@@ -235,6 +239,7 @@ export function ReceiptModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

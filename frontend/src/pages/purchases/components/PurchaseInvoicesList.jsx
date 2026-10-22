@@ -39,7 +39,7 @@ export function PurchaseInvoicesList({
               <th className="py-3 px-3.5">المورد</th>
               <th className="py-3 px-3.5 text-center">الأصناف</th>
               <th className="py-3 px-3.5">المجموع الفرعي</th>
-              <th className="py-3 px-3.5">الضريبة (15%)</th>
+              <th className="py-3 px-3.5">الضريبة</th>
               <th className="py-3 px-3.5">الإجمالي الشامل</th>
               <th className="py-3 px-3.5 text-center">طريقة الدفع</th>
               <th className="py-3 px-3.5 text-center">حالة السداد</th>

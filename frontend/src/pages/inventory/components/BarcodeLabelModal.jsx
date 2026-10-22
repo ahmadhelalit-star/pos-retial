@@ -1,9 +1,11 @@
+import { createPortal } from 'react-dom';
 import { PrinterIcon, XMarkIcon, BarcodeIcon } from '../../../components/common/Icons';
 
 export function BarcodeLabelModal({
   isOpen,
   onClose,
   product,
+  taxRatePercent = 15,
 }) {
   if (!isOpen || !product) return null;
 
@@ -11,11 +13,11 @@ export function BarcodeLabelModal({
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+  return createPortal(
+    <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
         {/* Header */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+        <div className="no-print p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarcodeIcon className="w-5 h-5 text-emerald-600" />
             <h2 className="text-sm font-bold text-gray-800">معاينة ملصق الباركود والرف</h2>
@@ -30,7 +32,7 @@ export function BarcodeLabelModal({
         </div>
 
         {/* Shelf Label Preview */}
-        <div className="p-6 bg-gray-100 flex items-center justify-center">
+        <div className="print-area p-6 bg-gray-100 flex items-center justify-center">
           <div className="bg-white p-4 w-72 rounded-xl border-2 border-dashed border-gray-400 shadow-sm text-center font-sans space-y-2 select-text">
             {/* Store title */}
             <p className="text-[10px] font-bold text-gray-400 tracking-wider">
@@ -76,12 +78,12 @@ export function BarcodeLabelModal({
               </span>
               <span className="text-xs font-bold text-gray-700">ر.س</span>
             </div>
-            <p className="text-[9px] text-gray-400 font-medium">السعر شامل ضريبة القيمة المضافة 15%</p>
+            <p className="text-[9px] text-gray-400 font-medium">السعر شامل ضريبة القيمة المضافة {taxRatePercent}%</p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
+        <div className="no-print p-3 bg-gray-50 border-t border-gray-200 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handlePrint}
@@ -100,6 +102,7 @@ export function BarcodeLabelModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
