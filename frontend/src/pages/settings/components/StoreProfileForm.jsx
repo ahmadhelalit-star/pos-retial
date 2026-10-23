@@ -15,7 +15,7 @@ export function StoreProfileForm({ settings, onChange }) {
           <h3 className="text-sm font-black text-gray-900">
             بيانات المنشأة والمتجر الرئيسي
           </h3>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             البيانات الرسمية التي تظهر في ترويسة الفواتير والتقارير المالية
           </p>
         </div>
@@ -183,7 +183,7 @@ export function StoreProfileForm({ settings, onChange }) {
               }
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs pointer-events-none">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs pointer-events-none">
               %
             </span>
           </div>

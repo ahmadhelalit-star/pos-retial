@@ -45,11 +45,11 @@ export function InvoicesList({
   if (invoices.length === 0) {
     return (
       <div className="bg-white mx-4 p-12 rounded-2xl border border-gray-200 text-center flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 mb-3">
           <DocumentTextIcon className="w-8 h-8" />
         </div>
         <p className="font-bold text-gray-700 text-sm">لا توجد فواتير مطابقة لمعايير البحث</p>
-        <p className="text-xs text-gray-400 mt-1">جرّب تغيير كلمات البحث أو مسح خيارات الفلترة</p>
+        <p className="text-xs text-gray-500 mt-1">جرّب تغيير كلمات البحث أو مسح خيارات الفلترة</p>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export function InvoicesList({
                   onClick={() => onViewDetails(inv)}
                   className="font-mono font-bold text-gray-900 hover:text-emerald-700 flex items-center gap-1.5 text-sm"
                 >
-                  <DocumentTextIcon className="w-4 h-4 text-gray-400" />
+                  <DocumentTextIcon className="w-4 h-4 text-gray-500" />
                   <span>{inv.invoiceNumber}</span>
                 </button>
                 {getStatusBadge(inv.status)}
@@ -87,7 +87,7 @@ export function InvoicesList({
                     {inv.customer?.name || 'عميل نقدي'}
                   </span>
                   {inv.customer?.phone && (
-                    <span className="block text-[10px] text-gray-400 font-mono">
+                    <span className="block text-[11px] text-gray-500 font-mono">
                       {inv.customer.phone}
                     </span>
                   )}
@@ -115,7 +115,7 @@ export function InvoicesList({
               <div className="flex items-center justify-between">
                 <span className="text-emerald-700 font-black text-lg font-mono">
                   {inv.grandTotal.toFixed(2)}{' '}
-                  <span className="text-[11px] font-sans text-gray-400">ر.س</span>
+                  <span className="text-xs font-sans text-gray-500">ر.س</span>
                 </span>
                 <div className="flex items-center gap-1.5">
                   {/* View details */}
@@ -165,14 +165,14 @@ export function InvoicesList({
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200 text-xs font-bold text-gray-500 select-none">
-                <th className="py-3.5 px-4">رقم الفاتورة</th>
-                <th className="py-3.5 px-4">التاريخ والوقت</th>
-                <th className="py-3.5 px-4">العميل</th>
-                <th className="py-3.5 px-4">الأصناف</th>
-                <th className="py-3.5 px-4">طريقة الدفع</th>
-                <th className="py-3.5 px-4">الحالة</th>
-                <th className="py-3.5 px-4 text-left">الإجمالي</th>
-                <th className="py-3.5 px-4 text-center">الإجراءات</th>
+                <th className="py-3.5 px-2.5">رقم الفاتورة</th>
+                <th className="py-3.5 px-2.5">التاريخ والوقت</th>
+                <th className="py-3.5 px-2.5">العميل</th>
+                <th className="py-3.5 px-2.5">الأصناف</th>
+                <th className="py-3.5 px-2.5">طريقة الدفع</th>
+                <th className="py-3.5 px-2.5">الحالة</th>
+                <th className="py-3.5 px-2.5 text-left">الإجمالي</th>
+                <th className="py-3.5 px-2.5 text-center">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
@@ -186,45 +186,45 @@ export function InvoicesList({
                     className="hover:bg-gray-50/80 transition-colors group select-none"
                   >
                     {/* Invoice # */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-2.5">
                       <button
                         type="button"
                         onClick={() => onViewDetails(inv)}
-                        className="font-mono font-bold text-gray-900 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 whitespace-nowrap font-mono font-bold text-gray-900 hover:text-emerald-700 hover:underline cursor-pointer"
                       >
-                        <DocumentTextIcon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
+                        <DocumentTextIcon className="hidden w-4 h-4 text-gray-500 group-hover:text-emerald-600 xl:block" />
                         <span>{inv.invoiceNumber}</span>
                       </button>
                     </td>
 
                     {/* Date & Time */}
-                    <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">
+                    <td className="py-3.5 px-2.5 text-gray-500 whitespace-nowrap">
                       <span>{inv.date}</span>
                       <span className="mx-1 text-gray-300">•</span>
                       <span className="font-mono text-gray-600">{inv.time}</span>
                     </td>
 
                     {/* Customer */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-2.5">
                       <span className="font-bold text-gray-800">
                         {inv.customer?.name || 'عميل نقدي'}
                       </span>
                       {inv.customer?.phone && (
-                        <span className="block text-[10px] text-gray-400 font-mono">
+                        <span className="block text-[11px] text-gray-500 font-mono">
                           {inv.customer.phone}
                         </span>
                       )}
                     </td>
 
                     {/* Items count */}
-                    <td className="py-3.5 px-4">
-                      <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-mono">
+                    <td className="py-3.5 px-2.5">
+                      <span className="whitespace-nowrap rounded bg-gray-100 px-2 py-0.5 font-mono text-gray-700">
                         {totalItems} مواد
                       </span>
                     </td>
 
                     {/* Payment Method */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-2.5">
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-700">
                         {inv.paymentMethod === 'نقدي' ? (
                           <BanknotesIcon className="w-4 h-4 text-emerald-600" />
@@ -236,18 +236,18 @@ export function InvoicesList({
                     </td>
 
                     {/* Status */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-2.5 whitespace-nowrap">
                       {getStatusBadge(inv.status)}
                     </td>
 
                     {/* Grand Total */}
-                    <td className="py-3.5 px-4 text-left font-mono font-black text-sm text-gray-900">
+                    <td className="py-3.5 px-2.5 text-left font-mono font-black text-sm text-gray-900 whitespace-nowrap">
                       {inv.grandTotal.toFixed(2)}{' '}
-                      <span className="text-[10px] font-sans text-gray-400">ر.س</span>
+                      <span className="text-[11px] font-sans text-gray-500">ر.س</span>
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-2.5">
                       <div className="flex items-center justify-center gap-1.5">
                         {/* View details */}
                         <button

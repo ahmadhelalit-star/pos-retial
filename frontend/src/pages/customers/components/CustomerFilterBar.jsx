@@ -20,7 +20,7 @@ export function CustomerFilterBar({
 }) {
   const searchField = (
     <div className="relative w-full md:w-80">
-      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-500">
         <SearchIcon className="w-4 h-4" />
       </div>
       <input
@@ -34,7 +34,7 @@ export function CustomerFilterBar({
         <button
           type="button"
           onClick={() => onSearchChange('')}
-          className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+          className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-gray-500 hover:text-gray-600 cursor-pointer"
         >
           ✕
         </button>

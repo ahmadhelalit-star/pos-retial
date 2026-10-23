@@ -144,10 +144,10 @@ export function AppHeader({
           <PageIcon className="h-[18px] w-[18px]" />
         </div>
         <div className="min-w-0 max-w-[150px] lg:max-w-[230px]">
-          <h1 className="truncate text-[13px] font-bold leading-5 text-[#00236f] sm:text-[15px] sm:leading-6">
+          <h1 className="truncate text-sm font-bold leading-5 text-[#00236f] sm:text-base sm:leading-6">
             {meta.title}
           </h1>
-          <p className="hidden truncate text-[11px] font-medium text-[#757682] xl:block">
+          <p className="hidden truncate text-xs font-medium text-[#757682] xl:block">
             {meta.subtitle}
           </p>
         </div>
@@ -162,7 +162,7 @@ export function AppHeader({
           type="button"
           onClick={() => onTabChange?.('shift')}
           title={isShiftOpen ? 'إدارة الوردية الحالية' : 'فتح وردية جديدة'}
-          className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition-colors ${
+          className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-bold transition-colors ${
             isShiftOpen
               ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
               : 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
@@ -179,9 +179,9 @@ export function AppHeader({
           <LockClosedIcon className="h-3.5 w-3.5 sm:hidden" />
         </button>
 
-        <div className="hidden items-center gap-1.5 rounded-full bg-[#f0f3ff] px-3 py-1.5 text-[11px] font-medium text-[#444651] md:flex">
+        <div className="hidden items-center gap-1.5 rounded-full bg-[#f0f3ff] px-3 py-1.5 text-xs font-medium text-[#444651] md:flex">
           <ClockIcon className="h-3.5 w-3.5 text-[#00236f]" />
-          <span className="hidden lg:inline text-[#757682]">{dateString}</span>
+          <span className="hidden text-[#757682] xl:inline">{dateString}</span>
           <span className="font-mono font-bold tabular-nums text-[#00236f]">
             {timeString}
           </span>
@@ -199,8 +199,8 @@ export function AppHeader({
 
         <div className="flex items-center gap-2 rounded-full bg-[#f0f3ff] py-1 pl-3 pr-1">
           <div className="hidden text-left sm:block">
-            <p className="text-[11px] font-bold leading-4 text-[#00236f]">{cashier}</p>
-            <p className="text-[9px] font-medium leading-3 text-[#757682]">كاشير</p>
+            <p className="text-xs font-bold leading-4 text-[#00236f]">{cashier}</p>
+            <p className="text-[11px] font-medium leading-3 text-[#757682]">كاشير</p>
           </div>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#00236f] shadow-sm">
             <UserIcon className="h-4 w-4" />

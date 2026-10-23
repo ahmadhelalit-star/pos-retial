@@ -46,7 +46,7 @@ export function PurchasesSummaryCards({
           </span>
           <span className="text-xs font-bold text-indigo-600">ر.س</span>
         </div>
-        <div className="mt-1 text-[11px] text-indigo-600 font-medium">
+        <div className="mt-1 text-xs text-indigo-600 font-medium">
           عبر {purchaseInvoices.length} فاتورة توريد
         </div>
       </div>
@@ -68,7 +68,7 @@ export function PurchasesSummaryCards({
           </span>
           <span className="text-xs font-bold text-amber-600">ر.س</span>
         </div>
-        <div className="mt-1 flex items-center gap-1 text-[11px] text-amber-700 font-medium">
+        <div className="mt-1 flex items-center gap-1 text-xs text-amber-700 font-medium">
           {totalPayables > 0 ? (
             <>
               <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-600" />
@@ -94,7 +94,7 @@ export function PurchasesSummaryCards({
           </span>
           <span className="text-xs font-bold text-rose-600">فاتورة</span>
         </div>
-        <div className="mt-1 text-[11px] text-rose-600 font-medium">
+        <div className="mt-1 text-xs text-rose-600 font-medium">
           تحتاج متابعة مع المورد
         </div>
       </div>
@@ -113,7 +113,7 @@ export function PurchasesSummaryCards({
           </span>
           <span className="text-xs font-bold text-emerald-600">مورد نشط</span>
         </div>
-        <div className="mt-1 text-[11px] text-emerald-600 font-medium">
+        <div className="mt-1 text-xs text-emerald-600 font-medium">
           شركات ومؤسسات توزيع
         </div>
       </div>

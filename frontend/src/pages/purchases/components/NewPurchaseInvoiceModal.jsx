@@ -226,7 +226,7 @@ export function NewPurchaseInvoiceModal({
               <h2 className="text-sm font-black">
                 تسجيل فاتورة شراء وتوريد جديدة
               </h2>
-              <p className="text-[11px] text-emerald-100">
+              <p className="text-xs text-emerald-100">
                 إدخال بضاعة للمخزون، تحديث أسعار التكلفة، وإدارة مستحقات المورد
               </p>
             </div>
@@ -306,7 +306,7 @@ export function NewPurchaseInvoiceModal({
                   setIsCustomItem(!isCustomItem);
                   setSelectedProductId('');
                 }}
-                className="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                className="text-xs text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
               >
                 {isCustomItem
                   ? '← اختيار من المخزون الحالي'
@@ -317,7 +317,7 @@ export function NewPurchaseInvoiceModal({
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
               {/* Product Selection */}
               <div className="md:col-span-4">
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   {isCustomItem ? 'اسم الصنف الجديد' : 'اختر الصنف من المخزون'}
                 </label>
                 {isCustomItem ? (
@@ -351,7 +351,7 @@ export function NewPurchaseInvoiceModal({
 
               {/* الكمية */}
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   الكمية الموردة
                 </label>
                 <div className="relative">
@@ -362,7 +362,7 @@ export function NewPurchaseInvoiceModal({
                     onChange={(e) => setQty(e.target.value)}
                     className="w-full pl-7 pr-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold pointer-events-none">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-500 font-bold pointer-events-none">
                     {unit}
                   </span>
                 </div>
@@ -370,7 +370,7 @@ export function NewPurchaseInvoiceModal({
 
               {/* سعر الشراء (التكلفة) */}
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   سعر الشراء (التكلفة)
                 </label>
                 <div className="relative">
@@ -383,7 +383,7 @@ export function NewPurchaseInvoiceModal({
                     placeholder="0.00"
                     className="w-full pl-7 pr-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold pointer-events-none">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-500 font-bold pointer-events-none">
                     ر.س
                   </span>
                 </div>
@@ -391,7 +391,7 @@ export function NewPurchaseInvoiceModal({
 
               {/* سعر البيع للجمهور */}
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   سعر البيع المقترح
                 </label>
                 <div className="relative">
@@ -404,7 +404,7 @@ export function NewPurchaseInvoiceModal({
                     placeholder="0.00"
                     className="w-full pl-7 pr-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold pointer-events-none">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-500 font-bold pointer-events-none">
                     ر.س
                   </span>
                 </div>
@@ -443,7 +443,7 @@ export function NewPurchaseInvoiceModal({
                   <tr>
                     <td
                       colSpan={7}
-                      className="py-8 text-center text-gray-400 text-xs"
+                      className="py-8 text-center text-gray-500 text-xs"
                     >
                       لم يتم إضافة أصناف إلى الفاتورة بعد
                     </td>
@@ -451,13 +451,13 @@ export function NewPurchaseInvoiceModal({
                 ) : (
                   invoiceItems.map((item, idx) => (
                     <tr key={idx} className="hover:bg-gray-50">
-                      <td className="py-2 px-3 font-mono text-gray-400">
+                      <td className="py-2 px-3 font-mono text-gray-500">
                         {idx + 1}
                       </td>
                       <td className="py-2 px-3 font-bold text-gray-900">
                         {item.name}
                         {item.isNewProduct && (
-                          <span className="mr-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded-sm">
+                          <span className="mr-1 text-[11px] bg-blue-100 text-blue-700 px-1 rounded-sm">
                             صنف جديد
                           </span>
                         )}
@@ -478,7 +478,7 @@ export function NewPurchaseInvoiceModal({
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
-                          className="p-1 text-gray-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="p-1 text-gray-500 hover:text-rose-600 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
@@ -522,7 +522,7 @@ export function NewPurchaseInvoiceModal({
               {/* إذا تم اختيار سداد جزئي */}
               {paymentMethod === 'partial' && (
                 <div className="p-2 bg-white rounded-lg border border-gray-200 space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-600">
+                  <label className="block text-xs font-bold text-gray-600">
                     المبلغ المسدد نقداً الآن (ر.س)
                   </label>
                   <input
@@ -535,7 +535,7 @@ export function NewPurchaseInvoiceModal({
                     placeholder="0.00"
                     className="w-full px-2.5 py-1 bg-gray-50 border border-gray-300 rounded text-xs font-mono font-bold"
                   />
-                  <div className="text-[10px] text-amber-700 font-bold">
+                  <div className="text-[11px] text-amber-700 font-bold">
                     المتبقي الآجل:{' '}
                     {(grandTotal - (parseFloat(paidAmount) || 0)).toFixed(2)}{' '}
                     ر.س
@@ -550,7 +550,7 @@ export function NewPurchaseInvoiceModal({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات حول الفاتورة أو شروط التسليم..."
-                  className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400"
+                  className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -577,13 +577,13 @@ export function NewPurchaseInvoiceModal({
               </div>
 
               {/* ملخص حالة الرصيد */}
-              <div className="text-[11px] pt-1 border-t border-dashed border-gray-200 flex justify-between">
+              <div className="text-xs pt-1 border-t border-dashed border-gray-200 flex justify-between">
                 <span>المسدد فوراً:</span>
                 <span className="font-mono font-bold text-gray-800">
                   {calculatedPaid.toFixed(2)} ر.س
                 </span>
               </div>
-              <div className="text-[11px] flex justify-between">
+              <div className="text-xs flex justify-between">
                 <span className="text-amber-700 font-bold">
                   المضاف لحساب المورد (آجل):
                 </span>
@@ -597,7 +597,7 @@ export function NewPurchaseInvoiceModal({
 
         {/* Footer Actions */}
         <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          <div className="text-[11px] text-gray-500">
+          <div className="text-xs text-gray-500">
             * سيتم زيادة كميات المخزون وتحديث أسعار التكلفة تلقائياً عند الحفظ.
           </div>
 

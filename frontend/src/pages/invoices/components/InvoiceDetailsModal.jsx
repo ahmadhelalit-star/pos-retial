@@ -36,7 +36,7 @@ export function InvoiceDetailsModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -47,19 +47,19 @@ export function InvoiceDetailsModal({
           {/* Status & Payment Overview Card */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-gray-50 rounded-2xl border border-gray-200/80">
             <div>
-              <span className="text-gray-400 font-bold block">التاريخ والوقت</span>
+              <span className="text-gray-500 font-bold block">التاريخ والوقت</span>
               <span className="font-semibold text-gray-800 font-mono mt-0.5 block">
                 {invoice.date} {invoice.time}
               </span>
             </div>
             <div>
-              <span className="text-gray-400 font-bold block">العميل</span>
+              <span className="text-gray-500 font-bold block">العميل</span>
               <span className="font-bold text-gray-800 mt-0.5 block">
                 {invoice.customer?.name || 'عميل نقدي'}
               </span>
             </div>
             <div>
-              <span className="text-gray-400 font-bold block">طريقة الدفع</span>
+              <span className="text-gray-500 font-bold block">طريقة الدفع</span>
               <div className="flex items-center gap-1 font-bold text-gray-800 mt-0.5">
                 {invoice.paymentMethod === 'نقدي' ? (
                   <BanknotesIcon className="w-3.5 h-3.5 text-emerald-600" />
@@ -70,7 +70,7 @@ export function InvoiceDetailsModal({
               </div>
             </div>
             <div>
-              <span className="text-gray-400 font-bold block">حالة الفاتورة</span>
+              <span className="text-gray-500 font-bold block">حالة الفاتورة</span>
               <span className="font-bold mt-0.5 block">
                 {invoice.status === 'مدفوعة' && (
                   <span className="text-emerald-700">مدفوعة ومكتملة</span>
@@ -90,7 +90,7 @@ export function InvoiceDetailsModal({
             <h3 className="font-bold text-gray-800 mb-2">الأصناف المشتراة</h3>
             <div className="border border-gray-200 rounded-xl overflow-hidden">
               <table className="w-full text-right">
-                <thead className="bg-gray-100 text-[11px] font-bold text-gray-500">
+                <thead className="bg-gray-100 text-xs font-bold text-gray-500">
                   <tr>
                     <th className="py-2 px-3">المادة</th>
                     <th className="py-2 px-3">الكمية</th>

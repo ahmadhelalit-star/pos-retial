@@ -255,7 +255,7 @@ export function DashboardPage({
             <h1 className="text-sm font-black text-gray-900">
               لوحة المؤشرات والتحليلات الذكية
             </h1>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               متابعة الإيرادات المباشرة، صافي الأرباح، ساعات الذروة، ونواقص المخزون
             </p>
           </div>
@@ -326,15 +326,15 @@ export function DashboardPage({
         </div>
 
         {/* 3. Deep Dive Section (Top Products + Category Sales + Low Stock Alerts) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 px-4 pb-6">
-          <div className="lg:col-span-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 px-4 pb-6">
+          <div className="md:col-span-2 xl:col-span-6">
             <TopProductsTable
               topProducts={analyticsData.topProducts}
               currency={currency}
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="md:col-span-1 xl:col-span-3">
             <CategoryBreakdownChart
               categorySales={analyticsData.categorySales}
               totalSales={analyticsData.metrics.totalRevenue}
@@ -342,7 +342,7 @@ export function DashboardPage({
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="md:col-span-1 xl:col-span-3">
             <LowStockAlertCard
               lowStockProducts={analyticsData.lowStockProducts}
               onNavigateToPurchases={onNavigateToPurchases}

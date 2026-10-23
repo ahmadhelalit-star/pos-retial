@@ -11,14 +11,14 @@ export function CategoryBreakdownChart({
         <h3 className="text-xs font-black text-gray-900 mb-0.5">
           أداء المبيعات حسب الأقسام والتصنيفات
         </h3>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-xs text-gray-500">
           توزيع الإيرادات والكميات المباعة لكل قسم
         </p>
       </div>
 
       <div className="space-y-2.5 overflow-y-auto max-h-60 pr-1">
         {totalSales <= 0 && (
-          <div className="py-8 text-center text-xs text-gray-400 font-bold">
+          <div className="py-8 text-center text-xs text-gray-500 font-bold">
             لا توجد مبيعات مسجلة في الفترة المحددة
           </div>
         )}
@@ -27,27 +27,27 @@ export function CategoryBreakdownChart({
 
           return (
             <div key={idx} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-gray-800">
-                  <span className="text-sm">{cat.icon || '📦'}</span>
-                  <span>{cat.name}</span>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div className="flex min-w-0 items-center gap-1.5 font-bold text-gray-800">
+                  <span className="shrink-0 text-sm">{cat.icon || '📦'}</span>
+                  <span className="truncate">{cat.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-gray-900">
-                    {cat.amount.toFixed(2)} {currency}
-                  </span>
-                  <span className="text-[10px] text-gray-400 font-mono">
-                    ({pct.toFixed(0)}%)
-                  </span>
-                </div>
+                <span className="shrink-0 whitespace-nowrap font-mono font-bold text-gray-900">
+                  {cat.amount.toFixed(2)} {currency}
+                </span>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  style={{ width: `${Math.max(4, pct)}%` }}
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                />
+              <div className="flex items-center gap-2">
+                <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    style={{ width: `${Math.max(4, pct)}%` }}
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  />
+                </div>
+                <span className="w-8 shrink-0 text-left text-[11px] text-gray-500 font-mono">
+                  {pct.toFixed(0)}%
+                </span>
               </div>
             </div>
           );

@@ -29,7 +29,7 @@ export function ShiftFinancialCards({
           {expectedCashInDrawer.toFixed(2)}{' '}
           <span className="text-xs font-sans text-gray-500">ر.س</span>
         </p>
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[11px] text-gray-500 mt-1">
           يشمل الفكة ({openingFloat.toFixed(0)}) + الكاش ({cashSales.toFixed(0)}) - المرتجع ({cashRefunds.toFixed(0)})
         </p>
       </div>
@@ -44,9 +44,9 @@ export function ShiftFinancialCards({
         </div>
         <p className="text-xl md:text-2xl font-black text-gray-900 font-mono mt-2">
           {netSales.toFixed(2)}{' '}
-          <span className="text-xs font-sans text-gray-400">ر.س</span>
+          <span className="text-xs font-sans text-gray-500">ر.س</span>
         </p>
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[11px] text-gray-500 mt-1">
           إجمالي {invoicesCount} عمليات بيع مسجلة
         </p>
       </div>
@@ -61,9 +61,9 @@ export function ShiftFinancialCards({
         </div>
         <p className="text-xl md:text-2xl font-black text-indigo-700 font-mono mt-2">
           {(cardSales - cardRefunds).toFixed(2)}{' '}
-          <span className="text-xs font-sans text-gray-400">ر.س</span>
+          <span className="text-xs font-sans text-gray-500">ر.س</span>
         </p>
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[11px] text-gray-500 mt-1">
           مطابقة مباشرة مع أجهزة الـ POS
         </p>
       </div>
@@ -78,9 +78,9 @@ export function ShiftFinancialCards({
         </div>
         <p className="text-xl md:text-2xl font-black text-red-600 font-mono mt-2">
           {(cashRefunds + cardRefunds).toFixed(2)}{' '}
-          <span className="text-xs font-sans text-gray-400">ر.س</span>
+          <span className="text-xs font-sans text-gray-500">ر.س</span>
         </p>
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[11px] text-gray-500 mt-1">
           كاش: {cashRefunds.toFixed(2)} | شبكة: {cardRefunds.toFixed(2)}
         </p>
       </div>

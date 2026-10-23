@@ -41,7 +41,7 @@ export function ProductListTable({
       <div className="bg-white mx-4 p-12 rounded-2xl border border-gray-200 text-center flex flex-col items-center justify-center">
         <BarcodeIcon className="w-12 h-12 text-gray-300 mb-2" />
         <p className="font-bold text-gray-700 text-sm">لا توجد منتجات مطابقة لمعايير البحث</p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-gray-500 mt-1">
           جرّب تغيير التصنيف أو كلمة البحث أو أضف منتجاً جديداً
         </p>
       </div>
@@ -81,15 +81,15 @@ export function ProductListTable({
               {/* Row 3: Cost price | Sell price */}
               <div className="flex items-center gap-0 mb-3 bg-gray-50 rounded-xl divide-x divide-gray-200 border border-gray-200 overflow-hidden" dir="ltr">
                 <div className="flex-1 px-3 py-2 text-center">
-                  <p className="text-[10px] text-gray-400 mb-0.5">سعر التكلفة</p>
+                  <p className="text-[11px] text-gray-500 mb-0.5">سعر التكلفة</p>
                   <p className="font-mono text-xs text-gray-600 font-semibold">
-                    {cost.toFixed(2)} <span className="font-sans text-[9px] text-gray-400">ر.س</span>
+                    {cost.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">ر.س</span>
                   </p>
                 </div>
                 <div className="flex-1 px-3 py-2 text-center">
-                  <p className="text-[10px] text-gray-400 mb-0.5">سعر البيع</p>
+                  <p className="text-[11px] text-gray-500 mb-0.5">سعر البيع</p>
                   <p className="font-mono text-sm text-emerald-700 font-black">
-                    {prod.price.toFixed(2)} <span className="font-sans text-[9px] text-gray-400">ر.س</span>
+                    {prod.price.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">ر.س</span>
                   </p>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export function ProductListTable({
                   >
                     {/* Barcode */}
                     <td className="py-3 px-4">
-                      <span className="font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-bold">
+                      <span className="font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold">
                         {prod.barcode}
                       </span>
                     </td>
@@ -210,7 +210,7 @@ export function ProductListTable({
                     {/* Selling Price */}
                     <td className="py-3 px-4 font-mono font-black text-sm text-emerald-700">
                       {prod.price.toFixed(2)}{' '}
-                      <span className="text-[10px] font-sans text-gray-400">ر.س</span>
+                      <span className="text-[11px] font-sans text-gray-500">ر.س</span>
                     </td>
 
                     {/* Stock Status Badge */}

@@ -40,10 +40,10 @@ export function DashboardSummaryCards({
           </span>
           <span className="text-xs font-bold text-emerald-600">{currency}</span>
         </div>
-        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-700 font-bold">
+        <div className="mt-1.5 flex items-center gap-1 text-xs text-emerald-700 font-bold">
           <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-emerald-600" />
           <span dir="ltr">{growthRate > 0 ? '+' : ''}{growthRate}%</span>
-          <span className="text-gray-400 font-normal">مقارنة بالفترة السابقة</span>
+          <span className="text-gray-500 font-normal">مقارنة بالفترة السابقة</span>
         </div>
       </div>
 
@@ -64,11 +64,11 @@ export function DashboardSummaryCards({
           </span>
           <span className="text-xs font-bold text-indigo-600">{currency}</span>
         </div>
-        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-indigo-700 font-bold">
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-indigo-700 font-bold">
           <span className="bg-indigo-100 px-1.5 py-0.5 rounded-md font-mono">
             هامش ربح: {profitMargin}%
           </span>
-          <span className="text-gray-400 font-normal">بعد خصم التكلفة</span>
+          <span className="text-gray-500 font-normal">بعد خصم التكلفة</span>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export function DashboardSummaryCards({
           </span>
           <span className="text-xs font-bold text-blue-600">{currency}</span>
         </div>
-        <div className="mt-1.5 text-[11px] text-blue-700 font-medium">
+        <div className="mt-1.5 text-xs text-blue-700 font-medium">
           عبر <span className="font-bold font-mono">{totalTransactions}</span> فاتورة ناجحة
         </div>
       </div>
@@ -108,7 +108,7 @@ export function DashboardSummaryCards({
           </span>
           <span className="text-xs font-bold text-amber-600">{currency}</span>
         </div>
-        <div className="mt-1.5 text-[11px] text-amber-700 font-medium">
+        <div className="mt-1.5 text-xs text-amber-700 font-medium">
           المحصلة لإقرار الهيئة ({taxRatePercent}%)
         </div>
       </div>

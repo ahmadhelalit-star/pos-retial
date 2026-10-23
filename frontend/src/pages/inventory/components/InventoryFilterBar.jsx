@@ -16,7 +16,7 @@ export function InventoryFilterBar({
 }) {
   const searchField = (
     <div className="relative flex-1 w-full">
-      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-500">
         <SearchIcon className="w-4 h-4" />
       </div>
       <input
@@ -24,13 +24,13 @@ export function InventoryFilterBar({
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder="ابحث باسم المادة أو الباركود SKU..."
-        className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-10 py-2.5 text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+        className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-10 py-2.5 text-xs md:text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
       />
       {searchQuery && (
         <button
           type="button"
           onClick={() => onSearchChange('')}
-          className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+          className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500 hover:text-gray-600 cursor-pointer"
         >
           <XMarkIcon className="w-4 h-4" />
         </button>
@@ -72,7 +72,7 @@ export function InventoryFilterBar({
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 text-xs">
         {/* Category selector */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 font-bold flex items-center gap-1">
+          <span className="text-gray-500 font-bold flex items-center gap-1">
             <FunnelIcon className="w-3.5 h-3.5" />
             التصنيف:
           </span>
@@ -91,7 +91,7 @@ export function InventoryFilterBar({
 
         {/* Stock status filter */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 font-bold">حالة المخزون:</span>
+          <span className="text-gray-500 font-bold">حالة المخزون:</span>
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
             {[
               { id: 'all', label: 'الكل' },

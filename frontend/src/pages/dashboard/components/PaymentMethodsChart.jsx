@@ -44,7 +44,7 @@ export function PaymentMethodsChart({
         <h3 className="text-xs font-black text-gray-900 mb-0.5">
           توزيع المبيعات حسب طرق الدفع
         </h3>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-xs text-gray-500">
           نسبة المبيعات النقدية والإلكترونية والآجلة
         </p>
       </div>
@@ -82,7 +82,7 @@ export function PaymentMethodsChart({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-800">{m.label}</div>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-[11px] text-gray-500">
                     {m.count} عملية بيع
                   </div>
                 </div>
@@ -92,7 +92,7 @@ export function PaymentMethodsChart({
                 <div className="text-xs font-black font-mono text-gray-900">
                   {m.amount.toFixed(2)} {currency}
                 </div>
-                <div className={`text-[10px] font-bold font-mono ${m.textColor}`}>
+                <div className={`text-[11px] font-bold font-mono ${m.textColor}`}>
                   {pct.toFixed(1)}%
                 </div>
               </div>

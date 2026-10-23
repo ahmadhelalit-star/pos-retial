@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ArrowUturnLeftIcon,
@@ -20,6 +20,11 @@ import {
 const SIDEBAR_OPEN_KEY = 'shamtouch:v1:sidebarOpen';
 const AUTO_CLOSED_PATHS = ['/sales', '/shift'];
 const EXPANDED_WIDTH = 216;
+const MOBILE_BREAKPOINT = 1024;
+
+function isMobileViewport() {
+  return typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
+}
 
 const MAIN_ITEMS = [
   {
@@ -100,6 +105,7 @@ const QUICK_LINKS = [
 ];
 
 function readSidebarOpen(pathname) {
+  if (isMobileViewport()) return false;
   const stored = sessionStorage.getItem(SIDEBAR_OPEN_KEY);
   if (AUTO_CLOSED_PATHS.includes(pathname)) return false;
   if (stored === null) return true;
@@ -130,10 +136,24 @@ export function Sidebar({
   invoicesCount = 0,
 }) {
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(isMobileViewport);
   const [sidebarState, setSidebarState] = useState(() => ({
     open: readSidebarOpen(location.pathname),
     pathname: location.pathname,
   }));
+
+  useEffect(() => {
+    const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const handleChange = (event) => {
+      setIsMobile(event.matches);
+      if (event.matches) {
+        setSidebarState((state) => ({ ...state, open: false }));
+      }
+    };
+
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
+  }, []);
 
   if (sidebarState.pathname !== location.pathname) {
     setSidebarState({
@@ -166,7 +186,7 @@ export function Sidebar({
         key={item.id}
         to={item.path}
         title={item.label}
-        className={`group flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-colors ${
+        className={`group flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
           active
             ? 'bg-[#00236f] text-white shadow-md'
             : 'text-[#444651] hover:bg-[#e2e8f8] hover:text-[#00236f]'
@@ -181,7 +201,7 @@ export function Sidebar({
 
         {item.id === 'invoices' && invoicesCount > 0 && (
           <span
-            className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+            className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold ${
               active ? 'bg-white/20 text-white' : 'bg-[#dbe4ff] text-[#00236f]'
             }`}
           >
@@ -195,7 +215,7 @@ export function Sidebar({
 
         {item.shortcut && (
           <kbd
-            className={`hidden rounded border px-1 font-mono text-[9px] font-bold xl:block ${
+            className={`hidden rounded border px-1 font-mono text-[10px] font-bold xl:block ${
               active
                 ? 'border-white/30 text-white/70'
                 : 'border-[#c5c5d3] text-[#9a9ba8]'
@@ -209,7 +229,20 @@ export function Sidebar({
   };
 
   return (
-    <div className="no-print relative z-20 h-full shrink-0">
+    <div
+      className={`no-print h-full shrink-0 ${
+        isMobile ? 'fixed inset-y-0 right-0 z-40' : 'relative z-20'
+      }`}
+    >
+      {isMobile && isOpen && (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="إغلاق القائمة الجانبية"
+          className="fixed inset-0 z-0 cursor-default bg-black/20 backdrop-blur-[1px]"
+        />
+      )}
+
       <button
         type="button"
         onClick={toggle}
@@ -243,10 +276,10 @@ export function Sidebar({
               {logoEmoji}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-bold text-[#00236f]">
+              <p className="truncate text-sm font-bold text-[#00236f]">
                 {storeName}
               </p>
-              <p className="text-[10px] font-medium text-[#757682]">
+              <p className="text-[11px] font-medium text-[#757682]">
                 نظام نقاط البيع
               </p>
             </div>
@@ -254,14 +287,14 @@ export function Sidebar({
 
           {/* Main navigation */}
           <nav className="sidebar-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pb-2">
-            <p className="px-3 pb-1 pt-1 text-[10px] font-bold text-[#9a9ba8]">
+            <p className="px-3 pb-1 pt-1 text-[11px] font-bold text-[#9a9ba8]">
               القائمة الرئيسية
             </p>
             {MAIN_ITEMS.map(renderLink)}
 
             <div className="my-2 border-t border-[#c5c5d3]" />
 
-            <p className="px-3 pb-1 text-[10px] font-bold text-[#9a9ba8]">
+            <p className="px-3 pb-1 text-[11px] font-bold text-[#9a9ba8]">
               اختصارات سريعة
             </p>
             {QUICK_LINKS.map((item) => {
@@ -272,7 +305,7 @@ export function Sidebar({
                   key={item.id}
                   to={item.path}
                   title={item.label}
-                  className={`group flex min-h-8 w-full shrink-0 items-center gap-3 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  className={`group flex min-h-8 w-full shrink-0 items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                     active
                       ? 'bg-[#dbe4ff] text-[#00236f]'
                       : 'text-[#5c5e6b] hover:bg-[#e2e8f8] hover:text-[#00236f]'
@@ -291,7 +324,7 @@ export function Sidebar({
             <Link
               to="/settings"
               title="الإعدادات"
-              className={`group mt-2 flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-colors ${
+              className={`group mt-2 flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
                 location.pathname === '/settings'
                   ? 'bg-[#00236f] text-white shadow-md'
                   : 'text-[#444651] hover:bg-[#e2e8f8] hover:text-[#00236f]'
@@ -306,7 +339,7 @@ export function Sidebar({
               />
               <span className="flex-1 truncate text-right">الإعدادات</span>
               <kbd
-                className={`hidden rounded border px-1 font-mono text-[9px] font-bold xl:block ${
+                className={`hidden rounded border px-1 font-mono text-[10px] font-bold xl:block ${
                   location.pathname === '/settings'
                     ? 'border-white/30 text-white/70'
                     : 'border-[#c5c5d3] text-[#9a9ba8]'
@@ -329,10 +362,10 @@ export function Sidebar({
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-bold text-[#151c27]">
+                <p className="truncate text-xs font-bold text-[#151c27]">
                   {cashier}
                 </p>
-                <p className="flex items-center gap-1 text-[10px] font-medium text-[#757682]">
+                <p className="flex items-center gap-1 text-[11px] font-medium text-[#757682]">
                   <ClockIcon className="h-3 w-3" />
                   {shiftStatus === 'open' ? 'الوردية مفتوحة' : 'الوردية مغلقة'}
                 </p>

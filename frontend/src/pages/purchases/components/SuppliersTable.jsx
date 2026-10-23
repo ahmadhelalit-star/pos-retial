@@ -67,7 +67,7 @@ export function SuppliersTable({
                           {sup.name}
                         </div>
                         {sup.companyName && (
-                          <div className="text-[11px] text-gray-400">
+                          <div className="text-xs text-gray-500">
                             {sup.companyName}
                           </div>
                         )}
@@ -79,11 +79,11 @@ export function SuppliersTable({
                   <td className="py-3 px-3.5">
                     {sup.contactPerson ? (
                       <div className="flex items-center gap-1.5 text-gray-700">
-                        <UserIcon className="w-3.5 h-3.5 text-gray-400" />
+                        <UserIcon className="w-3.5 h-3.5 text-gray-500" />
                         <span>{sup.contactPerson}</span>
                       </div>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-500">-</span>
                     )}
                   </td>
 
@@ -96,10 +96,10 @@ export function SuppliersTable({
                           <span dir="ltr">{sup.phone}</span>
                         </div>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-500">-</span>
                       )}
                       {sup.email && (
-                        <div className="text-[11px] text-gray-400 font-sans truncate max-w-[140px]">
+                        <div className="text-xs text-gray-500 font-sans truncate max-w-[140px]">
                           {sup.email}
                         </div>
                       )}
@@ -109,13 +109,13 @@ export function SuppliersTable({
                   {/* الرقم الضريبي */}
                   <td className="py-3 px-3.5 font-mono text-gray-600">
                     {sup.taxNumber || (
-                      <span className="text-gray-400 font-sans">غير مسجل</span>
+                      <span className="text-gray-500 font-sans">غير مسجل</span>
                     )}
                   </td>
 
                   {/* التصنيف */}
                   <td className="py-3 px-3.5">
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
                       {sup.category || 'عام'}
                     </span>
                   </td>
@@ -133,12 +133,12 @@ export function SuppliersTable({
                           maximumFractionDigits: 2,
                         })}
                       </span>
-                      <span className="text-[11px] text-gray-500 font-bold">
+                      <span className="text-xs text-gray-500 font-bold">
                         ر.س
                       </span>
                     </div>
                     {hasBalance && (
-                      <span className="text-[10px] text-amber-600 font-bold">
+                      <span className="text-[11px] text-amber-600 font-bold">
                         مستحق للمورد
                       </span>
                     )}
@@ -153,7 +153,7 @@ export function SuppliersTable({
                       })}{' '}
                       ر.س
                     </div>
-                    <div className="text-[11px] text-gray-400">
+                    <div className="text-xs text-gray-500">
                       {sup.invoicesCount || 0} فاتورة
                     </div>
                   </td>
@@ -177,7 +177,7 @@ export function SuppliersTable({
                           type="button"
                           onClick={() => onPaySupplier(sup)}
                           title="سداد دفعة للمورد"
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition-colors cursor-pointer text-[11px]"
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition-colors cursor-pointer text-xs"
                         >
                           <BanknotesIcon className="w-3.5 h-3.5" />
                           <span>سداد</span>

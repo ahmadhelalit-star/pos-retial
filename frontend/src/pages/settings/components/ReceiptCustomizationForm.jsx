@@ -21,7 +21,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
           <h3 className="text-sm font-black text-gray-900">
             تخصيص وتصميم إيصال الكاشير (Receipt Template)
           </h3>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             التحكم في المظهر والنصوص والعناصر المطبوعة على الطابعة الحرارية
           </p>
         </div>
@@ -32,7 +32,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
         <label className="block text-xs font-bold text-gray-700 mb-1.5">
           شعار / رمز الإيصال (Logo Icon)
         </label>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {LOGO_OPTIONS.map((emoji) => (
             <button
               key={emoji}
@@ -179,7 +179,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
               >
                 <div>
                   <div className="font-bold text-xs">{toggle.label}</div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">
+                  <div className="text-[11px] text-gray-500 mt-0.5">
                     {toggle.hint}
                   </div>
                 </div>

@@ -18,11 +18,11 @@ export function CustomerListTable({
   if (customers.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-gray-50/50">
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 mb-3">
           <UserIcon className="w-8 h-8" />
         </div>
         <p className="font-bold text-gray-800 text-sm">لا يوجد عملاء يطابقون خيارات البحث</p>
-        <p className="text-xs text-gray-400 mt-1">جرّب تغيير عبارة البحث أو الفلتر المحدد</p>
+        <p className="text-xs text-gray-500 mt-1">جرّب تغيير عبارة البحث أو الفلتر المحدد</p>
       </div>
     );
   }
@@ -65,15 +65,15 @@ export function CustomerListTable({
                   <span className="font-bold text-gray-900 text-sm">{c.name}</span>
                 </div>
                 {isWalkIn ? (
-                  <span className="text-[10px] bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">
+                  <span className="text-[11px] bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">
                     افتراضي
                   </span>
                 ) : isCompany ? (
-                  <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-bold px-1.5 py-0.5 rounded-md">
+                  <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 font-bold px-1.5 py-0.5 rounded-md">
                     شركة B2B
                   </span>
                 ) : (
-                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-1.5 py-0.5 rounded-md">
+                  <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-1.5 py-0.5 rounded-md">
                     فرد
                   </span>
                 )}
@@ -83,11 +83,11 @@ export function CustomerListTable({
               <div className="mb-1.5">
                 {c.phone ? (
                   <div className="flex items-center gap-1.5 text-xs font-mono text-gray-700">
-                    <PhoneIcon className="w-3.5 h-3.5 text-gray-400" />
+                    <PhoneIcon className="w-3.5 h-3.5 text-gray-500" />
                     <span dir="ltr">{c.phone}</span>
                   </div>
                 ) : (
-                  <span className="text-xs text-gray-400">لا يوجد رقم تواصل</span>
+                  <span className="text-xs text-gray-500">لا يوجد رقم تواصل</span>
                 )}
               </div>
 
@@ -96,14 +96,14 @@ export function CustomerListTable({
                 {/* Balance */}
                 <div>
                   {isWalkIn ? (
-                    <span className="text-xs text-gray-400">غير متاح للعام</span>
+                    <span className="text-xs text-gray-500">غير متاح للعام</span>
                   ) : hasDebt ? (
                     <div>
                       <div className="flex items-baseline gap-1">
                         <span className="font-bold text-amber-700 font-mono text-sm">
                           {c.balance.toFixed(2)}
                         </span>
-                        <span className="text-[10px] text-amber-800 font-bold">ر.س</span>
+                        <span className="text-[11px] text-amber-800 font-bold">ر.س</span>
                       </div>
                       {c.creditLimit > 0 && (
                         <div className="w-24 bg-gray-200 h-1.5 rounded-full overflow-hidden mt-0.5">
@@ -117,7 +117,7 @@ export function CustomerListTable({
                       )}
                     </div>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
                       خالص الذمة (0.00)
                     </span>
                   )}
@@ -132,7 +132,7 @@ export function CustomerListTable({
                     <span className="font-bold text-purple-900 font-mono text-xs">
                       {c.points || 0}
                     </span>
-                    <span className="text-[10px] text-purple-600">نقطة</span>
+                    <span className="text-[11px] text-purple-600">نقطة</span>
                   </div>
                 )}
               </div>
@@ -174,7 +174,7 @@ export function CustomerListTable({
                       }
                     }}
                     title="حذف العميل"
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -233,20 +233,20 @@ export function CustomerListTable({
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-gray-900 text-xs">{c.name}</span>
                             {isWalkIn ? (
-                              <span className="text-[10px] bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">
+                              <span className="text-[11px] bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">
                                 افتراضي
                               </span>
                             ) : isCompany ? (
-                              <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-bold px-1.5 py-0.2 rounded-md">
+                              <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 font-bold px-1.5 py-0.2 rounded-md">
                                 شركة B2B
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-1.5 py-0.2 rounded-md">
+                              <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-1.5 py-0.2 rounded-md">
                                 فرد
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-xs">
+                          <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">
                             {c.address || c.email || (isWalkIn ? 'مبيعات الكاش المباشرة' : 'لا يوجد عنوان')}
                           </p>
                         </div>
@@ -257,11 +257,11 @@ export function CustomerListTable({
                     <td className="py-3 px-4 font-mono text-gray-700">
                       {c.phone ? (
                         <div className="flex items-center gap-1.5">
-                          <PhoneIcon className="w-3.5 h-3.5 text-gray-400" />
+                          <PhoneIcon className="w-3.5 h-3.5 text-gray-500" />
                           <span dir="ltr">{c.phone}</span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 font-sans">-</span>
+                        <span className="text-gray-500 font-sans">-</span>
                       )}
                     </td>
 
@@ -269,29 +269,29 @@ export function CustomerListTable({
                     <td className="py-3 px-4 font-mono">
                       {c.taxNumber ? (
                         <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-gray-800 font-bold tracking-wider text-[11px]">
+                          <span className="text-gray-800 font-bold tracking-wider text-xs">
                             {c.taxNumber}
                           </span>
-                          <span className="text-[9px] text-blue-600 bg-blue-50 px-1 py-0.2 rounded font-sans">
+                          <span className="text-[10px] text-blue-600 bg-blue-50 px-1 py-0.2 rounded font-sans">
                             ضريبة القيمة المضافة
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 font-sans">-</span>
+                        <span className="text-gray-500 font-sans">-</span>
                       )}
                     </td>
 
                     {/* Debt / Credit Balance */}
                     <td className="py-3 px-4">
                       {isWalkIn ? (
-                        <span className="text-gray-400 font-sans">غير متاح للعام</span>
+                        <span className="text-gray-500 font-sans">غير متاح للعام</span>
                       ) : hasDebt ? (
                         <div className="space-y-1">
                           <div className="flex items-baseline gap-1">
                             <span className="font-bold text-amber-700 font-mono text-sm">
                               {c.balance.toFixed(2)}
                             </span>
-                            <span className="text-[10px] text-amber-800 font-bold">ر.س</span>
+                            <span className="text-[11px] text-amber-800 font-bold">ر.س</span>
                           </div>
                           {c.creditLimit > 0 && (
                             <div className="w-28 bg-gray-200 h-1.5 rounded-full overflow-hidden">
@@ -303,12 +303,12 @@ export function CustomerListTable({
                               />
                             </div>
                           )}
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[11px] text-gray-500">
                             الحد: {c.creditLimit.toLocaleString('ar-SA')} ر.س
                           </p>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
                           خالص الذمة (0.00)
                         </span>
                       )}
@@ -317,7 +317,7 @@ export function CustomerListTable({
                     {/* Loyalty Points */}
                     <td className="py-3 px-4">
                       {isWalkIn ? (
-                        <span className="text-gray-400 font-sans">-</span>
+                        <span className="text-gray-500 font-sans">-</span>
                       ) : (
                         <div className="flex items-center gap-1.5">
                           <span className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -326,7 +326,7 @@ export function CustomerListTable({
                           <span className="font-bold text-purple-900 font-mono text-xs">
                             {c.points || 0}
                           </span>
-                          <span className="text-[10px] text-purple-600">نقطة</span>
+                          <span className="text-[11px] text-purple-600">نقطة</span>
                         </div>
                       )}
                     </td>
@@ -338,9 +338,9 @@ export function CustomerListTable({
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}{' '}
-                        <span className="text-[10px] font-sans text-gray-500 font-normal">ر.س</span>
+                        <span className="text-[11px] font-sans text-gray-500 font-normal">ر.س</span>
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         {c.invoicesCount || 0} فاتورة سابقة
                       </p>
                     </td>
@@ -387,7 +387,7 @@ export function CustomerListTable({
                               }
                             }}
                             title="حذف العميل"
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </button>

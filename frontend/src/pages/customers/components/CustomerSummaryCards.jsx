@@ -25,7 +25,7 @@ export function CustomerSummaryCards({ customers = [] }) {
             </span>
             <span className="text-xs text-emerald-700">عميل</span>
           </div>
-          <p className="text-[11px] text-emerald-600 mt-0.5">
+          <p className="text-xs text-emerald-600 mt-0.5">
             منهم {corporateCount} منشآت وشركات B2B
           </p>
         </div>
@@ -48,7 +48,7 @@ export function CustomerSummaryCards({ customers = [] }) {
             </span>
             <span className="text-xs text-amber-700 font-bold">ر.س</span>
           </div>
-          <p className="text-[11px] text-amber-700 mt-0.5">
+          <p className="text-xs text-amber-700 mt-0.5">
             على {debtorsCount} عملاء مدينين
           </p>
         </div>
@@ -67,7 +67,7 @@ export function CustomerSummaryCards({ customers = [] }) {
             </span>
             <span className="text-xs text-blue-700">شركة</span>
           </div>
-          <p className="text-[11px] text-blue-600 mt-0.5">
+          <p className="text-xs text-blue-600 mt-0.5">
             مفعلة بالفواتير الضريبية
           </p>
         </div>
@@ -86,7 +86,7 @@ export function CustomerSummaryCards({ customers = [] }) {
             </span>
             <span className="text-xs text-purple-700">نقطة</span>
           </div>
-          <p className="text-[11px] text-purple-600 mt-0.5">
+          <p className="text-xs text-purple-600 mt-0.5">
             قابلة للاستبدال كخصومات بيع
           </p>
         </div>

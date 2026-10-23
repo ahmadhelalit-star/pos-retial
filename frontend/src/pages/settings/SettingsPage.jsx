@@ -54,7 +54,7 @@ export function SettingsPage({
             <h1 className="text-sm font-black text-gray-900">
               إعدادات المتجر وتخصيص الفاتورة
             </h1>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               تهيئة بيانات المنشأة، تصميم الإيصال الحراري، وإعدادات الطابعة والدرج
             </p>
           </div>
@@ -128,7 +128,7 @@ export function SettingsPage({
                   >
                     <Icon
                       className={`w-4 h-4 ${
-                        isActive ? 'text-emerald-600' : 'text-gray-400'
+                        isActive ? 'text-emerald-600' : 'text-gray-500'
                       }`}
                     />
                     <span>{tab.label}</span>

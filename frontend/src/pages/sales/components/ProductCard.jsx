@@ -1,42 +1,39 @@
-import { BarcodeIcon, PlusIcon } from '../../../components/common/Icons';
+import { PlusIcon } from '../../../components/common/Icons';
+import { getStockMeta } from './productStock';
 
 export function ProductCard({ product, onAddToCart }) {
+  const stock = getStockMeta(product.stock);
+  const needsStockAttention = product.stock < 10;
+
   return (
     <button
       type="button"
       onClick={() => onAddToCart(product)}
-      className="group relative flex flex-col justify-between p-3.5 bg-white rounded-2xl border border-gray-200/90 hover:border-emerald-500 hover:shadow-md transition-all duration-150 text-right cursor-pointer select-none active:scale-[0.98] overflow-hidden"
+      className="group relative flex h-[112px] w-full flex-col overflow-hidden rounded-xl border border-[#c5c5d3]/70 bg-white p-2.5 text-right transition-all duration-150 hover:border-[#00236f]/40 hover:bg-[#f0f3ff]/40 hover:shadow-sm active:scale-[0.98] cursor-pointer select-none"
     >
-      {/* Top section: badge & stock */}
-      <div className="flex items-start justify-between w-full mb-2">
-        <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md flex items-center gap-1 font-mono">
-          <BarcodeIcon className="w-3 h-3 text-gray-400" />
-          {product.barcode}
-        </span>
-        <span className="text-[10px] text-emerald-700 bg-emerald-50 font-semibold px-2 py-0.5 rounded-full border border-emerald-100">
-          متوفر ({product.stock})
-        </span>
-      </div>
-
-      {/* Middle section: Name */}
-      <div className="my-auto py-2">
-        <h3 className="font-bold text-gray-800 text-sm md:text-base leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">
+      <div className="flex w-full items-start justify-between gap-1.5">
+        <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-gray-800 transition-colors group-hover:text-[#00236f]">
           {product.name}
         </h3>
-        <p className="text-xs text-gray-400 mt-1">الوحدة: {product.unit}</p>
+        {needsStockAttention && (
+          <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-xs font-semibold ${stock.className}`}>
+            {stock.label}
+          </span>
+        )}
       </div>
 
-      {/* Bottom section: Price & Action */}
-      <div className="flex items-center justify-between w-full pt-2.5 mt-1 border-t border-gray-100">
-        <div>
-          <span className="text-base md:text-lg font-black text-emerald-600 font-mono">
+      <p className="mt-0.5 truncate text-xs text-gray-500">{product.unit}</p>
+
+      <div className="mt-auto flex w-full items-center justify-between border-t border-[#c5c5d3]/40 pt-2">
+        <div className="min-w-0">
+          <span className="font-mono text-base font-black text-[#00236f]">
             {product.price.toFixed(2)}
           </span>
-          <span className="text-xs text-gray-500 font-bold mr-1">ر.س</span>
+          <span className="mr-1 font-sans text-xs font-bold text-gray-500">ر.س</span>
         </div>
 
-        <div className="w-8 h-8 rounded-xl bg-gray-100 group-hover:bg-emerald-600 group-hover:text-white text-gray-700 flex items-center justify-center transition-colors">
-          <PlusIcon className="w-4 h-4" />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef3ff] text-[#00236f] transition-colors group-hover:bg-[#00236f] group-hover:text-white">
+          <PlusIcon className="h-3.5 w-3.5" />
         </div>
       </div>
     </button>

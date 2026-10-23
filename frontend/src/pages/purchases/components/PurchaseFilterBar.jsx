@@ -31,14 +31,14 @@ export function PurchaseFilterBar({
             ? 'بحث برقم الفاتورة، اسم المورد، أو رقم فاتورة المورد...'
             : 'بحث باسم المورد، الشركة، رقم الهاتف، أو الرقم الضريبي...'
         }
-        className="w-full pl-3 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400"
+        className="w-full pl-3 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-500"
       />
-      <SearchIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <SearchIcon className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
       {searchQuery && (
         <button
           type="button"
           onClick={() => onSearchChange('')}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 text-xs px-1"
         >
           ×
         </button>
@@ -61,7 +61,7 @@ export function PurchaseFilterBar({
         >
           <DocumentTextIcon className="w-4 h-4 text-emerald-600" />
           <span>فواتير الشراء والتوريد</span>
-          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold">
+          <span className="bg-emerald-100 text-emerald-800 text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold">
             {invoicesCount}
           </span>
         </button>
@@ -77,7 +77,7 @@ export function PurchaseFilterBar({
         >
           <UsersIcon className="w-4 h-4 text-indigo-600" />
           <span>دليل حسابات الموردين</span>
-          <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold">
+          <span className="bg-indigo-100 text-indigo-800 text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold">
             {suppliersCount}
           </span>
         </button>

@@ -32,7 +32,7 @@ export function BarcodeLabelPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center cursor-pointer"
+            className="w-7 h-7 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center cursor-pointer"
           >
             <XMarkIcon className="w-4 h-4" />
           </button>
@@ -40,7 +40,7 @@ export function BarcodeLabelPickerModal({
 
         <div className="p-3 border-b border-gray-100">
           <div className="relative">
-            <SearchIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <SearchIcon className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
@@ -54,7 +54,7 @@ export function BarcodeLabelPickerModal({
 
         <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
           {filteredProducts.length === 0 && (
-            <div className="py-10 text-center text-xs text-gray-400 font-bold">
+            <div className="py-10 text-center text-xs text-gray-500 font-bold">
               لا توجد منتجات مطابقة
             </div>
           )}
@@ -67,13 +67,13 @@ export function BarcodeLabelPickerModal({
             >
               <div className="min-w-0">
                 <p className="text-xs font-bold text-gray-800 truncate">{product.name}</p>
-                <p className="font-mono text-[11px] text-gray-400 mt-0.5">{product.barcode}</p>
+                <p className="font-mono text-xs text-gray-500 mt-0.5">{product.barcode}</p>
               </div>
               <div className="text-left shrink-0">
                 <p className="font-mono text-xs font-black text-emerald-700">
                   {product.price?.toFixed(2)} ر.س
                 </p>
-                <p className="text-[10px] text-gray-400">المخزون: {product.stock ?? 0}</p>
+                <p className="text-[11px] text-gray-500">المخزون: {product.stock ?? 0}</p>
               </div>
             </button>
           ))}

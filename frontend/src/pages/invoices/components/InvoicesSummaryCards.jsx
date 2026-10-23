@@ -24,7 +24,7 @@ export function InvoicesSummaryCards({ invoices = [], taxRate = 0.15 }) {
         <div>
           <p className="text-xs text-gray-500 font-semibold">إجمالي المبيعات</p>
           <p className="text-lg md:text-xl font-black text-gray-800 font-mono mt-0.5">
-            {totalSales.toFixed(2)} <span className="text-xs font-sans text-gray-400">ر.س</span>
+            {totalSales.toFixed(2)} <span className="text-xs font-sans text-gray-500">ر.س</span>
           </p>
         </div>
         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -37,7 +37,7 @@ export function InvoicesSummaryCards({ invoices = [], taxRate = 0.15 }) {
         <div>
           <p className="text-xs text-gray-500 font-semibold">صافي الوردية</p>
           <p className="text-lg md:text-xl font-black text-emerald-600 font-mono mt-0.5">
-            {netSales.toFixed(2)} <span className="text-xs font-sans text-gray-400">ر.س</span>
+            {netSales.toFixed(2)} <span className="text-xs font-sans text-gray-500">ر.س</span>
           </p>
         </div>
         <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-xs">
@@ -50,7 +50,7 @@ export function InvoicesSummaryCards({ invoices = [], taxRate = 0.15 }) {
         <div>
           <p className="text-xs text-gray-500 font-semibold">عدد الفواتير</p>
           <p className="text-lg md:text-xl font-black text-gray-800 font-mono mt-0.5">
-            {totalInvoices} <span className="text-xs font-sans text-gray-400">فاتورة</span>
+            {totalInvoices} <span className="text-xs font-sans text-gray-500">فاتورة</span>
           </p>
         </div>
         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -63,7 +63,7 @@ export function InvoicesSummaryCards({ invoices = [], taxRate = 0.15 }) {
         <div>
           <p className="text-xs text-gray-500 font-semibold">إجمالي المرتجعات</p>
           <p className="text-lg md:text-xl font-black text-red-600 font-mono mt-0.5">
-            {totalRefunded.toFixed(2)} <span className="text-xs font-sans text-gray-400">ر.س</span>
+            {totalRefunded.toFixed(2)} <span className="text-xs font-sans text-gray-500">ر.س</span>
           </p>
         </div>
         <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">

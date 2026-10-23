@@ -74,7 +74,7 @@ export function CustomerSelectModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -86,7 +86,7 @@ export function CustomerSelectModal({
             {/* Search Bar & Quick Add Toggle */}
             <div className="p-3 bg-white border-b border-gray-100 flex items-center gap-2">
               <div className="relative flex-1">
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
                   <SearchIcon className="w-4 h-4" />
                 </div>
                 <input
@@ -149,12 +149,12 @@ export function CustomerSelectModal({
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-gray-900 text-xs">{c.name}</span>
                           {isCompany && (
-                            <span className="text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-1 py-0.2 rounded font-semibold">
+                            <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1 py-0.2 rounded font-semibold">
                               B2B
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                           {c.phone && <span dir="ltr">{c.phone}</span>}
                           {c.points > 0 && (
                             <span className="flex items-center gap-0.5 text-purple-700 font-bold">
@@ -178,7 +178,7 @@ export function CustomerSelectModal({
                           <CheckIcon className="w-3.5 h-3.5" />
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400 hover:text-emerald-700 font-semibold px-2 py-1 rounded-lg">
+                        <span className="text-xs text-gray-500 hover:text-emerald-700 font-semibold px-2 py-1 rounded-lg">
                           اختيار
                         </span>
                       )}
@@ -188,7 +188,7 @@ export function CustomerSelectModal({
               })}
 
               {filtered.length === 0 && (
-                <div className="p-8 text-center text-gray-400 text-xs">
+                <div className="p-8 text-center text-gray-500 text-xs">
                   لا يوجد عميل يطابق البحث
                 </div>
               )}

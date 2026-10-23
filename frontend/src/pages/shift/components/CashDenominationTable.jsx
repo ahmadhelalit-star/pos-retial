@@ -47,7 +47,7 @@ export function CashDenominationTable({
             <h3 className="text-sm font-bold text-gray-900">
               حاسبة جرد النقد الفعلي بالدرج (Cash Denominations)
             </h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               احسب عدد الفئات النقدية والمعدنية الموجودة في الصندوق يدوياً
             </p>
           </div>
@@ -76,7 +76,7 @@ export function CashDenominationTable({
       </div>
 
       {/* Grid of denominations */}
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {DENOMINATIONS.map((denom) => {
           const count = counts[denom.value] || 0;
           const lineTotal = count * denom.value;
@@ -98,7 +98,7 @@ export function CashDenominationTable({
                   type="button"
                   disabled={!isShiftOpen || count <= 0}
                   onClick={() => handleStep(denom.value, -1)}
-                  className="w-7 h-7 rounded bg-gray-100 disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+                  className="w-7 h-7 shrink-0 rounded bg-gray-100 disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer active:scale-90"
                 >
                   <MinusIcon className="w-3 h-3" />
                 </button>
@@ -110,14 +110,14 @@ export function CashDenominationTable({
                   value={count === 0 ? '' : count}
                   placeholder="0"
                   onChange={(e) => handleInputChange(denom.value, e.target.value)}
-                  className="flex-1 text-center font-mono font-bold text-xs text-gray-800 bg-transparent focus:outline-none"
+                  className="min-w-0 flex-1 text-center font-mono font-bold text-xs text-gray-800 bg-transparent focus:outline-none"
                 />
 
                 <button
                   type="button"
                   disabled={!isShiftOpen}
                   onClick={() => handleStep(denom.value, 1)}
-                  className="w-7 h-7 rounded bg-emerald-600 disabled:opacity-30 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+                  className="w-7 h-7 shrink-0 rounded bg-emerald-600 disabled:opacity-30 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
                 >
                   <PlusIcon className="w-3 h-3" />
                 </button>
@@ -134,7 +134,7 @@ export function CashDenominationTable({
         </span>
         <span className="text-lg font-black text-gray-900 font-mono">
           {actualCountedTotal.toFixed(2)}{' '}
-          <span className="text-xs font-sans text-gray-400">ر.س</span>
+          <span className="text-xs font-sans text-gray-500">ر.س</span>
         </span>
       </div>
     </div>

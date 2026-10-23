@@ -25,7 +25,7 @@ export function SalesTrendChart({
             <h3 className="text-xs font-black text-gray-900">
               حركة المبيعات وصافي الأرباح اليومية
             </h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               مقارنة الإيرادات اليومية بهامش الربح الفعلي بعد خصم تكلفة الشراء
             </p>
           </div>
@@ -67,7 +67,7 @@ export function SalesTrendChart({
             >
               {/* Tooltip on hover */}
               {isHovered && (
-                <div className="absolute -top-14 z-20 bg-gray-900 text-white p-2 rounded-xl text-[10px] shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 pointer-events-none">
+                <div className="absolute -top-14 z-20 bg-gray-900 text-white p-2 rounded-xl text-[11px] shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 pointer-events-none">
                   <div className="font-bold text-center border-b border-gray-700 pb-1 mb-1">
                     {day.dayName} ({day.date})
                   </div>
@@ -106,7 +106,7 @@ export function SalesTrendChart({
               </div>
 
               {/* Day Label */}
-              <span className={`text-[11px] font-bold mt-2 transition-colors ${
+              <span className={`text-xs font-bold mt-2 transition-colors ${
                 isHovered ? 'text-emerald-700 font-black' : 'text-gray-500'
               }`}>
                 {day.dayName}

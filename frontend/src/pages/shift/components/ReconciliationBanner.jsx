@@ -84,7 +84,7 @@ export function ReconciliationBanner({
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="اكتب توضيح سبب الفرق في الصندوق لاعتماده في تقرير الوردية..."
-            className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+            className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
           />
         </div>
       )}

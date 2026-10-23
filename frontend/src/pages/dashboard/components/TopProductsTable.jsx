@@ -15,7 +15,7 @@ export function TopProductsTable({
             <h3 className="text-xs font-black text-gray-900">
               أفضل 5 أصناف مبيعاً وتحقيقاً للأرباح
             </h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               المنتجات الأكثر طلباً في المتجر خلال هذه الفترة
             </p>
           </div>
@@ -37,7 +37,7 @@ export function TopProductsTable({
           <tbody className="divide-y divide-gray-100">
             {topProducts.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-gray-400 font-bold">
+                <td colSpan={6} className="py-8 text-center text-xs text-gray-500 font-bold">
                   لا توجد مبيعات مسجلة في الفترة المحددة
                 </td>
               </tr>
@@ -56,28 +56,28 @@ export function TopProductsTable({
                 <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
                   <td className="py-2.5 px-3.5">
                     <span
-                      className={`w-5 h-5 rounded-full inline-flex items-center justify-center font-mono font-black text-[10px] ${rankColor}`}
+                      className={`w-5 h-5 rounded-full inline-flex items-center justify-center font-mono font-black text-[11px] ${rankColor}`}
                     >
                       {idx + 1}
                     </span>
                   </td>
                   <td className="py-2.5 px-3.5">
                     <div className="font-bold text-gray-900">{p.name}</div>
-                    <div className="text-[10px] text-gray-400 font-mono">
+                    <div className="text-[11px] text-gray-500 font-mono">
                       {p.barcode}
                     </div>
                   </td>
-                  <td className="py-2.5 px-3.5 text-center font-mono font-bold text-gray-800">
+                  <td className="py-2.5 px-3.5 text-center font-mono font-bold text-gray-800 whitespace-nowrap">
                     {p.qtySold} {p.unit || 'حبة'}
                   </td>
-                  <td className="py-2.5 px-3.5 font-mono font-bold text-emerald-700">
+                  <td className="py-2.5 px-3.5 font-mono font-bold text-emerald-700 whitespace-nowrap">
                     {p.revenue.toFixed(2)} {currency}
                   </td>
-                  <td className="py-2.5 px-3.5 font-mono font-bold text-indigo-700">
+                  <td className="py-2.5 px-3.5 font-mono font-bold text-indigo-700 whitespace-nowrap">
                     {p.profit.toFixed(2)} {currency}
                   </td>
                   <td className="py-2.5 px-3.5 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${Number(p.margin) < 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold font-mono border ${Number(p.margin) < 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                       {p.margin}%
                     </span>
                   </td>

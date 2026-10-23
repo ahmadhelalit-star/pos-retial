@@ -40,7 +40,7 @@ export function HeldOrdersModal({
                     <span className="text-xs font-bold text-gray-800 font-mono">
                       #{order.id}
                     </span>
-                    <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-md">
                       {order.createdAt}
                     </span>
                   </div>
@@ -68,7 +68,7 @@ export function HeldOrdersModal({
                   <button
                     type="button"
                     onClick={() => onDeleteOrder(order.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                     title="حذف الفاتورة المعلقة"
                   >
                     <TrashIcon className="w-4 h-4" />
@@ -77,9 +77,9 @@ export function HeldOrdersModal({
               </div>
             ))
           ) : (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-gray-500">
               <p className="font-bold text-gray-600">لا توجد فواتير معلقة حالياً</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 يمكنك تعليق أي فاتورة جارية بالضغط على زر "تعليق" في شاشة السلة
               </p>
             </div>

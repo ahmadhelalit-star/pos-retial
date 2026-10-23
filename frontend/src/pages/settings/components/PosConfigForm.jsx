@@ -19,7 +19,7 @@ export function PosConfigForm({ settings, onChange }) {
           <h3 className="text-sm font-black text-gray-900">
             إعدادات الكاشير والصندوق المالي (POS Hardware & Drawer)
           </h3>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             سلوك الطابعة التلقائي، درج النقدية، وسياسات المخزون المالي
           </p>
         </div>
@@ -30,7 +30,7 @@ export function PosConfigForm({ settings, onChange }) {
         <label className="block text-xs font-bold text-gray-800 mb-1">
           عهدة الصندوق الافتراضية لافتتاح الوردية (Opening Float)
         </label>
-        <p className="text-[11px] text-gray-500 mb-2">
+        <p className="text-xs text-gray-500 mb-2">
           المبلغ الافتراضي للفكة والنقدية الذي يبدأ به الكاشير ورديته اليومية
         </p>
         <div className="relative max-w-xs">
@@ -85,7 +85,7 @@ export function PosConfigForm({ settings, onChange }) {
             >
               <div>
                 <div className="font-bold text-xs">{toggle.label}</div>
-                <div className="text-[10px] text-gray-500 mt-0.5">
+                <div className="text-[11px] text-gray-500 mt-0.5">
                   {toggle.hint}
                 </div>
               </div>

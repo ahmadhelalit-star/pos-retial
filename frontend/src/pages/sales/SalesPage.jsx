@@ -7,7 +7,7 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { useCart } from '../../hooks/useCart';
 import { MOCK_PRODUCTS } from '../../data/mockProducts';
 import { nextDocumentNumber } from '../../domain/numbering';
-import { PauseIcon, ShoppingBagIcon, StorefrontIcon } from '../../components/common/Icons';
+import { ShoppingBagIcon, StorefrontIcon } from '../../components/common/Icons';
 
 export function SalesPage({
   products = MOCK_PRODUCTS,
@@ -140,34 +140,7 @@ export function SalesPage({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-gray-100 font-sans">
-      {/* Subheader bar for POS quick actions */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-2 text-gray-600">
-          <span className="font-bold text-gray-800">نقطة البيع #01</span>
-          <span>•</span>
-          {isShiftOpen ? (
-            <span className="text-emerald-700 font-medium">الوردية الصباحية مفتوحة ومستعدة للبيع</span>
-          ) : (
-            <span className="text-red-600 font-bold">الوردية مغلقة حالياً</span>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsHeldOrdersOpen(true)}
-          className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors font-bold cursor-pointer"
-        >
-          <PauseIcon className="w-3.5 h-3.5" />
-          <span>الفواتير المعلقة</span>
-          {heldOrders.length > 0 && (
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black leading-none text-white bg-amber-600 rounded-full animate-pulse">
-              {heldOrders.length}
-            </span>
-          )}
-        </button>
-      </div>
-
+    <div className="h-full flex flex-col overflow-hidden bg-[#f9f9ff] font-sans">
       {/* Closed Shift Alert Banner */}
       {!isShiftOpen && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs flex items-center justify-between text-amber-900 font-bold">
@@ -200,7 +173,7 @@ export function SalesPage({
 
         {/* Cart & Billing Area */}
         <aside
-          className={`w-full lg:w-[400px] xl:w-[440px] h-full overflow-hidden border-t lg:border-t-0 lg:border-r border-gray-200 ${
+          className={`w-full lg:w-[360px] xl:w-[390px] h-full overflow-hidden border-t lg:border-t-0 lg:border-r border-[#c5c5d3]/60 ${
             mobileTab === 'cart' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'
           }`}
         >
@@ -229,6 +202,8 @@ export function SalesPage({
             taxRate={taxRate}
             grandTotal={grandTotal}
             totalItemsCount={totalItemsCount}
+            heldOrdersCount={heldOrders.length}
+            onOpenHeldOrders={() => setIsHeldOrdersOpen(true)}
           />
         </aside>
 
@@ -239,7 +214,7 @@ export function SalesPage({
             onClick={() => setMobileTab('products')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               mobileTab === 'products'
-                ? 'bg-emerald-600 text-white shadow-xs'
+                ? 'bg-[#00236f] text-white shadow-xs'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -252,7 +227,7 @@ export function SalesPage({
             onClick={() => setMobileTab('cart')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
               mobileTab === 'cart'
-                ? 'bg-emerald-600 text-white shadow-xs'
+                ? 'bg-[#00236f] text-white shadow-xs'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -260,17 +235,17 @@ export function SalesPage({
             <span>السلة</span>
             {totalItemsCount > 0 && (
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
+                className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono font-black ${
                   mobileTab === 'cart'
-                    ? 'bg-white text-emerald-800'
-                    : 'bg-emerald-600 text-white'
+                    ? 'bg-white text-[#00236f]'
+                    : 'bg-[#00236f] text-white'
                 }`}
               >
                 {totalItemsCount}
               </span>
             )}
             {grandTotal > 0 && (
-              <span className="text-[11px] font-mono font-bold">
+              <span className="text-xs font-mono font-bold">
                 ({grandTotal.toFixed(2)} ر.س)
               </span>
             )}
@@ -279,7 +254,7 @@ export function SalesPage({
       </div>
 
       {stockNotice && (
-        <div role="status" className="fixed bottom-20 lg:bottom-5 left-5 z-40 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 shadow-lg">
+        <div role="status" className="fixed bottom-20 left-1/2 z-40 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-900 shadow-lg lg:bottom-5">
           {stockNotice}
         </div>
       )}

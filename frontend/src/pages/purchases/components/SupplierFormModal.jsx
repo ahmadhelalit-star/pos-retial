@@ -98,7 +98,7 @@ export function SupplierFormModal({
               <h2 className="text-sm font-black text-gray-900">
                 {supplierToEdit ? 'تعديل بيانات المورد' : 'إضافة مورد / شركة توريد'}
               </h2>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 تسجيل بيانات التواصل والحسابات البنكية للمورد
               </p>
             </div>
@@ -106,7 +106,7 @@ export function SupplierFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -264,7 +264,7 @@ export function SupplierFormModal({
                   onChange={(e) => setBalance(e.target.value)}
                   className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono font-bold"
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold pointer-events-none">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold pointer-events-none">
                   ر.س
                 </span>
               </div>

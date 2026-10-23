@@ -158,11 +158,11 @@ export function ReturnModal({
         <div className="p-5 overflow-y-auto space-y-4 text-xs">
           <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
             <div>
-              <span className="text-gray-400 font-bold">رقم الفاتورة الأصلية:</span>
+              <span className="text-gray-500 font-bold">رقم الفاتورة الأصلية:</span>
               <span className="font-mono font-bold text-gray-800 mr-1">#{invoice.invoiceNumber}</span>
             </div>
             <div>
-              <span className="text-gray-400 font-bold">العميل:</span>
+              <span className="text-gray-500 font-bold">العميل:</span>
               <span className="font-bold text-gray-800 mr-1">{invoice.customer?.name || 'عميل نقدي'}</span>
             </div>
           </div>
