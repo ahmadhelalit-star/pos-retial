@@ -1,0 +1,7 @@
+export async function grantRuntime(db,role){
+  if(!/^retail_app_[a-z0-9_]+$/.test(role))throw Error('Dedicated Retail runtime role required');
+  await db.query(`GRANT USAGE ON SCHEMA public TO ${role}`);await db.query(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${role}`);await db.query(`GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO ${role}`);
+  const mutable=['companies','products','product_units','product_attributes','product_variants','variant_unit_prices','product_barcodes','categories','units_of_measure','roles','role_permissions','users','user_roles','user_branches','user_warehouses','sessions','login_attempts','module_configuration','company_currencies','currencies','tax_configurations','warehouses','retail_activation','document_counters','partners','shifts','delivery_allocations','print_jobs'];
+  const append=['audit_logs','idempotency_requests','import_batches','stock_ledger','cashboxes','commercial_orders','commercial_deliveries','commercial_documents','commercial_lines','document_cancellations','payments','payment_allocations','partner_entries','cash_entries','legacy_commercial_batches','legacy_commercial_records','partner_openings','allocation_events','shift_events'];
+  await db.query(`GRANT INSERT,UPDATE,DELETE ON ${mutable.join(',')} TO ${role}`);await db.query(`GRANT INSERT ON ${append.join(',')} TO ${role}`);for(const table of ['commercial_documents','commercial_orders','payments'])await db.query(`GRANT UPDATE(id) ON ${table} TO ${role}`);
+}

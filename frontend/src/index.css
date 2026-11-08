@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+.retail-dark { color-scheme: dark; background: #101722; color: #e5e7eb; }
+.retail-dark .bg-white { background-color: #1b2636; }
+.retail-dark .bg-gray-100, .retail-dark .bg-gray-50 { background-color: #111c2b; }
+.retail-dark input, .retail-dark select, .retail-dark textarea { background: #111c2b; color: #e5e7eb; }
+.retail-dark .text-gray-900, .retail-dark .text-gray-800, .retail-dark .text-gray-700 { color: #e5e7eb; }
+.retail-dark .text-gray-500, .retail-dark .text-gray-600 { color: #acb8cb; }
+.retail-dark .border-gray-200, .retail-dark .border-gray-300 { border-color: #39475b; }
+.retail-dark [class~="bg-[#eef3ff]"], .retail-dark [class~="bg-[#f0f3ff]"], .retail-dark [class~="bg-gray-50/80"] { background-color: #172235; }
+.retail-dark [class~="text-[#00236f]"] { color: #b4ccff; }
+.retail-dark [class~="text-[#444651]"], .retail-dark [class~="text-[#757682]"] { color: #c1ccdf; }
+.retail-server button:disabled { opacity: .4; cursor: not-allowed; }
+
 @theme {
   --font-sans: 'IBM Plex Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --text-xs: 0.8125rem;

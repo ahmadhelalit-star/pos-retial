@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { createPortal } from 'react-dom';
 import { PrinterIcon, CheckIcon, XMarkIcon } from '../../../components/common/Icons';
 
@@ -8,6 +9,7 @@ export function ReceiptModal({
   onNewSale,
   storeSettings = {},
 }) {
+  useLocale();
   if (!isOpen || !saleData) return null;
 
   const invoiceNumber = saleData.invoiceNumber || '—';
@@ -38,7 +40,7 @@ export function ReceiptModal({
         <div className="no-print p-3 bg-emerald-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-bold text-sm">
             <CheckIcon className="w-5 h-5" />
-            <span>تمت عملية البيع بنجاح</span>
+            <span>{t("تمت عملية البيع بنجاح")}</span>
           </div>
           <button
             type="button"
@@ -82,24 +84,24 @@ export function ReceiptModal({
           {/* Metadata */}
           <div className="space-y-1 text-[11px] border-b border-dashed border-gray-300 pb-2">
             <div className="flex justify-between">
-              <span>رقم الفاتورة:</span>
+              <span>{t("رقم الفاتورة:")}</span>
               <span className="font-bold">{invoiceNumber}</span>
             </div>
             <div className="flex justify-between">
-              <span>التاريخ والوقت:</span>
+              <span>{t("التاريخ والوقت:")}</span>
               <span>{dateStr} {timeStr}</span>
             </div>
             <div className="flex justify-between">
-              <span>الكاشير:</span>
+              <span>{t("الكاشير:")}</span>
               <span className="font-sans">{saleData.cashier || '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span>العميل:</span>
+              <span>{t("العميل:")}</span>
               <span className="font-sans font-bold">{saleData.customer?.name || 'عميل نقدي'}</span>
             </div>
             {saleData.customer?.taxNumber && (
               <div className="flex justify-between">
-                <span>الرقم الضريبي للعميل:</span>
+                <span>{t("الرقم الضريبي للعميل:")}</span>
                 <span className="font-mono font-bold">{saleData.customer.taxNumber}</span>
               </div>
             )}
@@ -108,9 +110,9 @@ export function ReceiptModal({
           {/* Items Table */}
           <div className="border-b border-dashed border-gray-300 pb-2">
             <div className="flex justify-between font-bold text-gray-900 mb-1 border-b border-gray-200 pb-1 font-sans text-[11px]">
-              <span>الصنف</span>
-              <span>الكمية × السعر</span>
-              <span>المجموع</span>
+              <span>{t("الصنف")}</span>
+              <span>{t("الكمية × السعر")}</span>
+              <span>{t("المجموع")}</span>
             </div>
             <div className="space-y-1.5">
               {saleData.items.map((item) => (
@@ -130,12 +132,12 @@ export function ReceiptModal({
           {/* Totals Summary */}
           <div className="space-y-1 text-[11px] border-b border-dashed border-gray-300 pb-2">
             <div className="flex justify-between">
-              <span className="font-sans">المجموع الخاضع للضريبة:</span>
+              <span className="font-sans">{t("المجموع الخاضع للضريبة:")}</span>
               <span>{saleData.taxableAmount.toFixed(2)} {currency}</span>
             </div>
             {saleData.discountAmount > 0 && (
               <div className="flex justify-between text-red-600">
-                <span className="font-sans">إجمالي الخصم:</span>
+                <span className="font-sans">{t("إجمالي الخصم:")}</span>
                 <span>- {saleData.discountAmount.toFixed(2)} {currency}</span>
               </div>
             )}
@@ -144,7 +146,7 @@ export function ReceiptModal({
               <span>{saleData.taxAmount.toFixed(2)} {currency}</span>
             </div>
             <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-200 text-gray-900">
-              <span className="font-sans">الإجمالي النهائي:</span>
+              <span className="font-sans">{t("الإجمالي النهائي:")}</span>
               <span>{saleData.grandTotal.toFixed(2)} {currency}</span>
             </div>
           </div>
@@ -152,7 +154,7 @@ export function ReceiptModal({
           {/* Payment & Change */}
           <div className="space-y-1 text-[11px] bg-gray-50 p-2 rounded-lg font-sans">
             <div className="flex justify-between">
-              <span>طريقة السداد:</span>
+              <span>{t("طريقة السداد:")}</span>
               <span className="font-bold">
                 {saleData.payment.method === 'cash'
                   ? 'نقدي (كاش)'
@@ -166,11 +168,11 @@ export function ReceiptModal({
             {saleData.payment.method === 'split' && (
               <>
                 <div className="flex justify-between">
-                  <span>المدفوع نقداً:</span>
+                  <span>{t("المدفوع نقداً:")}</span>
                   <span className="font-mono">{(saleData.payment.cashAmount || 0).toFixed(2)} {currency}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>المدفوع عبر الشبكة:</span>
+                  <span>{t("المدفوع عبر الشبكة:")}</span>
                   <span className="font-mono">{(saleData.payment.cardAmount || 0).toFixed(2)} {currency}</span>
                 </div>
               </>
@@ -178,11 +180,11 @@ export function ReceiptModal({
             {saleData.payment.method === 'cash' && (
               <>
                 <div className="flex justify-between">
-                  <span>المبلغ المدفوع:</span>
+                  <span>{t("المبلغ المدفوع:")}</span>
                   <span className="font-mono">{saleData.payment.tendered.toFixed(2)} {currency}</span>
                 </div>
                 <div className="flex justify-between font-bold text-emerald-700">
-                  <span>المبلغ المتبقي:</span>
+                  <span>{t("المبلغ المتبقي:")}</span>
                   <span className="font-mono">{saleData.payment.change.toFixed(2)} {currency}</span>
                 </div>
               </>
@@ -224,7 +226,7 @@ export function ReceiptModal({
             className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 font-bold text-xs cursor-pointer shadow-2xs transition-colors"
           >
             <PrinterIcon className="w-4 h-4" />
-            <span>طباعة الإيصال</span>
+            <span>{t("طباعة الإيصال")}</span>
           </button>
 
           <button
@@ -235,7 +237,7 @@ export function ReceiptModal({
             }}
             className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs transition-colors"
           >
-            <span>طلب جديد</span>
+            <span>{t("طلب جديد")}</span>
           </button>
         </div>
       </div>

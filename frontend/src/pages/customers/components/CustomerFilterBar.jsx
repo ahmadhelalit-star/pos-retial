@@ -5,8 +5,7 @@ import {
   UsersIcon,
   BuildingOfficeIcon,
   WalletIcon,
-  GiftIcon,
-} from '../../../components/common/Icons';
+  } from '../../../components/common/Icons';
 
 export function CustomerFilterBar({
   searchQuery,

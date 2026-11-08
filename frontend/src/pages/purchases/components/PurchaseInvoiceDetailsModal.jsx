@@ -2,7 +2,6 @@ import {
   XMarkIcon,
   PrinterIcon,
   TruckIcon,
-  CheckIcon,
   BanknotesIcon,
 } from '../../../components/common/Icons';
 

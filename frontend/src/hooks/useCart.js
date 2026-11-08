@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
+import { tracksInventory } from '../domain/products';
 
-export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
-  const [items, setItems] = useState([]);
-  const [discountPercent, setDiscountPercentState] = useState(0);
+export function useCart({ taxRate = 0.15, allowNegativeStock = false, initialDraft } = {}) {
+  const [items, setItems] = useState(()=>initialDraft?.items??[]);
+  const [discountPercent, setDiscountPercentState] = useState(()=>initialDraft?.discountPercent??0);
   const [customer, setCustomer] = useState({
     id: 'walk-in',
     name: 'عميل نقدي (عام)',
@@ -17,31 +18,17 @@ export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
 
   // إضافة منتج إلى السلة
   const addToCart = useCallback((product) => {
-    let added = false;
-    setItems((prevItems) => {
-      const existingIndex = prevItems.findIndex((item) => item.id === product.id);
-      const currentQty = existingIndex > -1 ? prevItems[existingIndex].qty : 0;
-      const maxQty = allowNegativeStock
-        ? Infinity
-        : Number.isFinite(Number(product.stock))
-        ? Math.max(0, Number(product.stock))
-        : Infinity;
-      if (currentQty >= maxQty) return prevItems;
-
-      if (existingIndex > -1) {
-        const updated = [...prevItems];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          qty: updated[existingIndex].qty + 1,
-        };
-        added = true;
-        return updated;
-      }
-      added = true;
-      return [...prevItems, { ...product, qty: 1, discountPercent: 0 }];
+    const current = items.find((item) => item.id === product.id);
+    const quantity = Number(product.qty ?? 1);
+    const maxQty = allowNegativeStock || !tracksInventory(product) ? Infinity : Math.max(0, Number(product.stock ?? 0));
+    if (!Number.isFinite(quantity) || quantity <= 0 || (current?.qty ?? 0) + quantity > maxQty) return false;
+    setItems((previous) => {
+      const existing = previous.find((item) => item.id === product.id);
+      if (existing) return previous.map((item) => item.id === product.id ? { ...item, qty: item.qty + quantity } : item);
+      return [...previous, { ...product, qty: quantity, discountPercent: 0 }];
     });
-    return added;
-  }, [allowNegativeStock]);
+    return true;
+  }, [items, allowNegativeStock]);
 
   const setItemDiscountPercent = useCallback((productId, value) => {
     const parsed = Number(value);
@@ -67,22 +54,13 @@ export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
 
   // زيادة بمقدار 1
   const incrementQty = useCallback((productId) => {
-    let incremented = false;
-    setItems((prevItems) =>
-      prevItems.map((item) => {
-        if (item.id !== productId) return item;
-        const maxQty = allowNegativeStock
-          ? Infinity
-          : Number.isFinite(Number(item.stock))
-          ? Math.max(0, Number(item.stock))
-          : Infinity;
-        if (item.qty >= maxQty) return item;
-        incremented = true;
-        return { ...item, qty: item.qty + 1 };
-      })
-    );
-    return incremented;
-  }, [allowNegativeStock]);
+    const current = items.find((item) => item.id === productId);
+    if (!current) return false;
+    const maxQty = allowNegativeStock || !tracksInventory(current) ? Infinity : Math.max(0, Number(current.stock ?? 0));
+    if (current.qty + 1 > maxQty) return false;
+    setItems((previous) => previous.map((item) => item.id === productId ? { ...item, qty: item.qty + 1 } : item));
+    return true;
+  }, [items, allowNegativeStock]);
 
   // إنقاص بمقدار 1
   const decrementQty = useCallback((productId) => {
@@ -175,14 +153,16 @@ export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
 
     let adjusted = false;
     const restoredItems = order.items.reduce((restored, item) => {
-      const currentProduct = currentProducts.find((product) => product.id === item.id);
-      const maxQty = currentProduct && Number.isFinite(Number(currentProduct.stock))
-        ? Math.max(0, Number(currentProduct.stock))
+      const currentProduct = currentProducts.find((product) => product.id === (item.productId ?? item.id));
+      const currentVariant = currentProduct?.variants?.find((variant) => variant.id === item.variantId);
+      const maxQty = allowNegativeStock || !tracksInventory(item) ? Infinity
+        : currentProduct && Number.isFinite(Number(currentVariant?.stock ?? currentProduct.stock))
+        ? Math.max(0, Number(currentVariant?.stock ?? currentProduct.stock)) / (item.unitFactor ?? 1)
         : item.qty;
       const qty = Math.min(item.qty, maxQty);
       if (qty < item.qty) adjusted = true;
       if (qty > 0) {
-        restored.push({ ...item, ...(currentProduct || {}), qty });
+        restored.push({ ...item, stock: maxQty, qty });
       }
       return restored;
     }, []);
@@ -192,7 +172,7 @@ export function useCart({ taxRate = 0.15, allowNegativeStock = false } = {}) {
     setDiscountPercent(order.discountPercent);
     setHeldOrders((prev) => prev.filter((o) => o.id !== orderId));
     return { adjusted, restoredCount: restoredItems.length };
-  }, [heldOrders, setDiscountPercent]);
+  }, [heldOrders, setDiscountPercent, allowNegativeStock]);
 
   // حذف فاتورة معلقة
   const deleteHeldOrder = useCallback((orderId) => {

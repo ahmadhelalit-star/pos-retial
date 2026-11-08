@@ -1,0 +1,21 @@
+import { cp,mkdir,readFile,writeFile,copyFile,readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { resolve,join } from 'node:path';
+const source=resolve(process.argv[2]??'C:/Users/Iway/Desktop/pos-offline/offline-activation');
+const target=resolve(process.argv[3]??'');
+if(!process.argv[3]||target===source||target.startsWith(source+'\\')||target.startsWith(source+'/'))throw new Error('Explicit independent candidate output directory required');
+await mkdir(join(target,'app'),{recursive:true});
+for(const folder of ['src','tool'])await cp(join(source,folder),join(target,'app',folder),{recursive:true,filter:file=>!/(^|[\\/])(data|secrets|backups|logs)([\\/]|$)/.test(file)});
+await cp(join(source,'test'),join(target,'app/test'),{recursive:true});await mkdir(join(target,'app/scripts'),{recursive:true});await copyFile(join(source,'scripts/generate-keys.js'),join(target,'app/scripts/generate-keys.js'));
+await cp(join(source,'dist/POS-Activation-Tool/app/node_modules'),join(target,'app/node_modules'),{recursive:true});
+await cp(join(source,'dist/POS-Activation-Tool/runtime'),join(target,'runtime'),{recursive:true});
+await copyFile(join(source,'dist/POS-Activation-Tool/POS Activation Tool.exe'),join(target,'POS Activation Tool.exe'));
+await writeFile(join(target,'app/package.json'),JSON.stringify({type:'commonjs',private:true}));
+for(const name of ['retail.cjs','retail-tool.cjs'])await copyFile(new URL(name,import.meta.url),join(target,'app',name));
+await cp(new URL('vendor/',import.meta.url),join(target,'app/vendor'),{recursive:true});
+const server=join(target,'app/tool/server.js'),serverSource=await readFile(server,'utf8');await writeFile(server,serverSource.includes('retail-tool.cjs')?serverSource:serverSource+'\nrequire("../retail-tool.cjs").wrap(module.exports);\n');
+const html=join(target,'app/tool/public/index.html'),htmlSource=await readFile(html,'utf8');await writeFile(html,htmlSource.includes('href="/retail"')?htmlSource:htmlSource.replace('<body>','<body><p style="padding:12px;background:#eef3ff"><a href="/retail">Retail activation — review candidate</a></p>'));
+const hashes={};for(const name of await readdir(join(source,'src'))){if(name.endsWith('.js'))hashes[name]=createHash('sha256').update(await readFile(join(source,'src',name))).digest('hex');}
+await writeFile(join(target,'SOURCE-MANIFEST.json'),JSON.stringify({source,preparedAt:new Date().toISOString(),sourceFiles:hashes,productionKeysIncluded:false,originalToolModified:false,retailSigningContext:'POSACT1.RETAIL.V1'},null,2));
+await writeFile(join(target,'README-Retail.txt'),'Review candidate built from the existing portable Windows issuer. No production keys or customer records are included. Restaurant routes remain unchanged. Open /retail for Retail issuance. Supply the existing operator-managed signing key through OFFLINE_ACTIVATION_PRIVATE_KEY_PATH; never distribute private keys to Retail. This candidate has NOT replaced the shared production tool. Android files are untouched.\n');
+console.log(JSON.stringify({target,productionKeysIncluded:false}));

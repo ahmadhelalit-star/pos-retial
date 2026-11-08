@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { ListBulletIcon, Squares2X2Icon } from '../../../components/common/Icons';
 
 export function CategoryBar({
@@ -7,6 +8,7 @@ export function CategoryBar({
   viewMode = 'grid',
   onViewModeChange,
 }) {
+  useLocale();
   return (
     <div className="flex items-end gap-2 select-none">
       <div className="scrollbar-none flex flex-1 items-center gap-1.5 overflow-x-auto pb-2">
@@ -33,9 +35,9 @@ export function CategoryBar({
         <button
           type="button"
           onClick={() => onViewModeChange?.('grid')}
-          aria-label="عرض شبكة"
+          aria-label={t("عرض شبكة")}
           aria-pressed={viewMode === 'grid'}
-          title="عرض شبكة"
+          title={t("عرض شبكة")}
           className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
             viewMode === 'grid'
               ? 'bg-[#00236f] text-white'
@@ -48,9 +50,9 @@ export function CategoryBar({
         <button
           type="button"
           onClick={() => onViewModeChange?.('list')}
-          aria-label="عرض قائمة"
+          aria-label={t("عرض قائمة")}
           aria-pressed={viewMode === 'list'}
-          title="عرض قائمة"
+          title={t("عرض قائمة")}
           className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
             viewMode === 'list'
               ? 'bg-[#00236f] text-white'

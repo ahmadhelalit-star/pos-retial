@@ -1,3 +1,5 @@
+import { translateUI as t,useLocale } from "../../runtime/i18n.js";
+import { tracksInventory } from '../../domain/products';
 import { useState, useMemo } from 'react';
 import { useHeaderSearchSlot } from '../../components/layout/headerSearchSlot';
 import { InventorySummaryCards } from './components/InventorySummaryCards';
@@ -14,11 +16,25 @@ export function InventoryPage({
   onSaveProduct,
   onDeleteProduct,
   onAdjustStock,
+  serverQuery,
+  onServerQueryChange,
+  permissions,
+  ledgerMode = false,
+  financialOptions,
+  onPrepareLabels,
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  useLocale();
+  const [localSearch, setLocalSearch] = useState('');
+  const [localCategory, setLocalCategory] = useState('all');
+  const searchQuery = serverQuery?.q ?? localSearch;
+  const categoryFilter = serverQuery?.category ?? localCategory;
+  const setSearchQuery = value => serverQuery ? onServerQueryChange({ q: value }) : setLocalSearch(value);
+  const setCategoryFilter = value => serverQuery ? onServerQueryChange({ category: value }) : setLocalCategory(value);
   const headerSearchSlot = useHeaderSearchSlot();
-  const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
+  const [localStock, setLocalStock] = useState('all');
+  const stockFilter = serverQuery?.stock ?? localStock;
+  const setStockFilter = value => serverQuery ? onServerQueryChange({ stock: value }) : setLocalStock(value);
+  const allowed = permission => !permissions || permissions.includes(permission);
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,13 +44,14 @@ export function InventoryPage({
 
   // Filtered products list
   const filteredProducts = useMemo(() => {
+    if (serverQuery) return products;
     return products.filter((prod) => {
       // 1. Search Query
       const q = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !q ||
         prod.name.toLowerCase().includes(q) ||
-        prod.barcode.toLowerCase().includes(q);
+        (prod.barcode || '').toLowerCase().includes(q);
 
       // 2. Category Filter
       const matchesCategory =
@@ -42,13 +59,13 @@ export function InventoryPage({
 
       // 3. Stock Status Filter
       let matchesStock = true;
-      if (stockFilter === 'in_stock') matchesStock = prod.stock > 10;
-      if (stockFilter === 'low_stock') matchesStock = prod.stock > 0 && prod.stock <= 10;
-      if (stockFilter === 'out_of_stock') matchesStock = prod.stock <= 0;
+      if (stockFilter === 'in_stock') matchesStock = tracksInventory(prod) && prod.stock > 10;
+      if (stockFilter === 'low_stock') matchesStock = tracksInventory(prod) && prod.stock > 0 && prod.stock <= 10;
+      if (stockFilter === 'out_of_stock') matchesStock = tracksInventory(prod) && prod.stock <= 0;
 
       return matchesSearch && matchesCategory && matchesStock;
     });
-  }, [products, searchQuery, categoryFilter, stockFilter]);
+  }, [products, searchQuery, categoryFilter, stockFilter, serverQuery]);
 
   const isFiltered =
     Boolean(searchQuery.trim()) ||
@@ -74,7 +91,7 @@ export function InventoryPage({
   const handleDeleteWithConfirm = (productId) => {
     const target = products.find((p) => p.id === productId);
     const confirmed = window.confirm(
-      `هل أنت متأكد من حذف المنتج "${target ? target.name : ''}" من الكتالوج؟`
+      `هل تريد ${ledgerMode ? 'أرشفة' : 'حذف'} المنتج "${target ? target.name : ''}" من الكتالوج؟`
     );
     if (confirmed && onDeleteProduct) {
       onDeleteProduct(productId);
@@ -84,6 +101,7 @@ export function InventoryPage({
   return (
     <div className="h-full flex flex-col bg-gray-100 overflow-y-auto font-sans pb-10">
       {/* Top Metrics Cards */}
+      {serverQuery && <p className="px-4 pt-3 text-xs text-gray-500">{t("ملخص الصفحة الحالية / Current page summary")}</p>}
       <InventorySummaryCards products={products} />
 
       {/* Filter and Search Bar */}
@@ -98,6 +116,7 @@ export function InventoryPage({
         onResetFilters={handleResetFilters}
         isFiltered={isFiltered}
         searchPortalTarget={headerSearchSlot}
+        canCreate={allowed('catalog.create')}
       />
 
       {/* Products Table */}
@@ -107,7 +126,11 @@ export function InventoryPage({
           onEditProduct={handleOpenEdit}
           onDeleteProduct={handleDeleteWithConfirm}
           onAdjustStock={onAdjustStock}
-          onOpenBarcodeModal={(prod) => setBarcodeProduct(prod)}
+          onOpenBarcodeModal={(prod) => onPrepareLabels ? onPrepareLabels(prod) : setBarcodeProduct(prod)}
+          canEdit={allowed('catalog.update')}
+          canArchive={allowed('catalog.archive')}
+          canStock={allowed('stock.post')}
+          ledgerMode={ledgerMode}
         />
       </div>
 
@@ -117,6 +140,8 @@ export function InventoryPage({
         onClose={() => setIsFormOpen(false)}
         productToEdit={productToEdit}
         onSaveProduct={onSaveProduct}
+        stockReadOnly={ledgerMode}
+        financialOptions={financialOptions}
       />
 
       {/* Barcode Label Picker */}

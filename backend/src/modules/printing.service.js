@@ -1,0 +1,50 @@
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import bwipjs from 'bwip-js';
+import { transaction } from '../db/pool.js';
+import { idempotent,audit } from './common.js';
+import { fail } from '../http/errors.js';
+import { requireWarehouse } from './auth.service.js';
+import { getProduct } from './products.repository.js';
+import { createProductLine } from '../../../shared/catalog.js';
+import { shiftReport } from './accounts.service.js';
+export const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+export function labelSVG(code){return bwipjs.toSVG({bcid:'code128',text:code,scale:2,height:8,includetext:true,textsize:10});}
+export function renderPrintHTML(job){
+  const document=job.payload,format=job.format,labels=job.kind==='labels',width=format==='A4'?'210mm':format==='40x30'?'40mm':format==='50x30'?'50mm':format;
+  const content=labels?document.labels.map(label=>`<section class="label"><strong>${escapeHTML(label.name)}</strong><div>${escapeHTML(label.unit)} · ${escapeHTML(label.price)} ${escapeHTML(label.currency)}</div>${labelSVG(label.barcode)}</section>`).join(''):`<h2>Sham Touch Retail</h2><h3>${escapeHTML(document.number)}</h3><p>${escapeHTML(document.kind)} · ${escapeHTML(document.createdAt)}</p><table><thead><tr><th>الصنف / Item</th><th>الكمية / Qty</th><th>المجموع / Total</th></tr></thead><tbody>${document.items.map(line=>`<tr><td>${escapeHTML(line.name)}<small>${escapeHTML(line.unit)}</small></td><td>${escapeHTML(line.quantity)}</td><td>${escapeHTML(line.total)}</td></tr>`).join('')}</tbody></table><p>الخصم / Discount: ${escapeHTML(document.discount)}</p><p>الضريبة / Tax: ${escapeHTML(document.tax)}</p><h3>${escapeHTML(document.total)} ${escapeHTML(document.currency)}</h3><p>${escapeHTML(document.cashier)}</p>`;
+  return `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>${escapeHTML(document.number??'Labels')}</title><style>@page{size:${format==='A4'?'A4':labels?format.replace('x','mm ')+'mm':width+' auto'};margin:3mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;width:${width};margin:auto;padding:2mm;color:#111;background:white}table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{overflow-wrap:anywhere}td:first-child,th:first-child{width:50%}td,th{padding:2mm;border-bottom:1px solid #ccc;text-align:start}small{display:block}svg{max-width:100%;height:14mm}.label{width:${format==='A4'?'50mm':'100%'};height:25mm;${format==='A4'?'display:inline-block;break-inside:avoid':'break-after:page'};text-align:center;overflow:hidden}.label strong{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style><body>${content}</body></html>`;
+}
+async function authorizeJob(db,user,row){
+  if(!row)fail(404,'NOT_FOUND','Print job not found');
+  if(row.kind==='shift_report'){await shiftReport(db,user,row.payload.shiftId);return;}
+  if(row.document_id){const doc=(await db.query('SELECT warehouse_id,kind FROM commercial_documents WHERE company_id=$1 AND id=$2',[user.companyId,row.document_id])).rows[0];await requireWarehouse(db,user,doc.warehouse_id);if(!user.permissions.includes(doc.kind.startsWith('sale')?'sales.read':'purchases.read'))fail(403,'PERMISSION_DENIED','Document read permission required');}
+  else {if(!row.payload.warehouseId)fail(403,'PRINT_SCOPE_REQUIRED','Legacy label job needs an explicit reprint');await requireWarehouse(db,user,row.payload.warehouseId);}
+}
+const schema=z.object({documentId:z.string().uuid().optional(),shiftId:z.string().uuid().optional(),kind:z.enum(['receipt','return','invoice','labels','shift_report']),format:z.enum(['58mm','80mm','A4','40x30','50x30']),labels:z.array(z.object({productId:z.union([z.string(),z.number().int()]),unitId:z.string().optional(),variantId:z.string().optional(),copies:z.number().int().min(1).max(100).default(1)}).strict()).max(100).optional(),warehouseId:z.string().uuid().optional()}).strict();
+export function registerPrintRoutes({route,pool}){
+  route('post','/print-jobs','printing.create',async(req,res)=>{const body=schema.parse(req.body);const result=await transaction(pool,db=>idempotent(db,req.user,req.headers['idempotency-key'],'print.create',body,async()=>{
+    let payload;
+    if(body.kind==='shift_report'){
+      if(!body.shiftId||!req.user.permissions.includes('shifts.read')||!['58mm','80mm','A4'].includes(body.format))fail(400,'SHIFT_REQUIRED','Select a shift and document paper');const report=await shiftReport(db,req.user,body.shiftId);
+      payload={number:`SHIFT-${body.shiftId.slice(0,8)}`,kind:'shift_report',createdAt:new Date().toISOString(),shiftId:body.shiftId,cashier:req.user.name,currency:'',discount:'',tax:'',total:report.expectedBase,items:[...Object.entries(report.expected).map(([code,value])=>({name:`النقد المتوقع / Expected cash ${code}`,quantity:'',total:value})),...report.methods.map(row=>({name:`${row.method} · ${row.direction} ${row.currency}`,quantity:'',total:row.amount})),...Object.entries(report.shift.close_snapshot?.differences??{}).map(([code,value])=>({name:`فرق الإقفال / Closing difference ${code}`,quantity:'',total:value}))]};
+    }else if(body.kind==='labels'){
+      if(!['40x30','50x30','A4'].includes(body.format)||!body.labels?.length)fail(400,'LABEL_FORMAT','Select label size and products');const warehouseId=body.warehouseId??req.user.warehouses[0];await requireWarehouse(db,req.user,warehouseId);const labels=[];
+      for(const entry of body.labels){const product=await getProduct(db,req.user.companyId,entry.productId,warehouseId),line=createProductLine(product,{unitId:entry.unitId,variantId:entry.variantId});if(!line.barcode)fail(400,'BARCODE_REQUIRED','Selected unit or variant needs a barcode');labelSVG(line.barcode);for(let index=0;index<entry.copies;index++)labels.push({name:line.name,unit:line.unit,barcode:line.barcode,price:line.price,currency:product.currency});if(labels.length>500)fail(400,'TOO_MANY_LABELS','Maximum 500 labels per job');}payload={labels,warehouseId};
+    }else{
+      if(!body.documentId||!['58mm','80mm','A4'].includes(body.format))fail(400,'DOCUMENT_REQUIRED','Select document and paper size');const row=(await db.query('SELECT * FROM commercial_documents WHERE company_id=$1 AND id=$2',[req.user.companyId,body.documentId])).rows[0];if(!row)fail(404,'NOT_FOUND','Document not found');await requireWarehouse(db,req.user,row.warehouse_id);if(!req.user.permissions.includes(row.kind.startsWith('sale')?'sales.read':'purchases.read'))fail(403,'PERMISSION_DENIED','Document read permission required');payload=row.snapshot;
+    }
+    const id=randomUUID();await db.query('INSERT INTO print_jobs(company_id,id,document_id,kind,format,payload) VALUES($1,$2,$3,$4,$5,$6)',[req.user.companyId,id,body.documentId??null,body.kind,body.format,payload]);await audit(db,req.user,'print.queue',id);return {id,kind:body.kind,format:body.format,status:'queued'};
+  }));res.status(201).json(result);});
+  route('get','/print-jobs/:id','printing.read',async(req,res)=>{
+    const row=(await pool.query('SELECT * FROM print_jobs WHERE company_id=$1 AND id=$2',[req.user.companyId,z.string().uuid().parse(req.params.id)])).rows[0];if(!row)fail(404,'NOT_FOUND','Print job not found');
+    await authorizeJob(pool,req.user,row);
+    res.json({...row,html:renderPrintHTML(row)});
+  });
+  route('post','/print-jobs/:id/ack','printing.ack',async(req,res)=>{const body=z.object({success:z.boolean()}).strict().parse(req.body),id=z.string().uuid().parse(req.params.id);await authorizeJob(pool,req.user,(await pool.query('SELECT * FROM print_jobs WHERE company_id=$1 AND id=$2',[req.user.companyId,id])).rows[0]);const result=await pool.query("UPDATE print_jobs SET status=$3,attempts=attempts+1,acknowledged_by=$4 WHERE company_id=$1 AND id=$2 AND status='queued' RETURNING id,status,attempts",[req.user.companyId,id,body.success?'acknowledged':'failed',req.user.id]);if(!result.rowCount)fail(409,'PRINT_ALREADY_RESOLVED','Job is already resolved; create an explicit reprint job');res.json(result.rows[0]);});
+  route('post','/print-jobs/:id/dispatch','printing.create',async(req,res)=>{
+    const body=z.object({terminalId:z.string().min(8).max(100)}).strict().parse(req.body),id=z.string().uuid().parse(req.params.id);
+    const result=await transaction(pool,async db=>{const row=(await db.query('SELECT * FROM print_jobs WHERE company_id=$1 AND id=$2 FOR UPDATE',[req.user.companyId,id])).rows[0];await authorizeJob(db,req.user,row);if(row.status!=='queued'||(row.dispatch_terminal&&row.dispatch_terminal!==body.terminalId))fail(409,'PRINT_ASSIGNED','Job is resolved or assigned to another terminal');await db.query("UPDATE print_jobs SET dispatch_terminal=$3,dispatch_state=CASE WHEN dispatch_state='pending' THEN 'assigned' ELSE dispatch_state END WHERE company_id=$1 AND id=$2",[req.user.companyId,id,body.terminalId]);await audit(db,req.user,'print.dispatch',id,body);return {id,terminalId:body.terminalId};});res.json(result);
+  });
+  route('post','/print-jobs/:id/dispatch/report','printing.create',async(req,res)=>{const body=z.object({terminalId:z.string().min(8).max(100),state:z.enum(['spooled','uncertain','confirmed_printed','cancelled_reviewed'])}).strict().parse(req.body),id=z.string().uuid().parse(req.params.id);await authorizeJob(pool,req.user,(await pool.query('SELECT * FROM print_jobs WHERE company_id=$1 AND id=$2',[req.user.companyId,id])).rows[0]);const result=await pool.query('UPDATE print_jobs SET dispatch_state=$4 WHERE company_id=$1 AND id=$2 AND dispatch_terminal=$3 RETURNING id,dispatch_state',[req.user.companyId,id,body.terminalId,body.state]);if(!result.rowCount)fail(409,'PRINT_TERMINAL_MISMATCH','Printing terminal does not match');res.json(result.rows[0]);});
+}

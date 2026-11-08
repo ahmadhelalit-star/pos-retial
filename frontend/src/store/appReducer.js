@@ -5,6 +5,8 @@ import {
   receivePurchasedItems,
 } from '../domain/inventory';
 import { loadPersistedState } from '../services/persistence';
+import { validateCatalogProduct } from '../domain/products';
+import { assertSaleStock } from '../domain/cartStock';
 
 export const ACTIONS = {
   SALE_COMPLETED: 'SALE_COMPLETED',
@@ -116,6 +118,7 @@ export function appReducer(state, action) {
   switch (action.type) {
     case ACTIONS.SALE_COMPLETED: {
       const invoice = action.invoice;
+      assertSaleStock(state.products, invoice.items, { allowNegativeStock: Boolean(state.storeSettings.allowNegativeStock) });
       return {
         ...state,
         invoices: [invoice, ...state.invoices],
@@ -136,8 +139,10 @@ export function appReducer(state, action) {
       };
     }
 
-    case ACTIONS.PRODUCT_SAVED:
-      return { ...state, products: upsert(state.products, action.product) };
+    case ACTIONS.PRODUCT_SAVED: {
+      const product = validateCatalogProduct(state.products, action.product);
+      return { ...state, products: upsert(state.products, product) };
+    }
 
     case ACTIONS.PRODUCT_DELETED:
       return {

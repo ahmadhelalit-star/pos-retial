@@ -1,9 +1,10 @@
+import { tracksInventory } from '../../../domain/products';
 import { PlusIcon } from '../../../components/common/Icons';
 import { getStockMeta } from './productStock';
 
 export function ProductCard({ product, onAddToCart }) {
-  const stock = getStockMeta(product.stock);
-  const needsStockAttention = product.stock < 10;
+  const stock = tracksInventory(product) ? getStockMeta(product.stock) : { label: 'لا يتتبع المخزون', className: 'border-gray-200 bg-gray-50 text-gray-500' };
+  const needsStockAttention = tracksInventory(product) && product.stock < 10;
 
   return (
     <button
@@ -29,7 +30,7 @@ export function ProductCard({ product, onAddToCart }) {
           <span className="font-mono text-base font-black text-[#00236f]">
             {product.price.toFixed(2)}
           </span>
-          <span className="mr-1 font-sans text-xs font-bold text-gray-500">ر.س</span>
+          <span className="mr-1 font-sans text-xs font-bold text-gray-500">{product.currency || 'ر.س'}</span>
         </div>
 
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef3ff] text-[#00236f] transition-colors group-hover:bg-[#00236f] group-hover:text-white">

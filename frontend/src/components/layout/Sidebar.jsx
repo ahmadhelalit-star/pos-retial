@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../runtime/i18n.js";
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -135,6 +136,7 @@ export function Sidebar({
   shiftStatus = 'open',
   invoicesCount = 0,
 }) {
+  useLocale();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(isMobileViewport);
   const [sidebarState, setSidebarState] = useState(() => ({
@@ -185,7 +187,7 @@ export function Sidebar({
       <Link
         key={item.id}
         to={item.path}
-        title={item.label}
+        title={t(item.label)}
         className={`group flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
           active
             ? 'bg-[#00236f] text-white shadow-md'
@@ -197,7 +199,7 @@ export function Sidebar({
             active ? 'text-white' : 'text-[#757682] group-hover:text-[#00236f]'
           }`}
         />
-        <span className="flex-1 truncate text-right">{item.label}</span>
+        <span className="flex-1 truncate text-start">{t(item.label)}</span>
 
         {item.id === 'invoices' && invoicesCount > 0 && (
           <span
@@ -238,7 +240,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={toggle}
-          aria-label="إغلاق القائمة الجانبية"
+          aria-label={t("إغلاق القائمة الجانبية")}
           className="fixed inset-0 z-0 cursor-default bg-black/20 backdrop-blur-[1px]"
         />
       )}
@@ -247,7 +249,7 @@ export function Sidebar({
         type="button"
         onClick={toggle}
         aria-expanded={isOpen}
-        aria-label={isOpen ? 'إخفاء القائمة الجانبية' : 'إظهار القائمة الجانبية'}
+        aria-label={t(isOpen ? 'إخفاء القائمة الجانبية' : 'إظهار القائمة الجانبية')}
         title={isOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
         className={`absolute top-3 z-0 flex h-10 w-7 items-center justify-center rounded-l-lg border border-r-0 border-[#c5c5d3] bg-white text-[#444651] shadow-md transition-colors hover:bg-[#f0f3ff] hover:text-[#00236f] ${
           isOpen ? '-left-5' : '-left-7'
@@ -304,7 +306,7 @@ export function Sidebar({
                 <Link
                   key={item.id}
                   to={item.path}
-                  title={item.label}
+                  title={t(item.label)}
                   className={`group flex min-h-8 w-full shrink-0 items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                     active
                       ? 'bg-[#dbe4ff] text-[#00236f]'
@@ -316,14 +318,14 @@ export function Sidebar({
                       active ? 'text-[#00236f]' : 'text-[#9a9ba8] group-hover:text-[#00236f]'
                     }`}
                   />
-                  <span className="flex-1 truncate text-right">{item.label}</span>
+                  <span className="flex-1 truncate text-start">{t(item.label)}</span>
                 </Link>
               );
             })}
 
             <Link
               to="/settings"
-              title="الإعدادات"
+              title={t("الإعدادات")}
               className={`group mt-2 flex min-h-10 w-full shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
                 location.pathname === '/settings'
                   ? 'bg-[#00236f] text-white shadow-md'
@@ -337,7 +339,7 @@ export function Sidebar({
                     : 'text-[#757682] group-hover:text-[#00236f]'
                 }`}
               />
-              <span className="flex-1 truncate text-right">الإعدادات</span>
+              <span className="flex-1 truncate text-start">{t("الإعدادات")}</span>
               <kbd
                 className={`hidden rounded border px-1 font-mono text-[10px] font-bold xl:block ${
                   location.pathname === '/settings'
@@ -367,7 +369,7 @@ export function Sidebar({
                 </p>
                 <p className="flex items-center gap-1 text-[11px] font-medium text-[#757682]">
                   <ClockIcon className="h-3 w-3" />
-                  {shiftStatus === 'open' ? 'الوردية مفتوحة' : 'الوردية مغلقة'}
+                  {t(shiftStatus === 'open' ? 'الوردية مفتوحة' : 'الوردية مغلقة')}
                 </p>
               </div>
             </div>

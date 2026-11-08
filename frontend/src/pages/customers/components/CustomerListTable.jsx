@@ -2,7 +2,6 @@ import {
   UserIcon,
   BuildingOfficeIcon,
   PhoneIcon,
-  WalletIcon,
   GiftIcon,
   PencilSquareIcon,
   TrashIcon,

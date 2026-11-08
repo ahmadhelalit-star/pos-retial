@@ -1,6 +1,5 @@
 import {
   EyeIcon,
-  PrinterIcon,
   BanknotesIcon,
   DocumentTextIcon,
   CheckIcon,
@@ -12,6 +11,39 @@ export function PurchaseInvoicesList({
   onViewInvoice,
   onRecordPayment,
 }) {
+  const renderPaymentStatus = (inv) => {
+    if (inv.paymentStatus === 'paid') {
+      return (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+          <CheckIcon className="w-3 h-3 text-emerald-600" />
+          <span>مدفوع</span>
+        </span>
+      );
+    }
+
+    if (inv.paymentStatus === 'partial') {
+      return (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+          <span>مسدد جزئياً</span>
+          <span className="font-mono text-[11px]">
+            ({(inv.remainingAmount || 0).toFixed(0)} متبقي)
+          </span>
+        </span>
+      );
+    }
+
+    if (inv.paymentStatus === 'unpaid') {
+      return (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700">
+          <ExclamationTriangleIcon className="w-3 h-3 text-rose-600" />
+          <span>غير مدفوع (آجل)</span>
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   if (invoices.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white m-3 rounded-2xl border border-gray-200">
@@ -30,7 +62,90 @@ export function PurchaseInvoicesList({
 
   return (
     <div className="flex-1 overflow-auto p-3">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+      <div className="block md:hidden space-y-2">
+        {invoices.map((inv) => {
+          const isPaid = inv.paymentStatus === 'paid';
+
+          return (
+            <div
+              key={inv.id}
+              className="rounded-2xl border border-gray-200 bg-white p-3 shadow-xs"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => onViewInvoice(inv)}
+                  className="flex min-w-0 items-center gap-1.5 font-mono text-sm font-bold text-gray-900 transition-colors hover:text-emerald-700 cursor-pointer"
+                >
+                  <DocumentTextIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                  <span className="truncate">{inv.invoiceNumber}</span>
+                </button>
+                {renderPaymentStatus(inv)}
+              </div>
+
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-gray-900">
+                    {inv.supplierName}
+                  </p>
+                  {inv.supplierInvoiceNo && (
+                    <p className="truncate font-mono text-[11px] text-gray-500">
+                      مورد: {inv.supplierInvoiceNo}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                  {inv.paymentMethod || 'آجل'}
+                </span>
+              </div>
+
+              <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                <span>{inv.date}</span>
+                <span className="text-gray-300">•</span>
+                <span className="font-mono text-gray-600">{inv.time}</span>
+                <span className="text-gray-300">•</span>
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-600">
+                  {inv.items?.length || 0} صنف
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2">
+                <div className="whitespace-nowrap">
+                  <span className="font-mono text-lg font-black text-emerald-700">
+                    {(inv.grandTotal || 0).toFixed(2)}
+                  </span>
+                  <span className="mr-1 text-xs font-bold text-gray-500">ر.س</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onViewInvoice(inv)}
+                    title="عرض الفاتورة والطباعة"
+                    className="rounded-lg bg-gray-100 p-1.5 text-gray-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+
+                  {!isPaid && (
+                    <button
+                      type="button"
+                      onClick={() => onRecordPayment(inv)}
+                      title="تسجيل دفعة سداد"
+                      className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 cursor-pointer"
+                    >
+                      <BanknotesIcon className="h-3.5 w-3.5" />
+                      <span>سداد</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-right text-xs">
           <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 select-none">
@@ -50,8 +165,6 @@ export function PurchaseInvoicesList({
           <tbody className="divide-y divide-gray-100">
             {invoices.map((inv) => {
               const isPaid = inv.paymentStatus === 'paid';
-              const isPartial = inv.paymentStatus === 'partial';
-              const isUnpaid = inv.paymentStatus === 'unpaid';
 
               return (
                 <tr
@@ -124,26 +237,7 @@ export function PurchaseInvoicesList({
 
                   {/* حالة السداد */}
                   <td className="py-3 px-3.5 text-center">
-                    {isPaid && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <CheckIcon className="w-3 h-3 text-emerald-600" />
-                        <span>مدفوع</span>
-                      </span>
-                    )}
-                    {isPartial && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        <span>مسدد جزئياً</span>
-                        <span className="font-mono text-[11px]">
-                          ({(inv.remainingAmount || 0).toFixed(0)} متبقي)
-                        </span>
-                      </span>
-                    )}
-                    {isUnpaid && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                        <ExclamationTriangleIcon className="w-3 h-3 text-rose-600" />
-                        <span>غير مدفوع (آجل)</span>
-                      </span>
-                    )}
+                    {renderPaymentStatus(inv)}
                   </td>
 
                   {/* إجراءات */}

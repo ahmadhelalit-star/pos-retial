@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { tracksInventory } from '../../../domain/products';
 import {
   XMarkIcon,
   CheckIcon,
@@ -29,7 +30,7 @@ export function ReturnModal({
         initial[it.id] = 0;
       });
       setReturnQuantities(initial);
-      setRestockSelections(Object.fromEntries(invoice.items.map((it) => [it.id, true])));
+      setRestockSelections(Object.fromEntries(invoice.items.map((it) => [it.id, tracksInventory(it)])));
       setRefundMethod(invoice.payment?.method === 'card' ? 'card' : 'cash');
     }
   }, [invoice]);
@@ -193,7 +194,7 @@ export function ReturnModal({
                           المتاح للإرجاع: {item.availableQty}
                         </span>
                       </div>
-                      {currentReturnQty > 0 && (
+                      {currentReturnQty > 0 && tracksInventory(item) && (
                         <label className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
                           <input
                             type="checkbox"
@@ -221,9 +222,10 @@ export function ReturnModal({
                           <MinusIcon className="w-3.5 h-3.5" />
                         </button>
 
-                        <span className="w-8 text-center font-black font-mono text-sm text-gray-900">
-                          {currentReturnQty}
-                        </span>
+                        <input aria-label={`كمية إرجاع ${item.name}`} className="w-16 text-center font-black font-mono text-sm text-gray-900" type="number" min="0" max={item.availableQty} step={item.allowFractional ? 'any' : '1'} value={currentReturnQty} onChange={(event) => {
+                          const next = Number(event.target.value);
+                          if (Number.isFinite(next) && next >= 0 && next <= item.availableQty && (item.allowFractional || Number.isInteger(next))) setReturnQuantities((previous) => ({ ...previous, [item.id]: next }));
+                        }} />
 
                         <button
                           type="button"

@@ -1,8 +1,9 @@
+import { tracksInventory } from '../../../domain/products';
 import { BarcodeIcon, PlusIcon } from '../../../components/common/Icons';
 import { getStockMeta } from './productStock';
 
 export function ProductListRow({ product, categoryIcon, onAddToCart }) {
-  const stock = getStockMeta(product.stock);
+  const stock = tracksInventory(product) ? getStockMeta(product.stock) : { label: 'لا يتتبع المخزون', className: 'border-gray-200 bg-gray-50 text-gray-500' };
 
   return (
     <button
@@ -39,7 +40,7 @@ export function ProductListRow({ product, categoryIcon, onAddToCart }) {
         <span className="font-mono text-base font-black text-[#00236f]">
           {product.price.toFixed(2)}
         </span>
-        <span className="mr-1 font-sans text-xs font-bold text-gray-500">ر.س</span>
+        <span className="mr-1 font-sans text-xs font-bold text-gray-500">{product.currency || 'ر.س'}</span>
       </span>
 
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef3ff] text-[#00236f] transition-colors group-hover:bg-[#00236f] group-hover:text-white">

@@ -1,6 +1,9 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon, SparklesIcon } from '../../../components/common/Icons';
 import { CATEGORIES } from '../../../data/mockProducts';
+import { normalizeProduct, validateProduct } from '../../../domain/products';
+import { ProductOptionsEditor } from './ProductOptionsEditor';
 
 const UNITS = ['حبة', 'كيس', 'علبة', 'حزمة', 'كجم', 'لتر', 'كرتون'];
 
@@ -9,7 +12,10 @@ export function ProductFormModal({
   onClose,
   productToEdit,
   onSaveProduct,
+  stockReadOnly = false,
+  financialOptions,
 }) {
+  useLocale();
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('beverages');
@@ -17,8 +23,24 @@ export function ProductFormModal({
   const [price, setPrice] = useState('');
   const [costPrice, setCostPrice] = useState('');
   const [stock, setStock] = useState('');
+  const [type, setType] = useState('stock');
+  const [allowFractional, setAllowFractional] = useState(false);
+  const [options, setOptions] = useState({ units: [], attributes: [], variants: [] });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [currency,setCurrency]=useState(''),[taxId,setTaxId]=useState(''),[scaleCode,setScaleCode]=useState('');
+  const [taxPriceMode,setTaxPriceMode]=useState('inherit');
 
   useEffect(() => {
+    const normalized = normalizeProduct(productToEdit || { unit: 'حبة', price: 0 });
+    setType(normalized.type);
+    setAllowFractional(normalized.allowFractional);
+    setOptions({ units: normalized.units, attributes: normalized.attributes, variants: normalized.variants });
+    setError('');
+    setCurrency(productToEdit?.currency??financialOptions?.company.base_currency??'');
+    setTaxId(productToEdit?.taxId??'');
+    setScaleCode(productToEdit?.scaleCode??'');
+    setTaxPriceMode(productToEdit?.priceIncludesTax===true?'inclusive':productToEdit?.priceIncludesTax===false?'exclusive':'inherit');
     if (productToEdit) {
       setName(productToEdit.name || '');
       setBarcode(productToEdit.barcode || '');
@@ -27,7 +49,7 @@ export function ProductFormModal({
       setPrice(productToEdit.price?.toString() || '');
       setCostPrice(
         productToEdit.costPrice?.toString() ||
-          (productToEdit.price ? (productToEdit.price * 0.7).toFixed(2) : '')
+          '0'
       );
       setStock(productToEdit.stock?.toString() || '');
     } else {
@@ -38,9 +60,9 @@ export function ProductFormModal({
       setUnit('حبة');
       setPrice('');
       setCostPrice('');
-      setStock('50');
+      setStock('0');
     }
-  }, [productToEdit, isOpen]);
+  }, [productToEdit, isOpen, financialOptions?.company.base_currency]);
 
   if (!isOpen) return null;
 
@@ -50,15 +72,16 @@ export function ProductFormModal({
     setBarcode(randomCode);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !price || !barcode.trim()) return;
+    if (!name.trim() || price === '') return;
 
     const numPrice = parseFloat(price) || 0;
-    const numCost = parseFloat(costPrice) || numPrice * 0.7;
-    const numStock = parseInt(stock, 10) || 0;
+    const numCost = costPrice === '' ? 0 : Number(costPrice);
+    const numStock = stock === '' ? 0 : Number(stock);
 
     const savedProduct = {
+      ...productToEdit,
       id: productToEdit ? productToEdit.id : Date.now(),
       name: name.trim(),
       barcode: barcode.trim(),
@@ -66,10 +89,29 @@ export function ProductFormModal({
       unit,
       price: numPrice,
       costPrice: numCost,
-      stock: numStock,
+      stock: type === 'stock' ? numStock : (productToEdit?.stock ?? 0),
+      type,
+      allowFractional,
+      ...options,
+      baseUnitId: productToEdit?.baseUnitId ?? 'base',
+      ...(financialOptions?{currency:currency||financialOptions.company.base_currency,taxId:taxId||null,scaleCode:scaleCode||null,priceIncludesTax:taxPriceMode==='inherit'?null:taxPriceMode==='inclusive'}:{}),
     };
-
-    onSaveProduct(savedProduct);
+    // Keep legacy fields synchronized with the base unit without dropping additional metadata.
+    savedProduct.units = options.units.map((entry) => entry.id === savedProduct.baseUnitId
+      ? { ...entry, name: unit, factor: 1, barcode: barcode.trim(), price: numPrice } : entry);
+    if (options.variants.length) savedProduct.stock = options.variants.reduce((sum, variant) => sum + Number(variant.stock), 0);
+    try {
+      setSaving(true);
+      validateProduct(savedProduct);
+      if (productToEdit && type !== (productToEdit.type ?? 'stock') && Number(productToEdit.stock) !== 0) throw new Error('لا يمكن تغيير نوع منتج له رصيد. سوِّ الرصيد أولًا مع الحفاظ على سجل الحركات.');
+      if (productToEdit && !productToEdit.variants?.length && options.variants.length && Number(productToEdit.stock) !== 0) throw new Error('توزيع الرصيد الحالي على المتغيرات يحتاج عملية ترحيل مستقلة.');
+      await onSaveProduct(savedProduct);
+    } catch (failure) {
+      setError(failure.message);
+      return;
+    } finally {
+      setSaving(false);
+    }
     onClose();
   };
 
@@ -79,7 +121,7 @@ export function ProductFormModal({
         {/* Header */}
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-base font-bold text-gray-800">
-            {productToEdit ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد للكتالوج'}
+            {t(productToEdit ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد')}
           </h2>
           <button
             type="button"
@@ -92,6 +134,12 @@ export function ProductFormModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
+          {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700">{error}</p>}
+          <label className="block space-y-1 font-bold">نوع المنتج
+            <select className="w-full border rounded-xl p-2" value={type} onChange={(event) => setType(event.target.value)}>
+              <option value="stock">{t("منتج مخزني")}</option><option value="service">{t("خدمة")}</option><option value="nonStock">{t("منتج غير مخزني")}</option>
+            </select>
+          </label>
           {/* Name */}
           <div>
             <label className="block text-gray-700 font-bold mb-1">
@@ -102,7 +150,7 @@ export function ProductFormModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: حليب كامل الدسم 1 لتر"
+              placeholder={t("مثال: حليب كامل الدسم 1 لتر")}
               className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
             />
           </div>
@@ -110,15 +158,14 @@ export function ProductFormModal({
           {/* Barcode with auto-generate */}
           <div>
             <label className="block text-gray-700 font-bold mb-1">
-              الباركود (SKU) <span className="text-red-500">*</span>
+              الباركود (اختياري)
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                required
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                placeholder="امسح الباركود أو ولّد كود جديد..."
+                placeholder={t("امسح الباركود أو ولّد كود جديد...")}
                 className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-mono font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
               />
               <button
@@ -127,7 +174,7 @@ export function ProductFormModal({
                 className="flex items-center gap-1 px-3 py-2.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 border border-gray-300 rounded-xl font-bold transition-colors cursor-pointer whitespace-nowrap"
               >
                 <SparklesIcon className="w-3.5 h-3.5 text-emerald-600" />
-                <span>توليد آلي</span>
+                <span>{t("توليد آلي")}</span>
               </button>
             </div>
           </div>
@@ -135,7 +182,7 @@ export function ProductFormModal({
           {/* Category & Unit */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-gray-700 font-bold mb-1">التصنيف</label>
+              <label className="block text-gray-700 font-bold mb-1">{t("التصنيف")}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -150,7 +197,7 @@ export function ProductFormModal({
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-1">وحدة القياس</label>
+              <label className="block text-gray-700 font-bold mb-1">{t("وحدة القياس")}</label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
@@ -184,7 +231,7 @@ export function ProductFormModal({
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-1">سعر التكلفة (ر.س)</label>
+              <label className="block text-gray-700 font-bold mb-1">{t("سعر التكلفة (ر.س)")}</label>
               <input
                 type="number"
                 step="any"
@@ -197,10 +244,12 @@ export function ProductFormModal({
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-1">الرصيد الافتتاحي</label>
+              <label className="block text-gray-700 font-bold mb-1">{t("الرصيد الافتتاحي")}</label>
               <input
                 type="number"
                 min="0"
+                step={allowFractional ? 'any' : '1'}
+                disabled={stockReadOnly || type !== 'stock' || options.variants.length > 0}
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 placeholder="0"
@@ -209,6 +258,11 @@ export function ProductFormModal({
             </div>
           </div>
 
+          <label className="flex items-center gap-2"><input type="checkbox" checked={allowFractional} onChange={(event) => setAllowFractional(event.target.checked)} />{t("السماح بالكميات الكسرية")}</label>
+          {type !== 'stock' && <p className="text-gray-500">{t("هذا النوع لا ينشئ حركات مخزون.")}</p>}
+          {stockReadOnly && <p className="text-gray-500">{t("الرصيد يُسجّل من حركة مخزون موثقة بعد حفظ المنتج.")}</p>}
+          {financialOptions&&<details className="border rounded-xl p-3 space-y-3"><summary>{t("العملة والضريبة والميزان / Currency, tax and scale")}</summary><label className="block">{t("العملة / Currency")}<select className="w-full border rounded-lg p-2" value={currency} onChange={event=>setCurrency(event.target.value)}>{financialOptions.currencies.map(row=><option key={row.code}>{row.code}</option>)}</select></label><label className="block">{t("الضريبة / Tax")}<select className="w-full border rounded-lg p-2" value={taxId} onChange={event=>setTaxId(event.target.value)}><option value="">{t("دون ضريبة / No tax")}</option>{financialOptions.taxes.map(row=><option key={row.id} value={row.id}>{row.name} · {row.rate}%</option>)}</select></label><label className="block">{t("طريقة السعر / Tax price mode")}<select className="w-full border rounded-lg p-2" value={taxPriceMode} onChange={event=>setTaxPriceMode(event.target.value)}><option value="inherit">{t("حسب إعداد الضريبة / Inherit tax setting")}</option><option value="inclusive">{t("شامل / Inclusive")}</option><option value="exclusive">{t("غير شامل / Exclusive")}</option></select></label><label className="block">{t("رمز منتج الميزان (5 أرقام) / Scale PLU")}<input className="w-full border rounded-lg p-2" value={scaleCode} pattern="[0-9]{5}" maxLength={5} onChange={event=>setScaleCode(event.target.value)}/></label></details>}
+          <ProductOptionsEditor value={options} onChange={setOptions} baseUnitId={productToEdit?.baseUnitId ?? 'base'} allowFractional={allowFractional} type={type} stockReadOnly={stockReadOnly} />
           {/* Actions */}
           <div className="pt-4 border-t border-gray-200 flex items-center justify-between gap-2">
             <button
@@ -221,10 +275,11 @@ export function ProductFormModal({
 
             <button
               type="submit"
+              disabled={saving}
               className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all active:scale-95"
             >
               <CheckIcon className="w-4 h-4" />
-              <span>{productToEdit ? 'حفظ التعديلات' : 'إضافة المنتج'}</span>
+              <span>{t(productToEdit ? 'حفظ التعديلات' : 'إضافة المنتج')}</span>
             </button>
           </div>
         </form>

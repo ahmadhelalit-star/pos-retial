@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState, useEffect } from 'react';
 import {
   BanknotesIcon,
@@ -17,6 +18,7 @@ export function PaymentModal({
   customer,
   onCompleteSale,
 }) {
+  useLocale();
   const [method, setMethod] = useState('cash'); // cash, card, split, credit
   const [cashTendered, setCashTendered] = useState('');
   const [splitCashAmount, setSplitCashAmount] = useState('');
@@ -81,7 +83,7 @@ export function PaymentModal({
       <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-150">
         {/* Header */}
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-800">إتمام عملية الدفع</h2>
+          <h2 className="text-base font-bold text-gray-800">{t("إتمام عملية الدفع")}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -93,19 +95,19 @@ export function PaymentModal({
 
         {/* Total Display */}
         <div className="p-6 text-center bg-emerald-600 text-white">
-          <p className="text-xs font-semibold text-emerald-100 mb-1">المبلغ المطلوب سداده</p>
+          <p className="text-xs font-semibold text-emerald-100 mb-1">{t("المبلغ المطلوب سداده")}</p>
           <div className="flex items-baseline justify-center gap-1">
             <span className="text-4xl md:text-5xl font-black font-mono tracking-tight">
               {grandTotal.toFixed(2)}
             </span>
-            <span className="text-sm font-bold text-emerald-200">ر.س</span>
+            <span className="text-sm font-bold text-emerald-200">{t("ر.س")}</span>
           </div>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Payment Method Selector */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-2">طريقة الدفع</label>
+            <label className="block text-xs font-bold text-gray-700 mb-2">{t("طريقة الدفع")}</label>
             <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
@@ -117,7 +119,7 @@ export function PaymentModal({
                 }`}
               >
                 <BanknotesIcon className="w-5 h-5" />
-                <span>نقدي (كاش)</span>
+                <span>{t("نقدي (كاش)")}</span>
               </button>
 
               <button
@@ -130,7 +132,7 @@ export function PaymentModal({
                 }`}
               >
                 <CreditCardIcon className="w-5 h-5" />
-                <span>شبكة / مدى</span>
+                <span>{t("شبكة / مدى")}</span>
               </button>
 
               <button
@@ -143,7 +145,7 @@ export function PaymentModal({
                 }`}
               >
                 <BanknotesIcon className="w-5 h-5" />
-                <span>كاش + شبكة</span>
+                <span>{t("كاش + شبكة")}</span>
               </button>
 
               <button
@@ -156,7 +158,7 @@ export function PaymentModal({
                 }`}
               >
                 <WalletIcon className="w-5 h-5" />
-                <span>آجل (ذمم)</span>
+                <span>{t("آجل (ذمم)")}</span>
               </button>
             </div>
           </div>
@@ -205,7 +207,7 @@ export function PaymentModal({
 
               {/* Change Calculation */}
               <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">المبلغ المتبقي (الباقي):</span>
+                <span className="text-xs font-bold text-gray-700">{t("المبلغ المتبقي (الباقي):")}</span>
                 <span
                   className={`text-xl font-black font-mono ${
                     changeDue > 0 ? 'text-emerald-600' : 'text-gray-800'
@@ -227,7 +229,7 @@ export function PaymentModal({
           {method === 'card' && (
             <div className="p-6 bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-center space-y-2">
               <CreditCardIcon className="w-10 h-10 text-emerald-600 mx-auto animate-bounce" />
-              <p className="text-sm font-bold text-gray-800">جاهز للدفع عبر جهاز نقاط البيع (POS)</p>
+              <p className="text-sm font-bold text-gray-800">{t("جاهز للدفع عبر جهاز نقاط البيع (POS)")}</p>
               <p className="text-xs text-gray-500">
                 مرر البطاقة أو استخدم الدفع الذكي (Apple Pay / mada)
               </p>
@@ -236,10 +238,10 @@ export function PaymentModal({
 
           {method === 'split' && (
             <div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
-              <p className="text-xs font-bold text-gray-700">وزّع المبلغ بين الكاش والشبكة، ويجب أن يساوي مجموعهما قيمة الفاتورة.</p>
+              <p className="text-xs font-bold text-gray-700">{t("وزّع المبلغ بين الكاش والشبكة، ويجب أن يساوي مجموعهما قيمة الفاتورة.")}</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1 text-xs font-bold text-gray-700">
-                  <span>المبلغ النقدي</span>
+                  <span>{t("المبلغ النقدي")}</span>
                   <input
                     type="number"
                     min="0"
@@ -250,7 +252,7 @@ export function PaymentModal({
                   />
                 </label>
                 <label className="space-y-1 text-xs font-bold text-gray-700">
-                  <span>المبلغ عبر الشبكة</span>
+                  <span>{t("المبلغ عبر الشبكة")}</span>
                   <input
                     type="number"
                     min="0"
@@ -274,7 +276,7 @@ export function PaymentModal({
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs space-y-2">
                   <div className="flex items-center gap-1.5 font-bold">
                     <ExclamationTriangleIcon className="w-4 h-4 text-amber-600" />
-                    <span>غير متاح للعميل النقدي العام</span>
+                    <span>{t("غير متاح للعميل النقدي العام")}</span>
                   </div>
                   <p className="text-gray-600">
                     يرجى أولاً إسناد الفاتورة إلى عميل مسجل أو شركة B2B لتتمكن من ترحيل المبلغ إلى حسابه الآجل.
@@ -283,22 +285,22 @@ export function PaymentModal({
               ) : (
                 <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5 text-xs">
                   <div className="flex justify-between items-center pb-2 border-b border-amber-200/80">
-                    <span className="font-bold text-amber-900">العميل:</span>
+                    <span className="font-bold text-amber-900">{t("العميل:")}</span>
                     <span className="font-bold text-gray-900">{customer.name}</span>
                   </div>
 
                   <div className="flex justify-between text-gray-600">
-                    <span>الرصيد السابق المستحق:</span>
+                    <span>{t("الرصيد السابق المستحق:")}</span>
                     <span className="font-mono font-bold">{currentBalance.toFixed(2)} ر.س</span>
                   </div>
 
                   <div className="flex justify-between text-gray-600">
-                    <span>قيمة الفاتورة الحالية:</span>
+                    <span>{t("قيمة الفاتورة الحالية:")}</span>
                     <span className="font-mono font-bold text-amber-800">+{grandTotal.toFixed(2)} ر.س</span>
                   </div>
 
                   <div className="flex justify-between text-amber-950 font-bold pt-1.5 border-t border-amber-200/80">
-                    <span>الرصيد الجديد بعد البيع:</span>
+                    <span>{t("الرصيد الجديد بعد البيع:")}</span>
                     <span className="font-mono text-sm">{projectedBalance.toFixed(2)} ر.س</span>
                   </div>
 

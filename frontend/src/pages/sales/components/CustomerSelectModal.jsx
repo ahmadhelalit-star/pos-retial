@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState } from 'react';
 import {
   XMarkIcon,
@@ -18,6 +19,7 @@ export function CustomerSelectModal({
   onSelectCustomer,
   onQuickAddCustomer,
 }) {
+  useLocale();
   const [search, setSearch] = useState('');
   const [isQuickAdd, setIsQuickAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -93,7 +95,7 @@ export function CustomerSelectModal({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="ابحث بالاسم، الجوال، أو الرقم الضريبي..."
+                  placeholder={t("ابحث بالاسم، الجوال، أو الرقم الضريبي...")}
                   className="w-full pl-3 pr-9 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-sans"
                   autoFocus
                 />
@@ -105,7 +107,7 @@ export function CustomerSelectModal({
                 className="flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>عميل جديد</span>
+                <span>{t("عميل جديد")}</span>
               </button>
             </div>
 
@@ -230,7 +232,7 @@ export function CustomerSelectModal({
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="الاسم الكامل"
+                placeholder={t("الاسم الكامل")}
                 className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
                 autoFocus

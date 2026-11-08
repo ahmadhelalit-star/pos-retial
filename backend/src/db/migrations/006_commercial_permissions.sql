@@ -1,0 +1,10 @@
+INSERT INTO permissions(id) VALUES('partners.read'),('partners.manage'),('sales.read'),('sales.post'),('sales.discount'),('sales.price'),('sales.return'),('sales.cancel'),('purchases.read'),('purchases.post'),('purchases.return'),('payments.read'),('payments.post'),('shifts.read'),('shifts.open'),('shifts.close'),('shifts.manage'),('reports.read'),('printing.read'),('printing.create'),('printing.ack') ON CONFLICT DO NOTHING;
+INSERT INTO role_permissions(role_id,permission_id) SELECT r.id,p.id FROM roles r CROSS JOIN permissions p WHERE r.is_admin AND p.id IN('partners.read','partners.manage','sales.read','sales.post','sales.discount','sales.price','sales.return','sales.cancel','purchases.read','purchases.post','purchases.return','payments.read','payments.post','shifts.read','shifts.open','shifts.close','shifts.manage','reports.read','printing.read','printing.create','printing.ack') ON CONFLICT DO NOTHING;
+-- Custom roles are never silently widened. Administrators can grant new permissions explicitly.
+CREATE UNIQUE INDEX scale_plu_unique ON products(company_id,(data->>'scaleCode')) WHERE data->>'scaleCode' IS NOT NULL;
+CREATE TABLE partner_openings(company_id uuid NOT NULL, id uuid NOT NULL, partner_id text NOT NULL, batch_id uuid NOT NULL, amount_base numeric(24,9) NOT NULL, effective_at timestamptz NOT NULL, PRIMARY KEY(company_id,id), FOREIGN KEY(company_id,partner_id) REFERENCES partners(company_id,id), FOREIGN KEY(company_id,batch_id) REFERENCES legacy_commercial_batches(company_id,id));
+ALTER TABLE partner_entries ADD COLUMN opening_id uuid;
+ALTER TABLE partner_entries ADD FOREIGN KEY(company_id,opening_id) REFERENCES partner_openings(company_id,id);
+ALTER TABLE partner_entries DROP CONSTRAINT partner_entries_check;
+ALTER TABLE partner_entries ADD CHECK(document_id IS NOT NULL OR payment_id IS NOT NULL OR opening_id IS NOT NULL);
+CREATE TRIGGER immutable_openings BEFORE UPDATE OR DELETE ON partner_openings FOR EACH ROW EXECUTE FUNCTION reject_history_mutation();

@@ -1,0 +1,38 @@
+import { Router } from 'express';
+import { authenticate,requirePermission } from '../modules/auth.service.js';
+import { controllers } from './controllers.js';
+import { commercialRoutes } from './commercial.routes.js';
+import { fail } from './errors.js';
+export function apiRoutes(dependencies) {
+  const router=Router(),c=controllers(dependencies);
+  router.post('/auth/login',c.login);
+  router.use(authenticate(dependencies.pool));
+  router.get('/auth/me',c.me);router.post('/auth/logout',c.logout);
+  if(dependencies.activationService)router.use(async(req,_res,next)=>{const status=await dependencies.activationService.status();if(status.status!=='ACTIVE')fail(403,'ACTIVATION_REQUIRED','Activate Retail to continue',{activationStatus:status.status});req.activation=status;next();});
+  const route=(method,path,permission,handler)=>router[method](path,requirePermission(permission),handler);
+  route('get','/products','catalog.read',c.products);
+  route('get','/products/:id','catalog.read',c.product);
+  route('post','/products','catalog.create',c.createProduct);
+  route('put','/products/:id','catalog.update',c.updateProduct);
+  route('delete','/products/:id','catalog.archive',c.archiveProduct);
+  route('get','/stock/ledger','stock.read',c.ledger);
+  route('post','/stock/movements','stock.post',c.postStock);
+  route('post','/imports/preview','imports.preview',c.previewImport);
+  route('post','/imports/commit','imports.commit',c.commitImport);
+  route('get','/users','users.read',c.users);
+  route('post','/users','users.manage',c.saveUser);
+  route('put','/users/:id','users.manage',c.saveUser);
+  route('get','/roles','roles.read',c.roles);
+  route('post','/roles','roles.manage',c.saveRole);
+  route('put','/roles/:id','roles.manage',c.saveRole);
+  route('get','/organization','organization.read',c.organization);
+  route('post','/organization/warehouses','organization.manage',c.createWarehouse);
+  route('put','/organization/currencies','organization.manage',c.configureCurrency);
+  route('put','/organization/taxes','organization.manage',c.configureTax);
+  route('get','/modules','modules.read',c.modules);
+  route('put','/modules/:id','modules.configure',c.configureModule);
+  route('get','/modules/:id/access','modules.read',c.moduleAccess);
+  route('get','/audit','audit.read',c.audit);
+  router.use(commercialRoutes(dependencies));
+  return router;
+}

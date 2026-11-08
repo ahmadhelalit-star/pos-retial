@@ -1,0 +1,19 @@
+<service>
+  <id>ShamTouchRetailServer</id>
+  <name>Sham Touch Retail Server</name>
+  <description>Retail HTTPS backend, scheduled database backups and operational services.</description>
+  <executable>%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe</executable>
+  <startarguments>-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%BASE%\Start-RetailServer.ps1" -InstallDir "%BASE%\.."</startarguments>
+  <stopexecutable>%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe</stopexecutable>
+  <stoparguments>-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%BASE%\Start-RetailServer.ps1" -InstallDir "%BASE%\.." -StopBackend</stoparguments>
+  <workingdirectory>%BASE%\..</workingdirectory>
+  <startmode>Automatic</startmode>
+  <serviceaccount><domain>NT AUTHORITY</domain><user>LocalService</user></serviceaccount>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>45 sec</stoptimeout>
+  <logpath>%PROGRAMDATA%\Sham Touch\Retail Server\logs\service</logpath>
+  <log mode="roll-by-size"><sizeThreshold>5120</sizeThreshold><keepFiles>5</keepFiles></log>
+</service>

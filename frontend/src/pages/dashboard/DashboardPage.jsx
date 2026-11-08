@@ -1,3 +1,4 @@
+import { tracksInventory } from '../../domain/products';
 import { useState, useMemo } from 'react';
 import { DashboardSummaryCards } from './components/DashboardSummaryCards';
 import { SalesTrendChart } from './components/SalesTrendChart';
@@ -221,7 +222,7 @@ export function DashboardPage({
       .slice(0, 5);
 
     const lowStockProducts = products
-      .filter((product) => (product.stock ?? 0) <= LOW_STOCK_THRESHOLD)
+      .filter((product) => tracksInventory(product) && (product.stock ?? 0) <= LOW_STOCK_THRESHOLD)
       .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
       .slice(0, 6);
 

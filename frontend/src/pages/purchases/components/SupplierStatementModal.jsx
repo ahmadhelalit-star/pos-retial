@@ -4,7 +4,6 @@ import {
   PrinterIcon,
   BanknotesIcon,
   CheckIcon,
-  BuildingOfficeIcon,
   DocumentTextIcon,
   PhoneIcon,
 } from '../../../components/common/Icons';

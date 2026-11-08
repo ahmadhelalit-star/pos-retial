@@ -1,10 +1,12 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState } from 'react';
 import { PlusIcon, MinusIcon, TrashIcon, TagIcon } from '../../../components/common/Icons';
 
-export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountChange }) {
+export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountChange, currency = 'ر.س', canDiscount = true, quotedTotal }) {
+  useLocale();
   const discountPercent = item.discountPercent || 0;
   const discountedPrice = item.price * (1 - discountPercent / 100);
-  const lineTotal = (discountedPrice * item.qty).toFixed(2);
+  const lineTotal = quotedTotal ?? (discountedPrice * item.qty).toFixed(2);
   const [showDiscount, setShowDiscount] = useState(discountPercent > 0);
 
   return (
@@ -12,6 +14,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
         <h4 className="min-w-0 truncate text-sm font-semibold text-gray-800">
           {item.name}
+          <span className="mr-1 text-xs text-gray-500">({item.unit})</span>
         </h4>
 
         <div className="flex items-center overflow-hidden rounded-full bg-[#e2e8f8]">
@@ -19,7 +22,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
             type="button"
             onClick={() => onDecrement(item.id)}
             className="flex h-7 w-7 items-center justify-center text-gray-700 transition-colors hover:bg-[#c5c5d3] cursor-pointer"
-            title="إنقاص"
+            title={t("إنقاص")}
           >
             <MinusIcon className="w-3.5 h-3.5" />
           </button>
@@ -28,7 +31,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
             type="button"
             onClick={() => onIncrement(item.id)}
             className="flex h-7 w-7 items-center justify-center text-gray-700 transition-colors hover:bg-[#c5c5d3] cursor-pointer"
-            title="زيادة"
+            title={t("زيادة")}
           >
             <PlusIcon className="w-3.5 h-3.5" />
           </button>
@@ -36,7 +39,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
 
         <p className="whitespace-nowrap font-mono text-sm font-bold text-[#00236f]">
           {lineTotal}
-          <span className="mr-1 font-sans text-xs font-semibold text-gray-500">ر.س</span>
+          <span className="mr-1 font-sans text-xs font-semibold text-gray-500">{currency}</span>
         </p>
       </div>
 
@@ -56,13 +59,14 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
+            disabled={!canDiscount}
             onClick={() => setShowDiscount((open) => !open)}
             className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold transition-colors cursor-pointer ${
               discountPercent > 0
                 ? 'bg-[#eef3ff] text-[#00236f]'
                 : 'text-gray-500 hover:bg-gray-100 hover:text-[#00236f]'
             }`}
-            title="خصم الصنف"
+            title={t("خصم الصنف")}
           >
             <TagIcon className="w-3 h-3" />
             <span>{discountPercent > 0 ? `${discountPercent}%` : 'خصم'}</span>
@@ -72,14 +76,14 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
             type="button"
             onClick={() => onRemove(item.id)}
             className="rounded-md p-1 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
-            title="حذف المادة"
+            title={t("حذف المادة")}
           >
             <TrashIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {showDiscount && (
+      {showDiscount && canDiscount && (
         <div className="mt-1 flex items-center justify-end gap-1 text-xs text-gray-500">
           <label className="flex items-center gap-1">
             خصم الصنف %

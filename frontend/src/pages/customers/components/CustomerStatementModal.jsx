@@ -4,8 +4,6 @@ import {
   PrinterIcon,
   WalletIcon,
   CheckIcon,
-  BanknotesIcon,
-  CreditCardIcon,
   UserIcon,
   BuildingOfficeIcon,
   GiftIcon,

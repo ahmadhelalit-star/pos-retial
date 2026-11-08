@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { createPortal } from 'react-dom';
 import { SearchIcon, XMarkIcon, PlusIcon, FunnelIcon } from '../../../components/common/Icons';
 import { CATEGORIES } from '../../../data/mockProducts';
@@ -13,7 +14,9 @@ export function InventoryFilterBar({
   onResetFilters,
   isFiltered,
   searchPortalTarget,
+  canCreate = true,
 }) {
+  useLocale();
   const searchField = (
     <div className="relative flex-1 w-full">
       <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-500">
@@ -23,7 +26,7 @@ export function InventoryFilterBar({
         type="text"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="ابحث باسم المادة أو الباركود SKU..."
+        placeholder={t("ابحث باسم المادة أو الباركود SKU...")}
         className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-10 py-2.5 text-xs md:text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
       />
       {searchQuery && (
@@ -53,17 +56,18 @@ export function InventoryFilterBar({
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-red-200"
             >
               <XMarkIcon className="w-3.5 h-3.5" />
-              <span>إلغاء التصفية</span>
+              <span>{t("إلغاء التصفية")}</span>
             </button>
           )}
 
           <button
             type="button"
+            disabled={!canCreate}
             onClick={onOpenAddModal}
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
           >
             <PlusIcon className="w-4 h-4" />
-            <span>إضافة منتج جديد</span>
+            <span>{t("إضافة منتج جديد")}</span>
           </button>
         </div>
       </div>
@@ -91,7 +95,7 @@ export function InventoryFilterBar({
 
         {/* Stock status filter */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-500 font-bold">حالة المخزون:</span>
+          <span className="text-gray-500 font-bold">{t("حالة المخزون:")}</span>
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
             {[
               { id: 'all', label: 'الكل' },

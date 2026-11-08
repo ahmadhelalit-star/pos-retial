@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX variant_attribute_combination ON product_variants(company_id,product_id,attribute_values);

@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { createProductLine } from '../../domain/products';
+import { assertSaleStock } from '../../domain/cartStock';
+import { ProductChoiceModal } from './components/ProductChoiceModal';
 import { ProductGrid } from './components/ProductGrid';
 import { CartPanel } from './components/CartPanel';
 import { PaymentModal } from './components/PaymentModal';
@@ -55,10 +58,20 @@ export function SalesPage({
   const [completedSaleData, setCompletedSaleData] = useState(null);
   const [mobileTab, setMobileTab] = useState('products'); // 'products' | 'cart'
   const [stockNotice, setStockNotice] = useState('');
+  const [choiceProduct, setChoiceProduct] = useState(null);
 
   const handleAddToCart = (product) => {
     if (!isShiftOpen) return;
-    const added = addToCart(product);
+    if (product.productId === undefined && (product.units?.length > 1 || product.variants?.length || product.allowFractional)) {
+      setChoiceProduct(product);
+      return;
+    }
+    let line;
+    try {
+      line = product.productId !== undefined ? product : createProductLine(product);
+      assertSaleStock(products, [...items, line], { allowNegativeStock });
+    } catch (error) { setStockNotice(error.message); return; }
+    const added = addToCart(line);
     if (!added) {
       setStockNotice(`لا توجد كمية متاحة إضافية من ${product.name}`);
       window.clearTimeout(handleAddToCart.noticeTimer);
@@ -87,6 +100,13 @@ export function SalesPage({
 
   // إتمام عملية البيع وفتح الإيصال وتمرير الفاتورة للسجل العام
   const handleCompleteSale = (paymentDetails) => {
+    try {
+      assertSaleStock(products, items, { allowNegativeStock });
+    } catch (error) {
+      setStockNotice(error.message);
+      setIsPaymentOpen(false);
+      return;
+    }
     const invoiceNumber = nextDocumentNumber(invoices, 'INV', 6);
     const now = new Date();
 
@@ -260,6 +280,7 @@ export function SalesPage({
       )}
 
       {/* Modals */}
+      {choiceProduct && <ProductChoiceModal key={choiceProduct.id} product={choiceProduct} onClose={() => setChoiceProduct(null)} onSelect={handleAddToCart} />}
       <PaymentModal
         isOpen={isPaymentOpen}
         onClose={() => setIsPaymentOpen(false)}

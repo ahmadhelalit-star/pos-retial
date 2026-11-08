@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createProductLine, normalizeProduct } from '../../../domain/products';
 import {
   XMarkIcon,
   CheckIcon,
@@ -35,6 +36,11 @@ export function NewPurchaseInvoiceModal({
   const [costPrice, setCostPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [unit, setUnit] = useState('حبة');
+  const [unitId, setUnitId] = useState('base');
+  const [variantId, setVariantId] = useState('');
+  const [itemError, setItemError] = useState('');
+  const selectedProduct = products.find((product) => product.id === selectedProductId);
+  const catalogProduct = selectedProduct ? normalizeProduct(selectedProduct) : null;
 
   // New Custom Item (إذا كان المنتج غير موجود بالمخزون)
   const [isCustomItem, setIsCustomItem] = useState(false);
@@ -48,12 +54,12 @@ export function NewPurchaseInvoiceModal({
   const handleSelectProduct = (prod) => {
     if (!prod) return;
     setSelectedProductId(prod.id);
-    setCostPrice(
-      prod.costPrice
-        ? prod.costPrice.toString()
-        : (prod.price * 0.7).toFixed(2)
-    );
-    setSellingPrice(prod.price ? prod.price.toString() : '');
+    const purchaseUnit = normalizeProduct(prod).units.find((entry) => entry.purchase);
+    setUnitId(purchaseUnit?.id ?? 'base');
+    setVariantId('');
+    setItemError('');
+    setCostPrice(String((prod.costPrice ?? 0) * (purchaseUnit?.factor ?? 1)));
+    setSellingPrice(String(purchaseUnit?.price ?? prod.price ?? 0));
     setUnit(prod.unit || 'حبة');
     setIsCustomItem(false);
   };
@@ -63,7 +69,7 @@ export function NewPurchaseInvoiceModal({
     e.preventDefault();
     const numQty = parseFloat(qty);
     const numCost = parseFloat(costPrice);
-    const numSell = parseFloat(sellingPrice) || numCost * 1.3;
+    const numSell = sellingPrice === '' ? numCost * 1.3 : Number(sellingPrice);
 
     if (!numQty || numQty <= 0 || isNaN(numCost) || numCost < 0) return;
 
@@ -83,20 +89,22 @@ export function NewPurchaseInvoiceModal({
         unit: unit || 'حبة',
         total: numQty * numCost,
         isNewProduct: true,
+        allowFractional: !Number.isInteger(numQty),
       };
       setCustomName('');
       setCustomBarcode('');
     } else {
       const existingProd = products.find((p) => p.id === selectedProductId);
       if (!existingProd) return;
+      let line;
+      try {
+        line = createProductLine(existingProd, { unitId, variantId: variantId || undefined, qty: numQty, operation: 'purchase' });
+      } catch (error) { setItemError(error.message); return; }
       itemToAdd = {
-        id: existingProd.id,
-        name: existingProd.name,
-        barcode: existingProd.barcode,
-        qty: numQty,
+        ...line,
         costPrice: numCost,
         sellingPrice: numSell,
-        unit: existingProd.unit || unit,
+        unit: line.unit,
         total: numQty * numCost,
         isNewProduct: false,
       };
@@ -349,6 +357,21 @@ export function NewPurchaseInvoiceModal({
                 )}
               </div>
 
+              {!isCustomItem && catalogProduct && <div className="space-y-2">
+                {itemError && <p role="alert" className="text-red-700">{itemError}</p>}
+                <label className="block">وحدة الشراء<select className="w-full border rounded-lg p-2" value={unitId} onChange={(event) => {
+                  setUnitId(event.target.value);
+                  const entry = catalogProduct.units.find((candidate) => candidate.id === event.target.value);
+                  setCostPrice(String((selectedProduct.costPrice ?? 0) * entry.factor));
+                  setSellingPrice(String(entry.price));
+                }}>{catalogProduct.units.filter((entry) => entry.purchase).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
+                {catalogProduct.variants.length > 0 && <label className="block">المتغير<select className="w-full border rounded-lg p-2" value={variantId} onChange={(event) => {
+                  setVariantId(event.target.value);
+                  const variant = catalogProduct.variants.find((entry) => entry.id === event.target.value);
+                  const factor = catalogProduct.units.find((entry) => entry.id === unitId)?.factor ?? 1;
+                  if (variant) { setSellingPrice(String(variant.price * factor)); setCostPrice(String((variant.costPrice ?? catalogProduct.costPrice ?? 0) * factor)); }
+                }}><option value="">اختر</option>{catalogProduct.variants.map((variant) => <option key={variant.id} value={variant.id}>{Object.values(variant.values).join(' / ')} — {variant.sku}</option>)}</select></label>}
+              </div>}
               {/* الكمية */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">

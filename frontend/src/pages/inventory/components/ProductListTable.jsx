@@ -1,11 +1,12 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
+import { tracksInventory } from '../../../domain/products';
 import {
   BarcodeIcon,
   PencilSquareIcon,
   TrashIcon,
   PlusIcon,
   MinusIcon,
-  PrinterIcon,
-} from '../../../components/common/Icons';
+  } from '../../../components/common/Icons';
 
 export function ProductListTable({
   products,
@@ -13,25 +14,30 @@ export function ProductListTable({
   onDeleteProduct,
   onAdjustStock,
   onOpenBarcodeModal,
+  canEdit = true,
+  canArchive = true,
+  canStock = true,
+  ledgerMode = false,
 }) {
+  useLocale();
   const getStockBadge = (stock) => {
     if (stock <= 0) {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
-          نفد من المخزون
+          {t("نفدت من المخزون")}
         </span>
       );
     }
     if (stock <= 10) {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-          كمية منخفضة ({stock})
+          {t("كمية منخفضة")} ({stock})
         </span>
       );
     }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-        متوفر ({stock})
+        {t("متوفر")} ({stock})
       </span>
     );
   };
@@ -40,7 +46,7 @@ export function ProductListTable({
     return (
       <div className="bg-white mx-4 p-12 rounded-2xl border border-gray-200 text-center flex flex-col items-center justify-center">
         <BarcodeIcon className="w-12 h-12 text-gray-300 mb-2" />
-        <p className="font-bold text-gray-700 text-sm">لا توجد منتجات مطابقة لمعايير البحث</p>
+        <p className="font-bold text-gray-700 text-sm">{t("لا توجد منتجات مطابقة لمعايير البحث")}</p>
         <p className="text-xs text-gray-500 mt-1">
           جرّب تغيير التصنيف أو كلمة البحث أو أضف منتجاً جديداً
         </p>
@@ -53,7 +59,7 @@ export function ProductListTable({
       {/* ── MOBILE CARD LIST (< md) ── */}
       <div className="block md:hidden space-y-0 select-none">
         {products.map((prod) => {
-          const cost = prod.costPrice || prod.price * 0.7;
+          const cost = prod.costPrice ?? 0;
 
           return (
             <div
@@ -65,7 +71,7 @@ export function ProductListTable({
                 <span className="font-bold text-gray-900 text-sm leading-snug flex-1 ml-2">
                   {prod.name}
                 </span>
-                {getStockBadge(prod.stock)}
+                {tracksInventory(prod) ? getStockBadge(prod.stock) : <span>{t("لا يتتبع المخزون")}</span>}
               </div>
 
               {/* Row 2: Barcode + category badge */}
@@ -81,15 +87,15 @@ export function ProductListTable({
               {/* Row 3: Cost price | Sell price */}
               <div className="flex items-center gap-0 mb-3 bg-gray-50 rounded-xl divide-x divide-gray-200 border border-gray-200 overflow-hidden" dir="ltr">
                 <div className="flex-1 px-3 py-2 text-center">
-                  <p className="text-[11px] text-gray-500 mb-0.5">سعر التكلفة</p>
+                  <p className="text-[11px] text-gray-500 mb-0.5">{t("سعر التكلفة")}</p>
                   <p className="font-mono text-xs text-gray-600 font-semibold">
-                    {cost.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">ر.س</span>
+                    {cost.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">{t("ر.س")}</span>
                   </p>
                 </div>
                 <div className="flex-1 px-3 py-2 text-center">
-                  <p className="text-[11px] text-gray-500 mb-0.5">سعر البيع</p>
+                  <p className="text-[11px] text-gray-500 mb-0.5">{t("سعر البيع")}</p>
                   <p className="font-mono text-sm text-emerald-700 font-black">
-                    {prod.price.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">ر.س</span>
+                    {prod.price.toFixed(2)} <span className="font-sans text-[10px] text-gray-500">{t("ر.س")}</span>
                   </p>
                 </div>
               </div>
@@ -100,10 +106,10 @@ export function ProductListTable({
                 <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200">
                   <button
                     type="button"
-                    disabled={prod.stock <= 0}
+                    disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length)) || (!ledgerMode && prod.stock <= 0)}
                     onClick={() => onAdjustStock(prod.id, -1)}
                     className="w-6 h-6 rounded-lg bg-white disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                    title="إنقاص المخزون بمقدار 1"
+                    title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1"}
                   >
                     <MinusIcon className="w-3 h-3" />
                   </button>
@@ -114,9 +120,10 @@ export function ProductListTable({
 
                   <button
                     type="button"
+                    disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length))}
                     onClick={() => onAdjustStock(prod.id, 1)}
                     className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                    title="زيادة المخزون بمقدار 1"
+                    title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1"}
                   >
                     <PlusIcon className="w-3 h-3" />
                   </button>
@@ -129,7 +136,7 @@ export function ProductListTable({
                     type="button"
                     onClick={() => onOpenBarcodeModal(prod)}
                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 transition-colors cursor-pointer"
-                    title="طباعة ملصق الباركود والرف"
+                    title={t("طباعة ملصق الباركود والرف")}
                   >
                     <BarcodeIcon className="w-4 h-4" />
                   </button>
@@ -137,9 +144,10 @@ export function ProductListTable({
                   {/* Edit */}
                   <button
                     type="button"
+                    disabled={!canEdit}
                     onClick={() => onEditProduct(prod)}
                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-700 transition-colors cursor-pointer"
-                    title="تعديل بيانات المنتج"
+                    title={t("تعديل بيانات المنتج")}
                   >
                     <PencilSquareIcon className="w-4 h-4" />
                   </button>
@@ -147,9 +155,10 @@ export function ProductListTable({
                   {/* Delete */}
                   <button
                     type="button"
+                    disabled={!canArchive}
                     onClick={() => onDeleteProduct(prod.id)}
                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 transition-colors cursor-pointer"
-                    title="حذف المنتج من الكتالوج"
+                    title={t("حذف المنتج من الكتالوج")}
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -166,19 +175,19 @@ export function ProductListTable({
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200 text-xs font-bold text-gray-500 select-none">
-                <th className="py-3.5 px-4">الباركود (SKU)</th>
-                <th className="py-3.5 px-4">اسم المنتج</th>
-                <th className="py-3.5 px-4">الوحدة</th>
-                <th className="py-3.5 px-4">سعر التكلفة</th>
-                <th className="py-3.5 px-4">سعر البيع</th>
-                <th className="py-3.5 px-4">الرصيد الحالي</th>
-                <th className="py-3.5 px-4 text-center">تعديل سريع للمخزون</th>
-                <th className="py-3.5 px-4 text-center">الإجراءات</th>
+                <th className="py-3.5 px-4">{t("الباركود (SKU)")}</th>
+                <th className="py-3.5 px-4">{t("اسم المنتج")}</th>
+                <th className="py-3.5 px-4">{t("الوحدة")}</th>
+                <th className="py-3.5 px-4">{t("سعر التكلفة")}</th>
+                <th className="py-3.5 px-4">{t("سعر البيع")}</th>
+                <th className="py-3.5 px-4">{t("الرصيد الحالي")}</th>
+                <th className="py-3.5 px-4 text-center">{t("تعديل سريع للمخزون")}</th>
+                <th className="py-3.5 px-4 text-center">{t("الإجراءات")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
               {products.map((prod) => {
-                const cost = prod.costPrice || prod.price * 0.7; // default 70% if not set
+                const cost = prod.costPrice ?? 0; // default 70% if not set
 
                 return (
                   <tr
@@ -210,12 +219,12 @@ export function ProductListTable({
                     {/* Selling Price */}
                     <td className="py-3 px-4 font-mono font-black text-sm text-emerald-700">
                       {prod.price.toFixed(2)}{' '}
-                      <span className="text-[11px] font-sans text-gray-500">ر.س</span>
+                      <span className="text-[11px] font-sans text-gray-500">{t("ر.س")}</span>
                     </td>
 
                     {/* Stock Status Badge */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      {getStockBadge(prod.stock)}
+                      {tracksInventory(prod) ? getStockBadge(prod.stock) : <span>{t("لا يتتبع المخزون")}</span>}
                     </td>
 
                     {/* Quick Stepper on row for touch screens */}
@@ -223,10 +232,10 @@ export function ProductListTable({
                       <div className="flex items-center justify-center gap-1.5 bg-gray-100 p-1 rounded-xl w-28 mx-auto border border-gray-200">
                         <button
                           type="button"
-                          disabled={prod.stock <= 0}
+                          disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length)) || (!ledgerMode && prod.stock <= 0)}
                           onClick={() => onAdjustStock(prod.id, -1)}
                           className="w-6 h-6 rounded-lg bg-white disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                          title="إنقاص المخزون بمقدار 1"
+                          title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1"}
                         >
                           <MinusIcon className="w-3 h-3" />
                         </button>
@@ -237,9 +246,10 @@ export function ProductListTable({
 
                         <button
                           type="button"
-                          onClick={() => onAdjustStock(prod.id, 1)}
+                          disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length))}
+                    onClick={() => onAdjustStock(prod.id, 1)}
                           className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                          title="زيادة المخزون بمقدار 1"
+                          title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1"}
                         >
                           <PlusIcon className="w-3 h-3" />
                         </button>
@@ -254,7 +264,7 @@ export function ProductListTable({
                           type="button"
                           onClick={() => onOpenBarcodeModal(prod)}
                           className="p-1.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 transition-colors cursor-pointer"
-                          title="طباعة ملصق الباركود والرف"
+                          title={t("طباعة ملصق الباركود والرف")}
                         >
                           <BarcodeIcon className="w-4 h-4" />
                         </button>
@@ -262,9 +272,10 @@ export function ProductListTable({
                         {/* Edit */}
                         <button
                           type="button"
-                          onClick={() => onEditProduct(prod)}
+                          disabled={!canEdit}
+                    onClick={() => onEditProduct(prod)}
                           className="p-1.5 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-700 transition-colors cursor-pointer"
-                          title="تعديل بيانات المنتج"
+                          title={t("تعديل بيانات المنتج")}
                         >
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
@@ -272,9 +283,10 @@ export function ProductListTable({
                         {/* Delete */}
                         <button
                           type="button"
-                          onClick={() => onDeleteProduct(prod.id)}
+                          disabled={!canArchive}
+                    onClick={() => onDeleteProduct(prod.id)}
                           className="p-1.5 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 transition-colors cursor-pointer"
-                          title="حذف المنتج من الكتالوج"
+                          title={t("حذف المنتج من الكتالوج")}
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>

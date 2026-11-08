@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../runtime/i18n.js";
 import { useCallback, useEffect, useState } from 'react';
 import {
   ArchiveBoxIcon,
@@ -13,6 +14,15 @@ import {
 } from '../common/Icons';
 
 const PAGE_META = {
+  operations: {title:'النسخ والاستعادة',subtitle:'تشغيل السيرفر والنسخ الآمن',icon:DocumentChartBarIcon},
+  devices: {title:'الجهاز والطابعات',subtitle:'إعدادات هذه المحطة',icon:DocumentChartBarIcon},
+  orders: {title:'أوامر البيع',subtitle:'عروض الأسعار والتسليم والفوترة',icon:DocumentTextIcon},
+  payments: {title:'السندات',subtitle:'القبض والصرف والتخصيص',icon:DocumentTextIcon},
+  'purchase-history': {title:'سجل الشراء',subtitle:'فواتير الشراء والمرتجعات',icon:TruckIcon},
+  'admin/modules': { title: 'الوحدات الإضافية', subtitle: 'الترخيص وإعدادات النشاط', icon: DocumentChartBarIcon },
+  'admin/users': { title: 'المستخدمون', subtitle: 'حسابات مستخدمي Retail', icon: UsersIcon },
+  'admin/roles': { title: 'الأدوار والصلاحيات', subtitle: 'الصلاحيات المطبقة من الخادم', icon: UsersIcon },
+  'admin/import': { title: 'استيراد نسخة', subtitle: 'فحص نسخة الكتالوج واستيرادها', icon: ArchiveBoxIcon },
   dashboard: {
     title: 'لوحة التحكم',
     subtitle: 'نظرة عامة على الأداء والمبيعات والأرباح',
@@ -72,6 +82,7 @@ export function AppHeader({
   onTabChange,
   searchSlotRef,
 }) {
+  useLocale();
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [isFullscreen, setIsFullscreen] = useState(
     () => Boolean(document.fullscreenElement || document.webkitFullscreenElement)
@@ -125,13 +136,13 @@ export function AppHeader({
   const PageIcon = meta.icon;
   const isShiftOpen = shift.status === 'open';
 
-  const timeString = currentTime.toLocaleTimeString('ar-SA', {
+  const timeString = currentTime.toLocaleTimeString(document.documentElement.lang==='en'?'en-GB':'ar-SA', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   });
 
-  const dateString = currentTime.toLocaleDateString('ar-SA', {
+  const dateString = currentTime.toLocaleDateString(document.documentElement.lang==='en'?'en-GB':'ar-SA', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -145,10 +156,10 @@ export function AppHeader({
         </div>
         <div className="min-w-0 max-w-[150px] lg:max-w-[230px]">
           <h1 className="truncate text-sm font-bold leading-5 text-[#00236f] sm:text-base sm:leading-6">
-            {meta.title}
+            {t(meta.title)}
           </h1>
           <p className="hidden truncate text-xs font-medium text-[#757682] xl:block">
-            {meta.subtitle}
+            {t(meta.subtitle)}
           </p>
         </div>
       </div>
@@ -200,7 +211,7 @@ export function AppHeader({
         <div className="flex items-center gap-2 rounded-full bg-[#f0f3ff] py-1 pl-3 pr-1">
           <div className="hidden text-left sm:block">
             <p className="text-xs font-bold leading-4 text-[#00236f]">{cashier}</p>
-            <p className="text-[11px] font-medium leading-3 text-[#757682]">كاشير</p>
+            <p className="text-[11px] font-medium leading-3 text-[#757682]">{t("كاشير")}</p>
           </div>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#00236f] shadow-sm">
             <UserIcon className="h-4 w-4" />

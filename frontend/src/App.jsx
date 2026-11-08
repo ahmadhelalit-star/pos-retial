@@ -4,6 +4,7 @@ import { AppHeader } from './components/layout/AppHeader';
 import { Sidebar } from './components/layout/Sidebar';
 import { HeaderSearchSlotContext } from './components/layout/headerSearchSlot';
 import { ACTIONS } from './store/appReducer';
+import { validateCatalogProduct } from './domain/products';
 import { useAppDispatch, useAppState } from './store/useAppStore';
 
 const TAB_PATHS = {
@@ -112,8 +113,8 @@ export default function App() {
   );
 
   const handleSaveProduct = useCallback(
-    (product) => dispatch({ type: ACTIONS.PRODUCT_SAVED, product }),
-    [dispatch]
+    (product) => dispatch({ type: ACTIONS.PRODUCT_SAVED, product: validateCatalogProduct(products, product) }),
+    [dispatch, products]
   );
 
   const handleDeleteProduct = useCallback(

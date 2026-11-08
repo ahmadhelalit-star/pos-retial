@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { PauseIcon, XMarkIcon, TrashIcon, ArrowsUpDownIcon } from '../../../components/common/Icons';
 
 export function HeldOrdersModal({
@@ -7,6 +8,7 @@ export function HeldOrdersModal({
   onRestoreOrder,
   onDeleteOrder,
 }) {
+  useLocale();
   if (!isOpen) return null;
 
   return (
@@ -62,14 +64,14 @@ export function HeldOrdersModal({
                     className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
                   >
                     <ArrowsUpDownIcon className="w-3.5 h-3.5" />
-                    <span>استرجاع</span>
+                    <span>{t("استرجاع")}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => onDeleteOrder(order.id)}
                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                    title="حذف الفاتورة المعلقة"
+                    title={t("حذف الفاتورة المعلقة")}
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -78,7 +80,7 @@ export function HeldOrdersModal({
             ))
           ) : (
             <div className="text-center py-10 text-gray-500">
-              <p className="font-bold text-gray-600">لا توجد فواتير معلقة حالياً</p>
+              <p className="font-bold text-gray-600">{t("لا توجد فواتير معلقة حالياً")}</p>
               <p className="text-xs text-gray-500 mt-1">
                 يمكنك تعليق أي فاتورة جارية بالضغط على زر "تعليق" في شاشة السلة
               </p>

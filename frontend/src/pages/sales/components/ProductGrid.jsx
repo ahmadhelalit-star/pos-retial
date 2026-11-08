@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SearchIcon, BarcodeIcon, XMarkIcon } from '../../../components/common/Icons';
@@ -7,6 +8,7 @@ import { CategoryBar } from './CategoryBar';
 import { ProductCard } from './ProductCard';
 import { ProductListRow } from './ProductListRow';
 import { CATEGORIES } from '../../../data/mockProducts';
+import { findBarcodeLine } from '../../../domain/products';
 
 const VIEW_STORAGE_KEY = 'shamtouch:v1:salesView';
 const GRID_ROW_HEIGHT = 124;
@@ -36,8 +38,11 @@ function getGridColumns(width) {
   return 7;
 }
 
-export function ProductGrid({ products, onAddToCart }) {
-  const [searchQuery, setSearchQuery] = useState('');
+export function ProductGrid({ products, onAddToCart, serverQuery, onServerSearch, onServerCategory, onServerBarcode }) {
+  useLocale();
+  const [localSearch, setLocalSearch] = useState('');
+  const searchQuery = serverQuery ?? localSearch;
+  const setSearchQuery = value => { setLocalSearch(value); onServerSearch?.(value); };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState(() => getInitialViewMode(products.length));
   const searchSlot = useHeaderSearchSlot();
@@ -53,7 +58,8 @@ export function ProductGrid({ products, onAddToCart }) {
       const matchesSearch =
         !q ||
         item.name.toLowerCase().includes(q) ||
-        item.barcode.includes(q);
+        (item.barcode || '').includes(q) ||
+        [...(item.units ?? []), ...(item.variants ?? [])].some((entry) => entry.barcode?.includes(q));
 
       return matchesCategory && matchesSearch;
     });
@@ -88,8 +94,9 @@ export function ProductGrid({ products, onAddToCart }) {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
+      if (onServerBarcode) { onServerBarcode(searchQuery.trim()); return; }
       const trimmed = searchQuery.trim();
-      const exactMatch = products.find(
+      const exactMatch = findBarcodeLine(products, trimmed) || products.find(
         (p) => p.barcode === trimmed || p.name.toLowerCase() === trimmed.toLowerCase()
       );
       if (exactMatch) {
@@ -109,7 +116,7 @@ export function ProductGrid({ products, onAddToCart }) {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="ابحث بالاسم أو امسح الباركود... (Enter للإضافة)"
+        placeholder={t("ابحث بالاسم أو امسح الباركود... (Enter للإضافة)")}
         className="w-full rounded-xl border border-[#c5c5d3]/70 bg-white py-2.5 pr-11 pl-10 text-sm text-gray-800 placeholder-gray-500 shadow-2xs transition-all focus:border-[#00236f] focus:outline-none focus:ring-2 focus:ring-[#00236f]/15"
       />
       {searchQuery && (
@@ -135,7 +142,7 @@ export function ProductGrid({ products, onAddToCart }) {
       <CategoryBar
         categories={CATEGORIES}
         activeCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={value => { setSelectedCategory(value); onServerCategory?.(value); }}
         viewMode={viewMode}
         onViewModeChange={changeViewMode}
       />
@@ -148,7 +155,7 @@ export function ProductGrid({ products, onAddToCart }) {
         {filteredProducts.length === 0 ? (
           <div className="my-4 flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[#c5c5d3] bg-white p-6 text-center">
             <BarcodeIcon className="mb-2 h-12 w-12 text-gray-300" />
-            <p className="text-sm font-bold text-gray-600">لا توجد مواد مطابقة للبحث</p>
+            <p className="text-sm font-bold text-gray-600">{t("لا توجد مواد مطابقة للبحث")}</p>
             <p className="mt-1 text-xs text-gray-500">
               تأكد من كتابة الاسم أو رقم الباركود بشكل صحيح
             </p>

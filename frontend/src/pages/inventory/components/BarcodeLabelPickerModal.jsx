@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useMemo, useState } from 'react';
 import { BarcodeIcon, SearchIcon, XMarkIcon } from '../../../components/common/Icons';
 
@@ -7,6 +8,7 @@ export function BarcodeLabelPickerModal({
   products = [],
   onSelectProduct,
 }) {
+  useLocale();
   const [query, setQuery] = useState('');
 
   const filteredProducts = useMemo(() => {
@@ -27,7 +29,7 @@ export function BarcodeLabelPickerModal({
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarcodeIcon className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-sm font-bold text-gray-800">اختر منتجاً لطباعة ملصق الباركود</h2>
+            <h2 className="text-sm font-bold text-gray-800">{t("اختر منتجاً لطباعة ملصق الباركود")}</h2>
           </div>
           <button
             type="button"
@@ -45,7 +47,7 @@ export function BarcodeLabelPickerModal({
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ابحث بالاسم أو الباركود..."
+              placeholder={t("ابحث بالاسم أو الباركود...")}
               className="w-full pr-9 pl-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
               autoFocus
             />

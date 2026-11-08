@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { createPortal } from 'react-dom';
 import { PrinterIcon, XMarkIcon, BarcodeIcon } from '../../../components/common/Icons';
 
@@ -7,6 +8,7 @@ export function BarcodeLabelModal({
   product,
   taxRatePercent = 15,
 }) {
+  useLocale();
   if (!isOpen || !product) return null;
 
   const handlePrint = () => {
@@ -20,7 +22,7 @@ export function BarcodeLabelModal({
         <div className="no-print p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarcodeIcon className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-sm font-bold text-gray-800">معاينة ملصق الباركود والرف</h2>
+            <h2 className="text-sm font-bold text-gray-800">{t("معاينة ملصق الباركود والرف")}</h2>
           </div>
           <button
             type="button"
@@ -76,7 +78,7 @@ export function BarcodeLabelModal({
               <span className="text-2xl font-black text-emerald-700 font-mono">
                 {product.price.toFixed(2)}
               </span>
-              <span className="text-xs font-bold text-gray-700">ر.س</span>
+              <span className="text-xs font-bold text-gray-700">{t("ر.س")}</span>
             </div>
             <p className="text-[9px] text-gray-400 font-medium">السعر شامل ضريبة القيمة المضافة {taxRatePercent}%</p>
           </div>
@@ -90,7 +92,7 @@ export function BarcodeLabelModal({
             className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 font-bold text-xs cursor-pointer shadow-2xs transition-colors"
           >
             <PrinterIcon className="w-4 h-4" />
-            <span>طباعة الملصق</span>
+            <span>{t("طباعة الملصق")}</span>
           </button>
 
           <button
@@ -98,7 +100,7 @@ export function BarcodeLabelModal({
             onClick={onClose}
             className="flex items-center justify-center py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs transition-colors"
           >
-            <span>إغلاق</span>
+            <span>{t("إغلاق")}</span>
           </button>
         </div>
       </div>

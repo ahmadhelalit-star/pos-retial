@@ -1,0 +1,20 @@
+import { z } from 'zod';
+import { fileURLToPath } from 'node:url';
+import { resolve,join } from 'node:path';
+
+export function readConfig(env = process.env) {
+  const source = z.object({
+    DATABASE_URL: z.string().url(), HOST: z.string().default('127.0.0.1'),
+    PORT: z.coerce.number().int().min(1024).max(65535).default(37941),
+    WEB_ORIGIN: z.string().url().default('http://127.0.0.1:5188'),
+    NODE_ENV: z.enum(['development','test','production']).default('development'),
+    SESSION_HOURS: z.coerce.number().int().min(1).max(24).default(8),
+    COOKIE_SECURE: z.enum(['true','false']).default('false'),
+  }).parse(env);
+  if (source.NODE_ENV === 'production') throw new Error('Retail commercial testing is not approved for production; deployment and hardware acceptance remain required.');
+  const database = new URL(source.DATABASE_URL);
+  if (!database.pathname.startsWith('/sham_touch_retail_')) throw new Error('Dedicated sham_touch_retail_* database required; restaurant databases are prohibited.');
+  const tlsPfx=env.RETAIL_TLS_PFX,lan=!['127.0.0.1','localhost','::1'].includes(source.HOST);
+  if(lan&&(!tlsPfx||!source.WEB_ORIGIN.startsWith('https://')||source.COOKIE_SECURE!=='true'))throw Error('LAN hosting requires TLS, HTTPS origin and secure cookies');
+  return { databaseUrl: source.DATABASE_URL, host: source.HOST, port: source.PORT, origin: new URL(source.WEB_ORIGIN).origin, sessionHours: source.SESSION_HOURS, secureCookie: source.COOKIE_SECURE === 'true',activationPublicKeyPath:env.RETAIL_ACTIVATION_PUBLIC_KEY??fileURLToPath(new URL('./resources/retail-public-key.pem',import.meta.url)),activationIntegrityPath:join(resolve(env.RETAIL_RUNTIME_DIR??'runtime'),'activation-integrity.key'),tlsPfx,tlsPassphrase:env.RETAIL_TLS_PASSWORD,frontendDirectory:env.RETAIL_FRONTEND_DIR?resolve(env.RETAIL_FRONTEND_DIR):undefined,operations:env.RETAIL_OPERATIONS_DIR?{stateDirectory:resolve(env.RETAIL_OPERATIONS_DIR),toolsDirectory:resolve(env.RETAIL_PG_TOOLS),directory:resolve(env.RETAIL_BACKUP_DIR),companyId:env.RETAIL_COMPANY_ID,maintenanceConnection:env.RETAIL_MAINTENANCE_URL}:undefined };
+}

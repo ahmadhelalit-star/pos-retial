@@ -1,3 +1,4 @@
+import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState } from 'react';
 import {
   ShoppingBagIcon,
@@ -37,6 +38,7 @@ export function CartPanel({
   heldOrdersCount = 0,
   onOpenHeldOrders,
 }) {
+  useLocale();
   const [showDiscountInput, setShowDiscountInput] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -50,7 +52,7 @@ export function CartPanel({
           type="button"
           onClick={() => setIsCustomerModalOpen(true)}
           className="flex min-w-0 items-center gap-2 hover:bg-[#f0f3ff] p-1 rounded-xl transition-all cursor-pointer group text-right"
-          title="انقر لتغيير عميل الفاتورة"
+          title={t("انقر لتغيير عميل الفاتورة")}
         >
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
@@ -94,8 +96,8 @@ export function CartPanel({
               type="button"
               onClick={onOpenHeldOrders}
               className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition-colors hover:bg-amber-100 cursor-pointer"
-              title="الفواتير المعلقة"
-              aria-label="الفواتير المعلقة"
+              title={t("الفواتير المعلقة")}
+              aria-label={t("الفواتير المعلقة")}
             >
               <PauseIcon className="h-4 w-4" />
               {heldOrdersCount > 0 && (
@@ -139,7 +141,7 @@ export function CartPanel({
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#eef3ff] text-[#00236f]/40">
               <ShoppingBagIcon className="h-7 w-7" />
             </div>
-            <p className="text-sm font-bold text-gray-700">السلة فارغة حالياً</p>
+            <p className="text-sm font-bold text-gray-700">{t("السلة فارغة حالياً")}</p>
             <p className="mt-1 text-xs text-gray-500">
               اختر المواد من القائمة أو امسح الباركود لإضافتها مباشرة
             </p>
@@ -171,7 +173,7 @@ export function CartPanel({
                   value={discountPercent}
                   onChange={(event) => setDiscountPercent(event.target.value)}
                   className="w-9 text-center font-mono text-gray-800 outline-none"
-                  aria-label="نسبة خصم الفاتورة"
+                  aria-label={t("نسبة خصم الفاتورة")}
                 />
                 % مخصص
               </label>
@@ -205,19 +207,19 @@ export function CartPanel({
         {/* Calculation Lines */}
         <div className="space-y-1 border-t border-[#c5c5d3]/50 pt-2 text-xs text-gray-600">
           <div className="flex justify-between">
-            <span>المجموع الفرعي</span>
+            <span>{t("المجموع الفرعي")}</span>
             <span className="font-mono">{subtotal.toFixed(2)} ر.س</span>
           </div>
 
           {itemDiscountAmount > 0 && (
             <div className="flex justify-between font-medium text-red-600">
-              <span>خصم الأصناف</span>
+              <span>{t("خصم الأصناف")}</span>
               <span className="font-mono">- {itemDiscountAmount.toFixed(2)} ر.س</span>
             </div>
           )}
           {invoiceDiscountAmount > 0 && (
             <div className="flex justify-between font-medium text-red-600">
-              <span>خصم الفاتورة</span>
+              <span>{t("خصم الفاتورة")}</span>
               <span className="font-mono">- {invoiceDiscountAmount.toFixed(2)} ر.س</span>
             </div>
           )}
@@ -231,12 +233,12 @@ export function CartPanel({
         {/* Grand Total */}
         <div className="mt-2 flex items-end justify-between border-t border-[#c5c5d3]/60 pt-2">
           <div>
-            <span className="block text-xs font-medium text-gray-500">المبلغ الإجمالي</span>
-            <span className="text-xs text-gray-500">شامل الضريبة</span>
+            <span className="block text-xs font-medium text-gray-500">{t("المبلغ الإجمالي")}</span>
+            <span className="text-xs text-gray-500">{t("شامل الضريبة")}</span>
           </div>
           <div className="text-left font-mono">
             <span className="text-2xl font-black text-[#00236f]">{grandTotal.toFixed(2)}</span>
-            <span className="mr-1 font-sans text-xs font-bold text-[#00236f]/70">ر.س</span>
+            <span className="mr-1 font-sans text-xs font-bold text-[#00236f]/70">{t("ر.س")}</span>
           </div>
         </div>
 
@@ -248,10 +250,10 @@ export function CartPanel({
             disabled={items.length === 0}
             onClick={onClearCart}
             className="flex flex-col items-center justify-center rounded-lg border border-red-200 bg-white py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer active:scale-95"
-            title="إلغاء وتفريغ السلة"
+            title={t("إلغاء وتفريغ السلة")}
           >
             <TrashIcon className="mb-0.5 w-4 h-4" />
-            <span>إلغاء</span>
+            <span>{t("إلغاء")}</span>
           </button>
 
           {/* Hold Order */}
@@ -260,10 +262,10 @@ export function CartPanel({
             disabled={items.length === 0}
             onClick={onHoldOrder}
             className="flex flex-col items-center justify-center rounded-lg border border-amber-200 bg-white py-2 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer active:scale-95"
-            title="تعليق الفاتورة الحالية"
+            title={t("تعليق الفاتورة الحالية")}
           >
             <PauseIcon className="mb-0.5 w-4 h-4" />
-            <span>تعليق</span>
+            <span>{t("تعليق")}</span>
           </button>
 
           {/* Checkout / Pay Button (Col span 2) */}
@@ -274,7 +276,7 @@ export function CartPanel({
             className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-black text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer active:scale-98"
           >
             <CreditCardIcon className="w-5 h-5" />
-            <span>دفع الفاتورة</span>
+            <span>{t("دفع الفاتورة")}</span>
           </button>
         </div>
       </div>

@@ -1,0 +1,12 @@
+{
+  "product": "retail",
+  "phase": "foundation",
+  "defaultHost": "127.0.0.1",
+  "defaultPort": 37941,
+  "futureRuntimeRoot": "%ProgramData%\\Sham Touch\\Sham Touch Retail",
+  "futureInstallRoot": "%ProgramFiles%\\Sham Touch\\Sham Touch Retail",
+  "updates": { "preserveRuntimeData": true, "requireBackupBeforeMigration": true, "automaticMigrationOnStart": false },
+  "backupContract": { "intervalHours": 6, "retentionDays": 2, "schedulerImplemented": false },
+  "windowsServiceInstallerImplemented": false,
+  "productionReady": false
+}
