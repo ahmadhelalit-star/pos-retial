@@ -1,4 +1,5 @@
 import {registerLocalLogin} from './modules/local-login.js';
+import {unitLabelReplacer} from '../../shared/unitNames.js';
 import {readFileSync} from 'node:fs';
 import {createAdminRecovery} from './modules/admin-recovery.service.js';
 import { registerInitialSetup,setupState } from './modules/initial-setup.js';
@@ -10,8 +11,9 @@ import { errorHandler,fail } from './http/errors.js';
 import { unconfiguredLicense } from './modules/registry.js';
 import { z } from 'zod';
 import { operationRoutes } from './operations/routes.js';
-export function createApp({pool,config,activationService,operations,licenseProvider=activationService?.status??unconfiguredLicense,logger=console.log}) {
-  const app=express();app.disable('x-powered-by');app.use(helmet());
+import {authenticate,requirePermission} from './modules/auth.service.js';
+export function createApp({pool,config,activationService,operations,localPrinting,licenseProvider=activationService?.status??unconfiguredLicense,logger=console.log}) {
+  const app=express();app.set('json replacer',unitLabelReplacer);app.disable('x-powered-by');app.use(helmet());
   app.use((req,res,next)=>{
     req.requestId=randomUUID();res.setHeader('X-Request-Id',req.requestId);res.setHeader('Cache-Control','no-store');
     res.on('finish',()=>logger(JSON.stringify({event:'request',requestId:req.requestId,method:req.method,path:req.path,status:res.statusCode})));
@@ -27,6 +29,7 @@ export function createApp({pool,config,activationService,operations,licenseProvi
   registerInitialSetup(app,{pool,config,licenseProvider});
   registerLocalLogin(app,{pool,licenseProvider});
   if(activationService){
+    app.get('/api/offline-activation/current-request',authenticate(pool),requirePermission('organization.manage'),async(req,res)=>{if(!req.user.roles.some(role=>role.is_admin))fail(403,'ADMIN_REQUIRED','Admin required');res.json(await activationService.currentRequest());});
     const attempts=new Map();
     app.use('/api/offline-activation',(req,_res,next)=>{if(req.method!=='POST')return next();const current=attempts.get(req.ip),time=Date.now();if(current&&time-current.since<60000&&current.count>=20)fail(429,'ACTIVATION_THROTTLED','Wait before retrying activation');attempts.set(req.ip,current&&time-current.since<60000?{...current,count:current.count+1}:{since:time,count:1});if(attempts.size>2000)attempts.clear();next();});
     app.post('/api/offline-activation/request',async(req,res)=>res.json(await activationService.request(z.object({name:z.string().min(2).max(100),phone:z.string().min(5).max(30)}).strict().parse(req.body))));
@@ -38,6 +41,7 @@ export function createApp({pool,config,activationService,operations,licenseProvi
     app.post('/api/admin-recovery/request',async(req,res)=>res.json(await recovery.request(z.union([z.object({username:z.string().min(3).max(80)}).strict(),z.object({userId:z.string().uuid()}).strict()]).parse(req.body))));
     app.post('/api/admin-recovery/reset',async(req,res)=>res.json(await recovery.apply(req.body)));
   }
+  if(localPrinting)app.use('/api/local',authenticate(pool),async(req,_res,next)=>{const state=await licenseProvider();if(state.status!=='ACTIVE')fail(403,'ACTIVATION_REQUIRED','Activate Retail first');next();},localPrinting.router);
   app.use('/api/operations',operationRoutes({pool,operations}));
   app.use('/api',apiRoutes({pool,config,licenseProvider,activationService}));
   if(config.frontendDirectory){app.use(express.static(config.frontendDirectory,{index:false}));app.get(/^(?!\/api(?:\/|$)).*/,(_req,res)=>res.sendFile('index.html',{root:config.frontendDirectory}));}

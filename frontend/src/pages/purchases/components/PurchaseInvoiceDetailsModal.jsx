@@ -135,7 +135,7 @@ export function PurchaseInvoiceDetailsModal({
                       {item.barcode}
                     </td>
                     <td className="py-2 px-3 text-center font-mono font-bold text-gray-900">
-                      {item.qty} {item.unit || 'حبة'}
+                      {item.qty} {item.unit || 'قطعة'}
                     </td>
                     <td className="py-2 px-3 font-mono text-gray-700">
                       {(item.costPrice || 0).toFixed(2)} ر.س

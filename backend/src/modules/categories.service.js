@@ -7,7 +7,7 @@ import {audit} from './common.js';
 const idSchema=z.string().min(1).max(100);
 const inputSchema=z.object({name:z.string().trim().min(1).max(100).transform(value=>value.normalize('NFC'))}).strict();
 export async function listCategories(db,companyId){
- const items=(await db.query(`SELECT c.id,c.name,count(p.id)::integer AS "productCount",count(p.id) FILTER(WHERE p.archived_at IS NULL)::integer AS "activeProductCount" FROM categories c LEFT JOIN products p ON p.company_id=c.company_id AND p.category_id=c.id WHERE c.company_id=$1 GROUP BY c.company_id,c.id,c.name ORDER BY lower(c.name),c.id`,[companyId])).rows;
+ const items=(await db.query(`SELECT c.id,c.name,count(p.id)::integer AS "productCount",count(p.id) FILTER(WHERE p.archived_at IS NULL)::integer AS "activeProductCount" FROM categories c LEFT JOIN products p ON p.company_id=c.company_id AND p.category_id=c.id WHERE c.company_id=$1 GROUP BY c.company_id,c.id,c.name,c.sort_position ORDER BY c.sort_position,lower(c.name),c.id`,[companyId])).rows;
  return {items};
 }
 export async function saveCategory(pool,user,id,input){
@@ -30,5 +30,21 @@ export async function deleteCategory(pool,user,id){
   // Archived products retain their links and are included in this check.
   if((await db.query('SELECT 1 FROM products WHERE company_id=$1 AND category_id=$2 LIMIT 1',[user.companyId,id])).rowCount)fail(409,'CATEGORY_IN_USE','لا يمكن حذف تصنيف مرتبط بمنتجات، بما فيها المؤرشفة / Category is linked to products, including archived products');
   await db.query('DELETE FROM categories WHERE company_id=$1 AND id=$2',[user.companyId,id]);await audit(db,user,'category.delete',id);return {id,deleted:true};
+ });
+}
+
+export async function moveCategory(pool,user,id,input){
+ idSchema.parse(id);const {direction}=z.object({direction:z.enum(['up','down'])}).strict().parse(input);
+ return transaction(pool,async db=>{
+  await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`catalog:${user.companyId}`]);
+  const ids=(await db.query('SELECT id FROM categories WHERE company_id=$1 ORDER BY sort_position,lower(name),id FOR UPDATE',[user.companyId])).rows.map(row=>row.id);
+  const index=ids.indexOf(id);if(index<0)fail(404,'NOT_FOUND','التصنيف غير موجود / Category not found');
+  const target=index+(direction==='up'?-1:1);
+  if(target>=0&&target<ids.length){
+   [ids[index],ids[target]]=[ids[target],ids[index]];
+   await db.query('UPDATE categories c SET sort_position=(p.ordinality-1)::integer FROM unnest($2::text[]) WITH ORDINALITY p(id,ordinality) WHERE c.company_id=$1 AND c.id=p.id',[user.companyId,ids]);
+   await audit(db,user,'category.order',id,{direction});
+  }
+  return listCategories(db,user.companyId);
  });
 }

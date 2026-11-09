@@ -9,7 +9,7 @@ import { PrintDocument } from './views';
 import { RemoteSelect } from './RemoteSelect';
 import { EmptyState } from './ConnectedUI';
 import { ShoppingBagIcon,CreditCardIcon,StorefrontIcon,TagIcon,TrashIcon } from '../components/common/Icons';
-import { draftStore,recoveryKey } from './recovery';
+import { draftStore,recoveryKey,initialCartCurrency } from './recovery';
 
 export function ServerPOS(props){
   const [state,setState]=useState(null),[error,setError]=useState('');
@@ -27,7 +27,7 @@ export function ServerPOS(props){
 function CashierSession({api,user,organization,english=false,onShift,recovery}){
   const [mobileTab,setMobileTab]=useState('products'),[discountOpen,setDiscountOpen]=useState(false);
   const [query,setQuery]=useState({q:'',category:'all',page:1}),[catalog,setCatalog]=useState({items:[],total:0}),[error,setError]=useState(''),[connection,setConnection]=useState(true),[choice,setChoice]=useState(null);
-  const [warehouseId,setWarehouseId]=useState(recovery.draft?.warehouseId??organization.warehouses[0]?.id??''),[currency,setCurrency]=useState(recovery.draft?.currency??organization.company.base_currency),[partnerId,setPartnerId]=useState(recovery.draft?.partnerId??'');
+  const [warehouseId,setWarehouseId]=useState(recovery.draft?.warehouseId??organization.warehouses[0]?.id??''),[currency,setCurrency]=useState(initialCartCurrency(recovery.draft,organization.company.base_currency)),[partnerId,setPartnerId]=useState(recovery.draft?.partnerId??'');
   const [shifts,setShifts]=useState([]),[paymentOpen,setPaymentOpen]=useState(false),[receipt,setReceipt]=useState(null),[quote,setQuote]=useState(null),[quoting,setQuoting]=useState(false),[modules,setModules]=useState([]),[pending,setPending]=useState(recovery.draft?.pending??null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
   const cart=useCart({taxRate:0,allowNegativeStock:organization.company.allow_negative_stock,initialDraft:recovery.draft}),device=recovery.device,request=useRef(recovery.draft?.pending??null),writes=useRef(Promise.resolve());
   const saveDraft=useCallback(value=>{const next=writes.current.catch(()=>{}).then(()=>draftStore(recovery.key,value));writes.current=next;return next;},[recovery.key]);
@@ -67,7 +67,7 @@ function CashierSession({api,user,organization,english=false,onShift,recovery}){
     <div className="retail-cashier-mobile-tabs lg:hidden"><button type="button" aria-pressed={mobileTab==='products'} onClick={()=>setMobileTab('products')}><StorefrontIcon className="w-4 h-4"/>{english?'Products':'المنتجات'}</button><button type="button" aria-pressed={mobileTab==='cart'} onClick={()=>setMobileTab('cart')}><ShoppingBagIcon className="w-4 h-4"/>{english?'Cart':'السلة'} <span>{cart.items.length}</span></button></div>
     {choice&&<ProductChoiceModal key={choice.id} product={choice} onClose={()=>setChoice(null)} onSelect={add}/>} 
     {paymentOpen&&currentQuote&&<Checkout quote={currentQuote} currencies={organization.currencies} creditAllowed={Boolean(partnerId)} english={english} busy={busy} onClose={()=>{if(!busy&&!pending)setPaymentOpen(false);}} onSubmit={async payments=>{if(!request.current){const health=await api.request('/health');request.current={key:crypto.randomUUID(),epoch:health.epoch,body:{...body,payments}};}await send(request.current);}}/>}
-    {receipt&&<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4"><h2 className="font-bold">{english?'Invoice saved':'حُفظت الفاتورة'} {receipt.number}</h2><p>{receipt.total} {receipt.currency}</p><PrintDocument api={api} document={receipt} english={english}/><button onClick={()=>setReceipt(null)} className="bg-emerald-600 text-white px-5 py-3 rounded-xl">{english?'New sale':'بيع جديد'}</button></div></div>}
+    {receipt&&<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4"><h2 className="font-bold">{english?'Invoice saved':'حُفظت الفاتورة'} {receipt.number}</h2><p>{receipt.total} {receipt.currency}</p><PrintDocument api={api} document={receipt} english={english} autoPrint/><button onClick={()=>setReceipt(null)} className="bg-emerald-600 text-white px-5 py-3 rounded-xl">{english?'New sale':'بيع جديد'}</button></div></div>}
   </div>;
 }
 

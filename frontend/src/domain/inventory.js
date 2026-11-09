@@ -74,7 +74,7 @@ export function receivePurchasedItems(products, items = []) {
     }
     const product = {
       id: item.productId ?? item.id ?? Date.now(), name: item.name, barcode: item.barcode,
-      category: 'canned', unit: item.unit || 'حبة', type: item.type ?? 'stock',
+      category: 'canned', unit: item.unit || 'قطعة', type: item.type ?? 'stock',
       allowFractional: item.allowFractional ?? false,
       price: item.sellingPrice ?? item.costPrice * 1.3, costPrice: item.costPrice,
       stock: 0, color: 'bg-emerald-50 text-emerald-600 border-emerald-200',

@@ -24,8 +24,13 @@ export function ServerCatalog({api,user,organization,locale,onCategoriesChanged}
     },200);
     return ()=>{clearTimeout(timer);controller.abort();};
   },[api,query,revision]);
+  const loadVariantBalances=useCallback(id=>api.request(`/products/${encodeURIComponent(id)}/variant-balances`),[api]);
   const refresh=()=>setRevision(value=>value+1);
-  const save=async product=>{const persisted=await api.request(`/products${product.version?`/${encodeURIComponent(product.id)}`:''}?warehouseId=${query.warehouseId}`,{method:product.version?'PUT':'POST',body:product});refresh();return persisted;};
+  const save=async product=>{
+    const openingBalances=!product.version&&product.type==='stock'?(product.variants.length?product.variants.map(row=>({variantId:row.id,quantity:Number(row.stock)})):[{variantId:'',quantity:Number(product.stock)}]).filter(row=>row.quantity>0):[];
+    const body=openingBalances.length?{...product,stock:0,variants:product.variants.map(row=>({...row,stock:0})),openingBalances}:product;
+    const persisted=await api.request(`/products${product.version?`/${encodeURIComponent(product.id)}`:''}?warehouseId=${query.warehouseId}`,{method:product.version?'PUT':'POST',body});refresh();return persisted;
+  };
   const archive=async id=>{try{await api.request(`/products/${encodeURIComponent(id)}`,{method:'DELETE'});refresh();}catch(failure){setError(failure.message);}};
   const changeQuery=change=>{setLoading(true);setQuery(previous=>({...previous,...change,page:change.page??1}));};
   return <div className="h-full flex flex-col min-h-0">
@@ -36,7 +41,7 @@ export function ServerCatalog({api,user,organization,locale,onCategoriesChanged}
     {error&&<div role="alert" className="m-3 p-3 rounded-xl bg-red-50 text-red-700">{error} <button onClick={refresh}>{english?'Retry':'إعادة المحاولة'}</button></div>}
     {loading&&<p role="status" className="p-2 text-center">{english?'Loading…':'جارٍ التحميل…'}</p>}
     {!error&&<div className={`flex-1 min-h-0 ${loading?'opacity-50 pointer-events-none':''}`}>
-      <Suspense fallback={<p role="status">{english?'Loading…':'جارٍ التحميل…'}</p>}><InventoryPage key={location.key} initialLabelsOpen={new URLSearchParams(location.search).get('labels')==='1'} serverTotal={result.total} products={result.items} serverQuery={query} onServerQueryChange={changeQuery} permissions={user.permissions} ledgerMode financialOptions={organization} onPrepareLabels={product=>setLabelProduct(product)} onSaveProduct={save} onDeleteProduct={archive} onOpenCategories={()=>openTab('categories')} onAdjustStock={id=>setMovementProduct(result.items.find(product=>product.id===id))} /></Suspense>
+      <Suspense fallback={<p role="status">{english?'Loading…':'جارٍ التحميل…'}</p>}><InventoryPage key={location.key} initialLabelsOpen={new URLSearchParams(location.search).get('labels')==='1'} serverTotal={result.total} products={result.items} serverQuery={query} onServerQueryChange={changeQuery} permissions={user.permissions} ledgerMode financialOptions={organization} onPrepareLabels={product=>setLabelProduct(product)} onSaveProduct={save} onLoadVariantBalances={loadVariantBalances} onDeleteProduct={archive} onOpenCategories={()=>openTab('categories')} onAdjustStock={id=>setMovementProduct(result.items.find(product=>product.id===id))} /></Suspense>
     </div>}
     <div className="flex items-center justify-center gap-5 p-3 bg-white border-t text-sm">
       <button disabled={query.page<=1||loading} onClick={()=>changeQuery({page:query.page-1})}>{english?'Previous':'السابق'}</button>

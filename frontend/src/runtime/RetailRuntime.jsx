@@ -10,6 +10,8 @@ import { readPreference,writePreference } from './preferences';
 import { MODULE_TITLES } from '../../../shared/features';
 import InitialAdminSetup from '../pages/auth/InitialAdminSetup';
 const LocalLoginPage=lazy(()=>import('../pages/auth/LocalLoginPage'));
+const ThermalPrintingPage=lazy(()=>import('../pages/settings/ThermalPrintingPage'));
+const LicenseManagementPage=lazy(()=>import('../pages/settings/LicenseManagementPage'));
 const UsersPage=lazy(()=>import('../pages/users/UsersPage'));
 const AdminRecovery=lazy(()=>import('../pages/auth/AdminRecovery'));
 const RegisterPage=lazy(()=>import('../pages/auth/RegisterPage'));
@@ -65,7 +67,7 @@ function CommercialContent(props){
   const {api,user,organization,english,path,search,onShift,onOrganizationChange}=props;
   const allowed=permission=>user.permissions.includes(permission),denied=<p className="p-6">{english?'Permission required':'ليست لديك صلاحية'}</p>;
   if(!organization)return null;
-  if(path==='/license')return <LicenseDetails api={api} english={english}/>;
+  if(path==='/license')return <Suspense fallback={<p role="status">Loading…</p>}><LicenseManagementPage api={api} user={user} english={english}/></Suspense>;
   if(path==='/devices')return allowed('printing.create')?<DeviceSettings api={api} english={english}/>:denied;
   if(path==='/operations')return allowed('organization.manage')&&user.roles.some(role=>role.is_admin)?<OperationsSettings api={api} english={english}/>:denied;
   if(path==='/sales'&&allowed('sales.post'))return <ServerPOS api={api} user={user} organization={organization} english={english} onShift={onShift}/>;
@@ -87,6 +89,7 @@ function ServerShell({api,session,preferences,locale,dark,onLogout}) {
   const [organization,setOrganization]=useState(null),[error,setError]=useState(''),[searchSlot,setSearchSlot]=useState(null);
   const location=useLocation(),navigate=useNavigate(),user=session.user,english=locale==='en';
   const [orgRevision,setOrgRevision]=useState(0),[currentShift,setCurrentShift]=useState(null),[modules,setModules]=useState([]),[device]=useState(()=>terminalId());
+  useEffect(()=>{const update=()=>setOrgRevision(value=>value+1);window.addEventListener('retail-license-updated',update);return()=>window.removeEventListener('retail-license-updated',update);},[]);
   const categoriesChanged=useCallback(items=>setOrganization(previous=>previous?{...previous,categories:items.map(({id,name})=>({id,name}))}:previous),[]);
   useEffect(()=>{let active=true;api.request('/organization').then(value=>{if(active)setOrganization(value);}).catch(failure=>{if(active)setError(failure.message);});api.request('/modules').then(value=>{if(active)setModules(value.items);}).catch(()=>{});return()=>{active=false;};},[api,orgRevision]);
   useEffect(()=>{if(!user.permissions.includes('shifts.read'))return;let active=true;api.request('/shifts').then(value=>{if(active)setCurrentShift(value.items.find(row=>!row.closed_at&&row.user_id===user.id&&row.device_id===device)??null);}).catch(()=>{});return()=>{active=false;};},[api,user,device,location.pathname]);
@@ -114,6 +117,7 @@ function WorkspaceContent(props){
  const legacy={'/admin/users':['/users','users'],'/admin/roles':['/users','roles'],'/admin/modules':['/settings','modules'],'/admin/import':['/settings','import'],'/purchase-history':['/purchases','history'],'/payments':['/invoices','payments'],'/devices':['/printing','device'],'/operations':['/settings','backups']};
  if(legacy[path]){const [target,value]=legacy[path];params.set('tab',value);return <Navigate replace to={target+'?'+params}/>;}
  const admin=page=>page==='users'?<Suspense fallback={<p>جارٍ التحميل…</p>}><UsersPage api={api} user={user} organization={organization} english={english}/></Suspense>:<AdminView key={page} api={api} user={user} organization={organization} page={page} english={english}/>;
+ if(path==='/printing')return allowed('organization.read')?<Suspense fallback={<p role="status">Loading…</p>}><ThermalPrintingPage api={api} user={user} english={english}/></Suspense>:<p>Permission required</p>;
  if(path==='/settings'||path==='/printing'){
    if(!allowed('organization.read'))return <p className="p-5">{english?'Permission required':'ليست لديك صلاحية'}</p>;
    const printing=path==='/printing';
@@ -176,10 +180,4 @@ function ImportCopy({api,organization,canCommit,english}) {
     {error&&<p role="alert" className="text-red-700">{error}</p>}
     {report&&<div role="status" className="border rounded-xl bg-white p-4"><p>{report.imported!==undefined?(english?`Imported ${report.imported}`:`تم استيراد ${report.imported}`):report.valid?(english?`Valid: ${report.count} products`:`الفحص ناجح: ${report.count} منتج`):(english?'Validation failed':'فشل الفحص')}</p>{report.errors?.map((entry,index)=><p key={index}>{entry.index}: {entry.message}</p>)}</div>}
   </div>;
-}
-
-function LicenseDetails({api,english}){
- const [status,setStatus]=useState(null),[error,setError]=useState('');
- useEffect(()=>{let live=true;api.request('/offline-activation/status').then(value=>{if(live)setStatus(value);}).catch(failure=>{if(live)setError(failure.message);});return()=>{live=false;};},[api]);
- return <div className="retail-page p-5 space-y-4"><PageHeading icon={ShieldCheckIcon} title={english?'Licenses and renewal':'التراخيص والتجديد'}/>{error&&<p role="alert">{error}</p>}{status&&<div className="retail-panel space-y-3"><p>{english?'License status':'حالة الترخيص'}: {status.status}</p><p>{english?'Expiry':'انتهاء الصلاحية'}: {status.expiresAt?new Date(status.expiresAt).toLocaleString(english?'en':'ar'):english?'No expiry':'دون انتهاء'}</p><p>{english?'Renew using the official Retail activation tool. Registration appears automatically when activation is required.':'التجديد عبر أداة تفعيل Retail الرسمية. تظهر صفحة التسجيل تلقائيًا عند الحاجة للتفعيل أو انتهاء الصلاحية.'}</p></div>}</div>;
 }

@@ -80,7 +80,7 @@ export function ProductListTable({
                   {prod.barcode}
                 </span>
                 <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded font-medium">
-                  {prod.unit || 'حبة'}
+                  {prod.unit || 'قطعة'}
                 </span>
               </div>
 
@@ -209,7 +209,7 @@ export function ProductListTable({
                     </td>
 
                     {/* Unit */}
-                    <td className="py-3 px-4 text-gray-500">{prod.unit || 'حبة'}</td>
+                    <td className="py-3 px-4 text-gray-500">{prod.unit || 'قطعة'}</td>
 
                     {/* Cost Price */}
                     <td className="py-3 px-4 font-mono text-gray-500">

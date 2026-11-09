@@ -15,6 +15,7 @@ export function InventoryPage({
   serverTotal,
   taxRatePercent = 15,
   onSaveProduct,
+  onLoadVariantBalances,
   onDeleteProduct,
   onAdjustStock,
   serverQuery,
@@ -143,7 +144,9 @@ export function InventoryPage({
         onClose={() => setIsFormOpen(false)}
         productToEdit={productToEdit}
         onSaveProduct={onSaveProduct}
-        stockReadOnly={ledgerMode}
+        onLoadVariantBalances={onLoadVariantBalances}
+        canDistributeStock={allowed('stock.post')}
+        stockReadOnly={ledgerMode&&(Boolean(productToEdit)||!allowed('stock.post'))}
         financialOptions={financialOptions}
       />
 

@@ -2,7 +2,7 @@ import { ReceiptPercentIcon } from '../../../components/common/Icons';
 
 const LOGO_OPTIONS = ['🏪', '🛒', '🛍️', '🏬', '☕', '🥤', '🍞', '🥩', '💊', '🧴'];
 
-export function ReceiptCustomizationForm({ settings, onChange,serverControlled=false }) {
+export function ReceiptCustomizationForm({ settings, onChange,serverControlled=false,hidePaperWidth=false }) {
   const handleChange = (field, value) => {
     onChange({ ...settings, [field]: value });
   };
@@ -74,7 +74,7 @@ export function ReceiptCustomizationForm({ settings, onChange,serverControlled=f
         </div>
 
         {/* عرض الورق */}
-        <div>
+        {!hidePaperWidth&&<div>
           <label className="block text-xs font-bold text-gray-700 mb-1">
             عرض ورق الطابعة الحرارية
           </label>
@@ -99,6 +99,7 @@ export function ReceiptCustomizationForm({ settings, onChange,serverControlled=f
           </div>
         </div>
 
+        }
         {/* رسالة الترويسة العلوية */}
         <div className="md:col-span-2">
           <label className="block text-xs font-bold text-gray-700 mb-1">

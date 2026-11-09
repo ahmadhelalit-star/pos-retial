@@ -23,6 +23,8 @@ export async function createOrder(pool,user,key,input,kind='quotation'){
 }
 export async function convertQuotation(pool,user,key,id){return transaction(pool,db=>idempotent(db,user,key,`quotation.convert:${id}`,{},async()=>{
   const source=await getOrder(db,user,id);if(source.kind!=='quotation')fail(409,'QUOTATION_REQUIRED','Only quotations can convert');
+  await db.query('SELECT id FROM products WHERE company_id=$1 AND id=ANY($2::text[]) ORDER BY id FOR UPDATE',[user.companyId,source.snapshot.items.map(line=>String(line.productId))]);
+  for(const line of source.snapshot.items){const current=(await db.query('SELECT data FROM products WHERE company_id=$1 AND id=$2',[user.companyId,String(line.productId)])).rows[0];if(current?.data.variants?.length&&!current.data.variants.some(row=>row.id===line.variantId))fail(409,'QUOTATION_REVIEW_REQUIRED','تغيرت تركيبات المنتج؛ أنشئ عرض سعر محدثًا قبل التحويل / Product variants changed; create an updated quotation');}
   const next=randomUUID(),number=await nextNumber(db,user.companyId,'order');await db.query("INSERT INTO commercial_orders(company_id,id,number,kind,warehouse_id,partner_id,source_id,snapshot,created_by) VALUES($1,$2,$3,'order',$4,$5,$6,$7,$8)",[user.companyId,next,number,source.warehouse_id,source.partner_id,id,source.snapshot,user.id]);return getOrder(db,user,next);
 }));}
 const quantityRequest=z.object({items:z.array(z.object({lineId:z.string().min(1).max(100),quantity:positive}).strict()).min(1).max(200)}).strict();

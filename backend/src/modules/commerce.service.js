@@ -82,7 +82,7 @@ export async function postDocument(pool,user,key,input,kind='sale'){
   }));
 }
 export const bodyToCart=({warehouseId,partnerId,currency,discountPercent,items})=>({warehouseId,partnerId,currency,discountPercent,items});
-export const returnSchema=z.object({shiftId:z.string().uuid().optional(),deviceId:z.string().min(8).max(100).optional(),reason:z.string().trim().min(2).max(500),items:z.array(z.object({lineId:z.string().min(1).max(100),quantity:positive,restock:z.boolean().default(true)}).strict()).min(1).max(200),payments:z.array(paymentLine).max(20).default([])}).strict();
+export const returnSchema=z.object({shiftId:z.string().uuid().optional(),deviceId:z.string().min(8).max(100).optional(),reason:z.string().trim().min(2).max(500),items:z.array(z.object({lineId:z.string().min(1).max(100),quantity:positive,restock:z.boolean().default(true),stockVariantId:z.string().min(1).max(100).optional()}).strict()).min(1).max(200),payments:z.array(paymentLine).max(20).default([])}).strict();
 export async function reverseDocument(pool,user,key,id,input,{cancel=false}={}){
   const body=returnSchema.parse(input);return transaction(pool,db=>idempotent(db,user,key,`document.${cancel?'cancel':'return'}:${id}`,body,async()=>{
     const source=(await db.query('SELECT * FROM commercial_documents WHERE company_id=$1 AND id=$2',[user.companyId,id])).rows[0];if(!source||!['sale','purchase'].includes(source.kind))fail(404,'NOT_FOUND','Original invoice not found');await requireWarehouse(db,user,source.warehouse_id);
@@ -103,6 +103,15 @@ export async function reverseDocument(pool,user,key,id,input,{cancel=false}={}){
       Object.assign(line,allocateLineAmounts(original,already,entry.quantity,snapshot.decimals));
       line.costBase=round(D(original.costBase).mul(entry.quantity).div(original.quantity),9);
       if(tracksInventory(line)&&(source.kind==='purchase'||entry.restock)){
+        if(!original.variantId){
+          const current=(await db.query('SELECT data FROM products WHERE company_id=$1 AND id=$2',[user.companyId,String(line.productId)])).rows[0];
+          const variants=current?.data.variants??[];
+          if(variants.length){
+            if(!entry.stockVariantId||!variants.some(row=>row.id===entry.stockVariantId))fail(400,'RETURN_VARIANT_REQUIRED','اختر التركيبة التي سيؤثر عليها المرتجع / Select a stock variant for this return');
+            line.originalVariantId=original.variantId??'';line.variantId=entry.stockVariantId;
+          }
+        }
+
         const movement=await insertMovement(db,user,{productId:line.productId,variantId:line.variantId,warehouseId:source.warehouse_id,unitId:line.unitId,quantity:Number(line.quantity)*(source.kind==='sale'?1:-1),kind:source.kind==='sale'?'return':'issue',unitCost:Number(D(original.costBase).div(original.quantity)),reference:`return:${randomUUID()}`,lineKey:line.id},{unitFactorOverride:original.unitFactor});
         line.stockMovementId=movement.id;if(source.kind==='purchase'){line.valuationVarianceBase=D(line.net).mul(snapshot.exchangeRate).minus(D(movement.unit_cost).mul(line.baseQuantity)).toString();line.costBase=D(movement.unit_cost).mul(line.baseQuantity).toString();}
       }else if(!entry.restock&&source.kind==='sale')line.costBase='0';

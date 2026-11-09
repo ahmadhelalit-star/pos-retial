@@ -1,3 +1,4 @@
+import {prepareDistribution,debitDistribution,creditDistribution} from './variant-stock.service.js';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { validateProduct } from '../../../shared/catalog.js';
@@ -6,6 +7,7 @@ import { fail } from '../http/errors.js';
 import { audit } from './common.js';
 import { getProduct,writeProduct } from './products.repository.js';
 import { requireWarehouse } from './auth.service.js';
+import {insertMovement} from './stock.service.js';
 
 const idSchema=z.union([z.string().min(1).max(100),z.number().int().safe()]);
 const shape=z.object({id:idSchema.optional(),name:z.string().trim().min(1).max(200),sku:z.string().trim().min(1).max(200).optional(),allowFractional:z.boolean().optional(),type:z.enum(['stock','service','nonStock']).optional(),price:z.number().finite().min(0).max(1e12),stock:z.number().finite().optional(),costPrice:z.number().finite().min(0).max(1e12).optional(),currency:z.string().regex(/^[A-Z]{3}$/).optional(),taxId:z.string().max(100).nullable().optional(),priceIncludesTax:z.boolean().nullable().optional(),scaleCode:z.string().regex(/^\d{5}$/).nullable().optional(),version:z.number().int().positive().optional()}).passthrough();
@@ -22,7 +24,14 @@ export function parseProduct(input) {
     return product;
   } catch(error) { if(error.status||error.name==='ZodError') throw error; fail(400,'INVALID_PRODUCT',error.message); }
 }
-export async function saveProduct(pool,user,id,input,warehouseId) {
+export async function saveProduct(pool,user,id,input,warehouseId,{openingBalances=[],variantDistribution}={}) {
+  const opening=z.array(z.object({variantId:z.string().max(100),quantity:z.number().finite().positive().max(1e12)}).strict()).max(2000).parse(openingBalances);
+  if(opening.length){
+    if(id!==undefined)fail(409,'OPENING_CREATE_ONLY','Opening balances are only accepted on product creation');
+    if(!user.permissions.includes('stock.post'))fail(403,'PERMISSION_DENIED','Permission required: stock.post');
+  }
+  if(variantDistribution!==undefined&&id===undefined)fail(400,'INVALID_DISTRIBUTION','Distribution requires an existing product');
+  let distributionPlan,previousProduct;
   let product=parseProduct(input);
   if(id!==undefined && String(product.id)!==String(id)) fail(400,'ID_MISMATCH','Product id mismatch');
   return transaction(pool,async db=>{
@@ -34,9 +43,11 @@ export async function saveProduct(pool,user,id,input,warehouseId) {
       const previous=await getProduct(db,user.companyId,id,warehouseId);
       product=parseProduct({...previous,...input});
       if(product.version!==previous.version) fail(409,'VERSION_CONFLICT','Product changed; reload before saving');
-      if(Number(product.stock??0)!==previous.stock || product.variants.some(variant=>Number(variant.stock??0)!==Number(previous.variants.find(entry=>entry.id===variant.id)?.stock??0))) fail(409,'LEDGER_REQUIRED','Use a documented stock movement, not a catalog balance edit');
+      previousProduct=previous;
+      if(variantDistribution!==undefined)distributionPlan=await prepareDistribution(db,user,previous,product,variantDistribution);
+      if(!distributionPlan&&(Number(product.stock??0)!==previous.stock || product.variants.some(variant=>Number(variant.stock??0)!==Number(previous.variants.find(entry=>entry.id===variant.id)?.stock??0)))) fail(409,'LEDGER_REQUIRED','Use a documented stock movement, not a catalog balance edit');
       const ledger=(await db.query('SELECT 1 FROM stock_ledger WHERE company_id=$1 AND product_id=$2 LIMIT 1',[user.companyId,String(id)])).rowCount;
-      if(ledger && (product.type!==previous.type || product.allowFractional!==previous.allowFractional || Boolean(product.variants.length)!==Boolean(previous.variants.length) || product.baseUnitId!==previous.baseUnitId)) fail(409,'HISTORY_PROTECTED','Cannot restructure product with stock history');
+      if(ledger && (product.type!==previous.type || product.allowFractional!==previous.allowFractional || (Boolean(product.variants.length)!==Boolean(previous.variants.length)&&!distributionPlan) || product.baseUnitId!==previous.baseUnitId)) fail(409,'HISTORY_PROTECTED','Cannot restructure product with stock history');
       if(previous.units.some(unit=>!product.units.some(entry=>entry.id===unit.id))||previous.variants.some(variant=>!product.variants.some(entry=>entry.id===variant.id))) fail(409,'CATALOG_HISTORY_PROTECTED','Existing units and variants must be retained');
       if(ledger && product.allowFractional===false && previous.allowFractional===true && (await db.query('SELECT 1 FROM stock_balances WHERE company_id=$1 AND product_id=$2 AND quantity<>trunc(quantity) LIMIT 1',[user.companyId,String(id)])).rowCount) fail(409,'FRACTIONAL_STOCK_EXISTS','Fractional stock remains');
     }else if(Number(product.stock??0)!==0||product.variants.some(variant=>Number(variant.stock??0)!==0)) fail(409,'LEDGER_REQUIRED','Create with zero balance; post opening stock separately');
@@ -45,7 +56,20 @@ export async function saveProduct(pool,user,id,input,warehouseId) {
     if(new Set(skus).size!==skus.length)fail(409,'DUPLICATE_SKU','SKU must be unique across the catalog');
     for(const sku of skus)if((await db.query('SELECT 1 FROM products WHERE company_id=$1 AND sku=$2 AND id<>$3 UNION ALL SELECT 1 FROM product_variants WHERE company_id=$1 AND sku=$2 AND product_id<>$3',[user.companyId,sku,String(product.id)])).rowCount)fail(409,'DUPLICATE_SKU','SKU already exists');
     if(!(await db.query('SELECT 1 FROM company_currencies WHERE company_id=$1 AND code=$2',[user.companyId,currency])).rowCount) fail(400,'CURRENCY_NOT_CONFIGURED','Currency not configured for company');
+    if(distributionPlan)await debitDistribution(db,user,previousProduct,distributionPlan);
     await writeProduct(db,user.companyId,product,{existing:id!==undefined,baseCurrency:company.base_currency});
+    if(distributionPlan)await creditDistribution(db,user,product,distributionPlan);
+    if(opening.length){
+      if(product.type!=='stock')fail(400,'INVALID_OPENING','Only stocked products have opening balances');
+      const seen=new Set();
+      for(const entry of opening){
+        if(seen.has(entry.variantId)||!(product.variants.length?product.variants.some(row=>row.id===entry.variantId):entry.variantId===''))fail(400,'INVALID_OPENING','Invalid or duplicate opening variant');
+        if(!product.allowFractional&&!Number.isInteger(entry.quantity))fail(400,'FRACTIONAL_NOT_ALLOWED','Enable fractional quantities first');
+        seen.add(entry.variantId);
+        const variant=product.variants.find(row=>row.id===entry.variantId);
+        await insertMovement(db,user,{productId:product.id,variantId:entry.variantId,warehouseId,unitId:product.baseUnitId,quantity:entry.quantity,unitCost:Number(variant?.costPrice??product.costPrice??0),kind:'opening',reference:`opening:${product.id}`,lineKey:entry.variantId||'base'});
+      }
+    }
     await audit(db,user,id!==undefined?'product.update':'product.create',product.id);
     return getProduct(db,user.companyId,product.id,warehouseId);
   });

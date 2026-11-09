@@ -68,7 +68,7 @@ export function TopProductsTable({
                     </div>
                   </td>
                   <td className="py-2.5 px-3.5 text-center font-mono font-bold text-gray-800 whitespace-nowrap">
-                    {p.qtySold} {p.unit || 'حبة'}
+                    {p.qtySold} {p.unit || 'قطعة'}
                   </td>
                   <td className="py-2.5 px-3.5 font-mono font-bold text-emerald-700 whitespace-nowrap">
                     {p.revenue.toFixed(2)} {currency}

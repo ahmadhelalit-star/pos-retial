@@ -1,3 +1,4 @@
+import {unitName} from './unitNames.js';
 // Catalog rules shared by editors and inventory operations. Legacy rows remain valid.
 export const PRODUCT_TYPES = Object.freeze({ STOCK: 'stock', SERVICE: 'service', NON_STOCK: 'nonStock' });
 
@@ -14,13 +15,14 @@ function number(value, label, { positive = false } = {}) {
 }
 
 export function normalizeProduct(product) {
-  const unit = product.unit || 'حبة';
+  const unit = unitName(product.unit || 'قطعة');
   return {
     ...product,
+    unit,
     type: product.type ?? PRODUCT_TYPES.STOCK,
     allowFractional: product.allowFractional ?? false,
     baseUnitId: product.baseUnitId ?? 'base',
-    units: product.units ?? [{ id: 'base', name: unit, factor: 1, barcode: product.barcode || '', price: product.price ?? 0, sell: true, purchase: true }],
+    units: (product.units ?? [{ id: 'base', name: unit, factor: 1, barcode: product.barcode || '', price: product.price ?? 0, sell: true, purchase: true }]).map(row=>({...row,name:unitName(row.name)})),
     attributes: product.attributes ?? [],
     variants: product.variants ?? [],
   };

@@ -1,0 +1,13 @@
+# Retail license management screen
+
+The `/license` screen now follows the restaurant license page's layout and navy/periwinkle palette: current-license badge, detail grid, licensed-feature cards, request-code dialog and verified license-update dialog. Retail's existing sidebar and header are retained, with a corrected license page title. Features shown are Retail entitlements, separate from business module preferences or the signed-in user's permissions. Date/term details come from the verified license; no dates or features are inferred from browser settings.
+
+Admin users with `organization.manage` can copy the current device request and paste an official Retail activation/renewal/feature-change code. Other signed-in users can view status but do not see those actions. A successful update refreshes available modules; invalid codes keep the dialog open with an error. The code field is cleared after success or cancel. Clipboard failure leaves the request selectable for manual copying.
+
+`GET /api/offline-activation/current-request` requires authentication, Admin and `organization.manage`. The service validates current license integrity and matching Retail/device request, then returns the existing request's encoded code. It does not create a new request ID or replace the stored request, avoiding invalidation of a code already being issued. Normal license-status clock bookkeeping remains in place.
+
+Updates use the existing `/api/offline-activation/activate` verifier. Signing keys, signature namespaces, device matching, downgrade protection, the restaurant tool/protocol and activation enforcement are unchanged. The public status response additionally includes verified issued date, term/type and revision date.
+
+This change does not add a Retail management/deactivation-code protocol or a connected-client administration API. Those restaurant-only actions are not presented as working Retail functions. Licensed client capacity is shown from the signed license. No license was reset, replaced or renewed on the user's Developer installation.
+
+Validation: synthetic-key backend tests check stable request identity, valid signed renewal, invalid/downgrade rejection and route access controls; existing Retail/restaurant compatibility tests pass. Mocked browser tests cover status/features, request copying, invalid and successful update, cleared fields, Escape, read-only access, English, mobile and dark mode. A read-only check against `sham_retail_dev` confirmed that the actual activation code/request and business-data fingerprints stayed unchanged and activation remained ACTIVE. Its private record is `.developer/ui-review/license-readonly-verification.json`. Screenshots are under `.developer/ui-review/license/`.

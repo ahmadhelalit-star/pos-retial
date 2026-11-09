@@ -1,10 +1,12 @@
+import {setBaseCurrency} from '../modules/currency-settings.service.js';
+import {variantBalances} from '../modules/variant-stock.service.js';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { transaction } from '../db/pool.js';
 import { fail } from './errors.js';
 import { login,requireWarehouse } from '../modules/auth.service.js';
 import { saveRole,saveUser } from '../modules/admin.service.js';
-import {listCategories,saveCategory,deleteCategory} from '../modules/categories.service.js';
+import {listCategories,saveCategory,deleteCategory,moveCategory} from '../modules/categories.service.js';
 import { getProduct,listProducts } from '../modules/products.repository.js';
 import { saveProduct,archiveProduct } from '../modules/products.service.js';
 import { postMovement } from '../modules/stock.service.js';
@@ -30,12 +32,15 @@ export function controllers({pool,config,licenseProvider}) {
       res.json(await listProducts(pool,req.user.companyId,query,await warehouse(req)));
     },
     product:async(req,res)=>res.json(await getProduct(pool,req.user.companyId,req.params.id,await warehouse(req))),
+    moveCategory:async(req,res)=>res.json(await moveCategory(pool,req.user,req.params.id,req.body)),
     categories:async(req,res)=>res.json(await listCategories(pool,req.user.companyId)),
     createCategory:async(req,res)=>res.status(201).json(await saveCategory(pool,req.user,undefined,req.body)),
     updateCategory:async(req,res)=>res.json(await saveCategory(pool,req.user,req.params.id,req.body)),
     deleteCategory:async(req,res)=>res.json(await deleteCategory(pool,req.user,req.params.id)),
-    createProduct:async(req,res)=>res.status(201).json(await saveProduct(pool,req.user,undefined,req.body,await warehouse(req))),
-    updateProduct:async(req,res)=>res.json(await saveProduct(pool,req.user,req.params.id,req.body,await warehouse(req))),
+    createProduct:async(req,res)=>{const {openingBalances,...product}=req.body??{};res.status(201).json(await saveProduct(pool,req.user,undefined,product,await warehouse(req),{openingBalances}));},
+    returnVariants:async(req,res)=>{await warehouse(req);const row=(await pool.query('SELECT data FROM products WHERE company_id=$1 AND id=$2',[req.user.companyId,req.params.id])).rows[0];if(!row)fail(404,'NOT_FOUND','Product not found');res.json({items:(row.data.variants??[]).map(({id,values})=>({id,values}))});},
+    variantBalances:async(req,res)=>res.json(await variantBalances(pool,req.user,req.params.id)),
+    updateProduct:async(req,res)=>{const {variantDistribution,...product}=req.body??{};res.json(await saveProduct(pool,req.user,req.params.id,product,await warehouse(req),{variantDistribution}));},
     archiveProduct:async(req,res)=>res.json(await archiveProduct(pool,req.user,req.params.id)),
     postStock:async(req,res)=>res.status(201).json(await postMovement(pool,req.user,req.headers['idempotency-key'],req.body)),
     ledger:async(req,res)=>{
@@ -69,8 +74,9 @@ export function controllers({pool,config,licenseProvider}) {
       warehouses:(await pool.query('SELECT id,name,branch_id FROM warehouses WHERE company_id=$1 AND id=ANY($2::uuid[]) AND branch_id=ANY($3::uuid[])',[req.user.companyId,req.user.warehouses,req.user.branches])).rows,
       currencies:(await pool.query('SELECT cc.code,cc.rate,c.decimals FROM company_currencies cc JOIN currencies c ON c.code=cc.code WHERE cc.company_id=$1',[req.user.companyId])).rows,
       taxes:(await pool.query('SELECT id,name,rate,price_includes_tax FROM tax_configurations WHERE company_id=$1',[req.user.companyId])).rows,
-      categories:(await pool.query('SELECT id,name FROM categories WHERE company_id=$1 ORDER BY name',[req.user.companyId])).rows,
+      categories:(await pool.query('SELECT id,name FROM categories WHERE company_id=$1 ORDER BY sort_position,lower(name),id',[req.user.companyId])).rows,
     }),
+    setBaseCurrency:async(req,res)=>res.json(await setBaseCurrency(pool,req.user,req.body)),
     configureCurrency:async(req,res)=>{
       const input=z.object({code:z.string().regex(/^[A-Z]{3}$/),rate:z.number().finite().positive().max(1e12),decimals:z.number().int().min(0).max(6).default(2)}).strict().parse(req.body);
       await transaction(pool,async db=>{const company=(await db.query('SELECT base_currency FROM companies WHERE id=$1 FOR UPDATE',[req.user.companyId])).rows[0];if(company.base_currency===input.code&&input.rate!==1)fail(400,'BASE_CURRENCY_RATE','Base currency rate must equal 1');await db.query('INSERT INTO currencies VALUES($1,$2) ON CONFLICT(code) DO NOTHING',[input.code,input.decimals]);await db.query('INSERT INTO company_currencies VALUES($1,$2,$3) ON CONFLICT(company_id,code) DO UPDATE SET rate=excluded.rate',[req.user.companyId,input.code,input.rate]);await audit(db,req.user,'currency.configure',input.code);});res.json(input);

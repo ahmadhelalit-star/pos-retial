@@ -1,3 +1,4 @@
+import {receiptDesignFields} from '../../../../shared/receiptDesign.js';
 import { useEffect,useState } from 'react';
 import { StoreProfileForm } from './components/StoreProfileForm';
 import { ReceiptCustomizationForm } from './components/ReceiptCustomizationForm';
@@ -15,7 +16,7 @@ import {
   ArrowPathIcon,
 } from '../../components/common/Icons';
 
-const fields=['storeName','companyName','branchName','taxNumber','commercialRegister','phone','mobile','email','address','logoEmoji','receiptTitle','receiptPaperWidth','headerMessage','footerMessage','showTaxNumber','showCashierName','showCustomerInfo','showTaxBreakdown','defaultOpeningFloat'];
+const fields=[...receiptDesignFields,'storeName','companyName','branchName','taxNumber','commercialRegister','phone','mobile','email','address','logoEmoji','receiptTitle','receiptPaperWidth','headerMessage','footerMessage','showTaxNumber','showCashierName','showCustomerInfo','showTaxBreakdown','defaultOpeningFloat'];
 export function SettingsPage(props){
  const {api,english}=props;const [settings,setSettings]=useState(null),[error,setError]=useState('');
  useEffect(()=>{let live=true;api.request('/organization/presentation').then(value=>{if(live)setSettings({...value,defaultTaxRate:Number(props.organization.taxes[0]?.rate??0)});}).catch(failure=>{if(live)setError(failure.message);});return()=>{live=false;};},[api,props.organization.taxes]);

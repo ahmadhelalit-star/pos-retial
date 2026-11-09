@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 $payload=Get-Content -LiteralPath $InputPath -Raw | ConvertFrom-Json
 $settings=[Drawing.Printing.PrinterSettings]::new();$settings.PrinterName=[string]$payload.printer
+$settings.Copies=[int16]$(if($payload.copies){$payload.copies}else{1})
 if(!$settings.IsValid){throw 'Configured Windows printer is unavailable'}
 if(!$payload.pages.Count){throw 'No printable pages'}
 $document=[Drawing.Printing.PrintDocument]::new();$document.DocumentName='Sham Touch Retail '+$payload.id;$document.PrinterSettings=$settings

@@ -30,3 +30,5 @@ npm test
 ```
 
 Browser tests mock all writes and verify opening the panel, adding/renaming categories, duplicate prevention, empty deletion, resetting a deleted category filter, viewing and editing associated products, category updates in the cashier, reload, read-only permissions, mobile layout, English and dark mode. Real PostgreSQL integration additionally checks route permissions, authentication, CSRF, company isolation, stable product links and archived-product protection. Its private result is `.developer/ui-review/categories-integration.json`; screenshots are under `.developer/ui-review/categories/`.
+
+Category display order: use the up/down arrows in the popup. Changes are saved immediately with catalog.update permission. GET categories and organization return the saved order, so Inventory and Sales agree after reload/restart. All products stays first. Clear category search to enable reordering. Migration 012 adds sort_position, preserving the existing alphabetical order initially; a verified private backup was taken and all 53 existing tables were compared without changing prior data. New categories appear last.

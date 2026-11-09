@@ -14,7 +14,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
         <h4 className="min-w-0 truncate text-sm font-semibold text-gray-800">
           {item.name}
-          <span className="mr-1 text-xs text-gray-500">({item.unit})</span>
+          <span className="mr-1 text-xs text-gray-500">({t(item.unit)})</span>
         </h4>
 
         <div className="flex items-center overflow-hidden rounded-full bg-[#e2e8f8]">
@@ -53,7 +53,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
           ) : (
             <span>السعر: {item.price.toFixed(2)}</span>
           )}
-          <span className="truncate">/ {item.unit}</span>
+          <span className="truncate">/ {t(item.unit)}</span>
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">

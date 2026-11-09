@@ -1,0 +1,7 @@
+# Opening stock on product creation
+
+The opening balance field was disabled unconditionally in the connected Inventory editor. It is now enabled for new stocked products when the user has `stock.post`. Decimal quantities require the existing fractional-quantity checkbox. Services/non-stock items stay excluded; existing product balances remain protected and use documented stock movements instead of catalog edits.
+
+The client sends zero catalog balances plus a separate `openingBalances` array on product creation. The backend verifies scope, stock permission, positive quantities, fractional policy and variant IDs, then inserts the product and opening ledger movements in the same transaction. A failure rolls everything back. Base-unit quantities and the product/variant cost are used. A stable new-product ID prevents a retry after a lost response from duplicating the product or its opening entries. Existing clients submitting zero stock without this array remain supported.
+
+Verification: a mocked browser test checks integer and decimal input, fractional validation, submitted opening entries and read-only balances when editing. PostgreSQL integration fixtures checked quantities, ledger cost, variant balances, permission denial, rollback on invalid fractions and duplicate retry protection; all fixtures were rolled back and existing counts stayed unchanged. No existing product quantities were changed and no sale or purchase was created. No database migration was needed.

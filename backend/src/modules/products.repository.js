@@ -1,4 +1,5 @@
 import { fail } from '../http/errors.js';
+import Decimal from 'decimal.js';
 
 export async function getProduct(db,companyId,id,warehouseId,{includeArchived=false}={}) {
   const row=(await db.query(`SELECT data,version,archived_at FROM products WHERE company_id=$1 AND id=$2 ${includeArchived?'':'AND archived_at IS NULL'}`,[companyId,String(id)])).rows[0];
@@ -7,7 +8,7 @@ export async function getProduct(db,companyId,id,warehouseId,{includeArchived=fa
   const stock=new Map(balances.map(entry=>[entry.variant_id,entry]));
   const product={...row.data,version:row.version,archived:Boolean(row.archived_at)};
   product.variants=(product.variants??[]).map(variant=>({...variant,stock:Number(stock.get(variant.id)?.quantity??0),costPrice:Number(stock.get(variant.id)?.average_cost??variant.costPrice??0)}));
-  product.stock=product.variants.length ? product.variants.reduce((sum,variant)=>sum+variant.stock,0) : Number(stock.get('')?.quantity??0);
+  product.stock=product.variants.length ? product.variants.reduce((sum,variant)=>sum.plus(variant.stock),new Decimal(0)).toNumber() : Number(stock.get('')?.quantity??0);
   product.costPrice=Number(stock.get('')?.average_cost??product.costPrice??0);
   return product;
 }

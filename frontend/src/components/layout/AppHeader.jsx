@@ -14,6 +14,7 @@ import {
 } from '../common/Icons';
 
 const PAGE_META = {
+  license:{title:'التراخيص والتجديد',subtitle:'حالة الترخيص والخصائص المرخصة',icon:DocumentChartBarIcon},
   users:{title:'المستخدمون والأدوار',subtitle:'إدارة المستخدمين وصلاحيات الوصول',icon:UsersIcon},
   printing:{title:'إعدادات الطباعة',subtitle:'الجهاز والطابعات وتصميم إيصال الكاشير',icon:DocumentTextIcon},
   operations: {title:'النسخ والاستعادة',subtitle:'تشغيل السيرفر والنسخ الآمن',icon:DocumentChartBarIcon},

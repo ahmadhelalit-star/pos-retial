@@ -33,7 +33,7 @@ export async function createActivationService({pool,publicKey,integrityPath,coll
         const state={...row.state,lastSeen:Math.max(time,Number(row.state.lastSeen))};
         await db.query('UPDATE retail_activation SET state=$1,mac=$2,updated_at=now() WHERE id=1',[state,mac(state)]);
         if(license.expiresAt!==null&&time>=Date.parse(license.expiresAt))return {status:'EXPIRED',activated:false,expiresAt:license.expiresAt};
-        return {status:'ACTIVE',activated:true,product:'retail',features:license.features,expiresAt:license.expiresAt,licenseId:license.licenseId,maxClients:license.maxClients??0};
+        return {status:'ACTIVE',activated:true,product:'retail',features:license.features,expiresAt:license.expiresAt,licenseId:license.licenseId,maxClients:license.maxClients??0,licenseType:license.licenseType,validityDays:license.validityDays,issuedAt:license.issuedAt,revisionAt:license.revisionAt??null};
       }catch{return {status:'INVALID_LICENSE',activated:false};}
     });
   }
@@ -62,5 +62,16 @@ export async function createActivationService({pool,publicKey,integrityPath,coll
       await db.query('UPDATE retail_activation SET code=$1,state=$2,mac=$3,updated_at=now() WHERE id=1',[code,state,mac(state)]);
     });return status();
   }
-  return {status,request,activate};
+  async function currentRequest(){
+    const current=await status();if(current.status!=='ACTIVE')fail(409,'ACTIVATION_REQUIRED','A valid Retail license is required');
+    return transaction(pool,async db=>{
+      await db.query("SELECT pg_advisory_xact_lock(hashtext('retail:activation'))");
+      const row=(await db.query('SELECT * FROM retail_activation WHERE id=1')).rows[0];
+      if(!row||row.mac!==mac(row.state)||row.state.codeHash!==codeHash(row.code))fail(409,'STATE_REVIEW_REQUIRED','License integrity requires review');
+      const license=protocol.verifyRetailCode(row.code,publicKeyObject),request=row.request;
+      if(!request||request.product!=='retail'||request.retailVersion!==1||request.fingerprintHash!==license.fingerprintHash||request.fingerprintSource!==license.fingerprintSource)fail(409,'REQUEST_UNAVAILABLE','طلب الجهاز الحالي غير متاح. راجع مسؤول التفعيل / Current device request unavailable');
+      return {requestCode:protocol.legacy.createRequestCode(request)};
+    });
+  }
+  return {status,request,activate,currentRequest};
 }

@@ -14,6 +14,12 @@ test('401 invalidates auth and server validation errors retain detail',async()=>
 test('server search is bounded and encodes barcode/search filters',()=>{
   const query=productQuery({q:'A&B',page:3,limit:50,category:'all',stock:'low_stock'});assert.match(query,/page=3/);assert.match(query,/limit=50/);assert.match(query,/q=A%26B/);assert.doesNotMatch(query,/category=/);
 });
+
+test('local printing uses the authenticated API cookie path and CSRF protection',async()=>{
+  let call;const api=createApiClient({fetcher:async(url,options)=>{call={url,options};return {ok:true,json:async()=>({saved:true})};}});
+  api.setCsrfToken('local-csrf');await api.request('/local/thermal',{method:'PUT',body:{enabled:false}});
+  assert.equal(call.url,'/api/local/thermal');assert.equal(call.options.credentials,'include');assert.equal(call.options.headers['X-Retail-Local'],'1');assert.equal(call.options.headers['X-CSRF-Token'],'local-csrf');
+});
 test('bad server responses surface errors rather than falling back to browser data',async()=>{
   const api=createApiClient({fetcher:async()=>({status:502,json:async()=>{throw new Error('HTML proxy error');}})});await assert.rejects(api.request('/products'),ApiError);
 });

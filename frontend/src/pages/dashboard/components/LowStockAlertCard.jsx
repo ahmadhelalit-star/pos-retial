@@ -51,7 +51,7 @@ export function LowStockAlertCard({
 
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-200">
-                  متبقي {p.stock ?? 0} {p.unit || 'حبة'}
+                  متبقي {p.stock ?? 0} {p.unit || 'قطعة'}
                 </span>
               </div>
             </div>

@@ -1,10 +1,10 @@
 import { PrinterIcon } from '../../../components/common/Icons';
 
-export function ReceiptLivePreview({ settings }) {
+export function ReceiptLivePreview({ settings,onTestPrint,testDisabled=false }) {
   const is57mm = settings.receiptPaperWidth === '57mm';
 
   const handleTestPrint = () => {
-    window.print();
+    if(onTestPrint)onTestPrint();else window.print();
   };
 
   return (
@@ -17,6 +17,7 @@ export function ReceiptLivePreview({ settings }) {
         </div>
         <button
           type="button"
+          disabled={testDisabled}
           onClick={handleTestPrint}
           className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-[11px] font-bold text-gray-700 shadow-xs cursor-pointer transition-colors"
         >

@@ -12,12 +12,15 @@ export function apiRoutes(dependencies) {
   const route=(method,path,permission,handler)=>router[method](path,requirePermission(permission),handler);
   route('get','/products','catalog.read',c.products);
   route('get','/products/:id','catalog.read',c.product);
+  router.get('/products/:id/return-variants',(req,_res,next)=>{if(!['sales.return','sales.cancel','purchases.return'].some(p=>req.user.permissions.includes(p)))fail(403,'PERMISSION_DENIED','Return permission required');next();},c.returnVariants);
+  route('get','/products/:id/variant-balances','catalog.update',c.variantBalances);
   route('post','/products','catalog.create',c.createProduct);
   route('put','/products/:id','catalog.update',c.updateProduct);
   route('delete','/products/:id','catalog.archive',c.archiveProduct);
   route('get','/categories','catalog.read',c.categories);
   route('post','/categories','catalog.create',c.createCategory);
   route('put','/categories/:id','catalog.update',c.updateCategory);
+  route('put','/categories/:id/order','catalog.update',c.moveCategory);
   route('delete','/categories/:id','catalog.archive',c.deleteCategory);
   route('get','/stock/ledger','stock.read',c.ledger);
   route('post','/stock/movements','stock.post',c.postStock);
@@ -32,6 +35,7 @@ export function apiRoutes(dependencies) {
   route('put','/roles/:id','roles.manage',c.saveRole);
   route('get','/organization','organization.read',c.organization);
   route('post','/organization/warehouses','organization.manage',c.createWarehouse);
+  route('put','/organization/base-currency','organization.manage',c.setBaseCurrency);
   route('put','/organization/currencies','organization.manage',c.configureCurrency);
   route('put','/organization/taxes','organization.manage',c.configureTax);
   route('get','/modules','modules.read',c.modules);

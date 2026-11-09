@@ -134,6 +134,15 @@
 .retail-dark .retail-users .text-emerald-700 { color:#6ee7b7; }
 .retail-dark .retail-users .text-red-700 { color:#fca5a5; }
 .retail-dark .retail-users .retail-permission-thumb { background:white; }
+.retail-dark .retail-license [class~="bg-[#fafbff]"],.retail-dark .retail-license [class~="bg-[#f7f7fa]"] { background:#172235; }
+.retail-dark .retail-license [class~="bg-[#effcf6]"],.retail-dark .retail-license [class~="bg-[#dff7ea]"] { background:#14352d; }
+.retail-dark .retail-license [class~="bg-[#d6f4e5]"] { background:#1f5741; }
+.retail-dark .retail-license [class~="bg-[#e8e9ee]"] { background:#263249; }
+.retail-dark .retail-license [class~="text-[#006340]"] { color:#86efac; }
+.retail-dark .retail-license [class~="text-[#737986]"] { color:#aabbcc; }
+.retail-dark .retail-license [class~="bg-[#fff9e5]"] { background:#40391e; }
+.retail-dark .retail-license [class~="text-[#695600]"] { color:#f4dc95; }
+.retail-dark .retail-license [class~="border-[#cdd3df]"],.retail-dark .retail-license [class~="border-[#dce1ec]"],.retail-dark .retail-license [class~="border-[#dde1ea]"],.retail-dark .retail-license [class~="border-[#d9dce4]"] { border-color:#344258; }
 .retail-sidebar-session>button { padding:8px; border:1px solid var(--retail-line); border-radius:9px; background:var(--retail-paper); color:var(--retail-brand); font-size:12px; cursor:pointer; }
 .retail-sidebar-session>button:hover { background:var(--retail-surface); }
 .retail-sidebar-session>button:last-child { grid-column:1/-1; color:#dc2626; }
@@ -142,3 +151,11 @@
 .retail-section-tabs { display:flex; flex-wrap:wrap; gap:6px; padding:12px 16px; background:var(--retail-paper); border-bottom:1px solid var(--retail-line); flex-shrink:0; }
 .retail-section-tabs button { padding:8px 16px; border:1px solid var(--retail-line); border-radius:10px; font-size:12px; color:var(--retail-brand); cursor:pointer; }
 .retail-section-tabs button[aria-current=page] { background:#00236f; color:white; border-color:#00236f; }
+
+.retail-dark .retail-thermal-printing { background:#111c2b; }
+.retail-dark .retail-thermal-printing [class~="bg-[#e2e8f8]"] { background:#263657; }
+.retail-dark .retail-thermal-printing [class~="border-[#c5c5d3]"] { border-color:#405477; }
+.retail-dark .retail-thermal-printing .text-emerald-700 { color:#6ee7b7; }
+.retail-dark .retail-thermal-printing .bg-emerald-50 { background:#14352d; }
+.retail-dark .retail-thermal-printing .bg-red-50 { background:#3a1d28; }
+.retail-dark .retail-thermal-printing .text-red-700 { color:#fca5a5; }

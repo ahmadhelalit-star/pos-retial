@@ -35,7 +35,7 @@ export function NewPurchaseInvoiceModal({
   const [qty, setQty] = useState('10');
   const [costPrice, setCostPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
-  const [unit, setUnit] = useState('حبة');
+  const [unit, setUnit] = useState('قطعة');
   const [unitId, setUnitId] = useState('base');
   const [variantId, setVariantId] = useState('');
   const [itemError, setItemError] = useState('');
@@ -60,7 +60,7 @@ export function NewPurchaseInvoiceModal({
     setItemError('');
     setCostPrice(String((prod.costPrice ?? 0) * (purchaseUnit?.factor ?? 1)));
     setSellingPrice(String(purchaseUnit?.price ?? prod.price ?? 0));
-    setUnit(prod.unit || 'حبة');
+    setUnit(prod.unit || 'قطعة');
     setIsCustomItem(false);
   };
 
@@ -86,7 +86,7 @@ export function NewPurchaseInvoiceModal({
         qty: numQty,
         costPrice: numCost,
         sellingPrice: numSell,
-        unit: unit || 'حبة',
+        unit: unit || 'قطعة',
         total: numQty * numCost,
         isNewProduct: true,
         allowFractional: !Number.isInteger(numQty),
