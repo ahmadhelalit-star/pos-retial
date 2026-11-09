@@ -13,7 +13,7 @@ export function ReceiptLivePreview({ settings }) {
       <div className="w-full flex items-center justify-between mb-3 text-xs">
         <div className="flex items-center gap-1.5 font-bold text-gray-700">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>معاينة حية للإيصال الحراري</span>
+          <span>معاينة تصميم الإيصال · بيانات توضيحية</span>
         </div>
         <button
           type="button"

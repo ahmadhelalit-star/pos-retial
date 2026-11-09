@@ -19,7 +19,7 @@ export function CashDenominationTable({
   onResetCounts,
   onAutofillExpected,
   actualCountedTotal,
-  expectedTotal,
+  expectedTotal: _expectedTotal,
   isShiftOpen,
 }) {
   const handleStep = (value, delta) => {

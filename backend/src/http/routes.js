@@ -15,11 +15,16 @@ export function apiRoutes(dependencies) {
   route('post','/products','catalog.create',c.createProduct);
   route('put','/products/:id','catalog.update',c.updateProduct);
   route('delete','/products/:id','catalog.archive',c.archiveProduct);
+  route('get','/categories','catalog.read',c.categories);
+  route('post','/categories','catalog.create',c.createCategory);
+  route('put','/categories/:id','catalog.update',c.updateCategory);
+  route('delete','/categories/:id','catalog.archive',c.deleteCategory);
   route('get','/stock/ledger','stock.read',c.ledger);
   route('post','/stock/movements','stock.post',c.postStock);
   route('post','/imports/preview','imports.preview',c.previewImport);
   route('post','/imports/commit','imports.commit',c.commitImport);
   route('get','/users','users.read',c.users);
+  route('get','/users/:id','users.read',c.user);
   route('post','/users','users.manage',c.saveUser);
   route('put','/users/:id','users.manage',c.saveUser);
   route('get','/roles','roles.read',c.roles);

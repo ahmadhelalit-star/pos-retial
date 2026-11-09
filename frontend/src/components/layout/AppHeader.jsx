@@ -14,6 +14,8 @@ import {
 } from '../common/Icons';
 
 const PAGE_META = {
+  users:{title:'المستخدمون والأدوار',subtitle:'إدارة المستخدمين وصلاحيات الوصول',icon:UsersIcon},
+  printing:{title:'إعدادات الطباعة',subtitle:'الجهاز والطابعات وتصميم إيصال الكاشير',icon:DocumentTextIcon},
   operations: {title:'النسخ والاستعادة',subtitle:'تشغيل السيرفر والنسخ الآمن',icon:DocumentChartBarIcon},
   devices: {title:'الجهاز والطابعات',subtitle:'إعدادات هذه المحطة',icon:DocumentChartBarIcon},
   orders: {title:'أوامر البيع',subtitle:'عروض الأسعار والتسليم والفوترة',icon:DocumentTextIcon},

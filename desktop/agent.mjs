@@ -4,7 +4,7 @@ import http from 'node:http';
 import { readFile,mkdir } from 'node:fs/promises';
 import { dirname,resolve,join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { randomUUID,createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { atomicJSON,readJSON } from '../backend/src/operations/files.js';
@@ -13,7 +13,7 @@ import { renderPrintJob } from './render-print.mjs';
 import { releaseVersion } from './release.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),path=resolve(process.argv[2]),run=promisify(execFile);let config=await readJSON(path);
 if(config.product!=='retail-cashier'||!Number.isInteger(config.port)||config.port<1024||config.port>65535)throw Error('Invalid cashier configuration');const upstream=new URL(config.server);if(upstream.protocol!=='https:'||upstream.username||upstream.password||upstream.search||upstream.pathname!=='/')throw Error('Trusted HTTPS server origin required');
-const ca=await readFile(config.caFile),directory=join(dirname(path),'queue');config.terminalId??=randomUUID();config.printers??={};await atomicJSON(path,config);await mkdir(directory,{recursive:true});
+const ca=await readFile(config.caFile),directory=join(dirname(path),'queue',createHash('sha256').update(upstream.origin).digest('hex').slice(0,24));config.terminalId??=randomUUID();config.printers??={};await atomicJSON(path,config);await mkdir(directory,{recursive:true});
 const agent=new https.Agent({ca,rejectUnauthorized:true,minVersion:'TLSv1.2'}),localOrigin=`http://127.0.0.1:${config.port}`;
 function getJob(id,cookie){return new Promise((resolve,reject)=>{const request=https.get(new URL(`/api/print-jobs/${id}`,upstream),{agent,headers:{Cookie:cookie??'',Origin:upstream.origin}},response=>{let text='';response.on('data',data=>{text+=data;if(text.length>8*1024*1024)request.destroy(Error('Print document exceeds limit'));});response.on('end',()=>{try{if(response.statusCode!==200)throw Error('Print job access denied');resolve(JSON.parse(text));}catch(error){reject(error);}});});request.setTimeout(15000,()=>request.destroy(Error('Server timeout')));request.on('error',reject);});}
 const queue=new PrintQueue({directory,render:job=>renderPrintJob(job,{chrome:config.chrome,directory:join(directory,job.id)}),spool:async(printer,pages,id)=>{const input=join(directory,id+'.print.json');await atomicJSON(input,{printer,pages,id});await run('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',join(root,'desktop/windows/Print-Images.ps1'),'-InputPath',input],{windowsHide:true,timeout:120000,maxBuffer:1024*1024});}});await queue.initialize();
@@ -24,6 +24,7 @@ app.post('/local/shutdown',(_req,res)=>{res.json({stopping:true});clearInterval(
 app.get('/local/printers',async(_req,res)=>{const {stdout}=await run('powershell.exe',['-NoProfile','-NonInteractive','-Command',"[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); @(Get-Printer | Select-Object Name,DriverName,PortName,PrinterStatus) | ConvertTo-Json -Compress"],{windowsHide:true,timeout:15000});const value=JSON.parse(stdout||'[]');res.json({items:Array.isArray(value)?value:[value]});});
 app.put('/local/printers',async(req,res)=>{const allowed=['receipt','return','invoice','labels','shift_report'];if(!req.body||Object.entries(req.body).some(([key,value])=>!allowed.includes(key)||typeof value!=='string'||value.length>250))throw Error('Invalid printer settings');config={...config,printers:req.body};await atomicJSON(path,config);res.json({saved:true});});
 app.post('/local/print',async(req,res)=>{const id=String(req.body.id);if(!/^[a-f0-9-]{36}$/.test(id))throw Error('Invalid print job');const job=await getJob(id,req.headers.cookie);if(job.dispatch_terminal!==config.terminalId)throw Error('Job must be assigned to this terminal first');const printer=config.printers[job.kind];if(!printer)throw Error('Choose a default printer for this document type');const record=await queue.enqueue(job,printer);void queue.work();res.status(202).json({id:record.id,state:record.state});});
+app.get('/local/print',async(_req,res)=>res.json({items:await queue.list()}));
 app.get('/local/print/:id',async(req,res)=>{const record=await queue.read(req.params.id);if(!record)return res.status(404).json({error:{message:'Job not found'}});res.json({id:record.id,state:record.state,message:record.message});});
 app.post('/local/print/:id/retry',async(req,res)=>{await queue.retry(req.params.id);void queue.work();res.json({queued:true});});
 app.post('/local/print/:id/review',async(req,res)=>{res.json(await queue.review(req.params.id,req.body.outcome));});

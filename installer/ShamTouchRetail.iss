@@ -5,7 +5,7 @@
   #error OutputDirectory required
 #endif
 #ifndef AppVersion
-  #define AppVersion "0.4.0-rc.1"
+  #define AppVersion "0.4.0-rc.2"
 #endif
 #ifndef ServerReleaseHash
   #error ServerReleaseHash required
@@ -47,6 +47,8 @@ Source: "{#SourceDir}\RetailCashier.exe"; DestDir: "{app}"; Components: cashier;
 [Icons]
 Name: "{autoprograms}\Sham Touch Retail\Cashier"; Filename: "{app}\RetailCashier.exe"; Components: cashier
 Name: "{autodesktop}\Sham Touch Retail"; Filename: "{app}\RetailCashier.exe"; Components: cashier
+Name: "{autoprograms}\Sham Touch Retail\Cashier connection settings"; Filename: "{app}\RetailCashier.exe"; Parameters: "--configure"; Components: cashier
+Name: "{autoprograms}\Sham Touch Retail\Server status"; Filename: "powershell.exe"; Parameters: "-NoProfile -NoExit -ExecutionPolicy Bypass -File ""{app}\service\Manage-RetailService.ps1"" -Action Status -InstallDir ""{app}"""; Components: server
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\service\Manage-RetailService.ps1"" -Action Remove -InstallDir ""{app}"""; Components: server; Flags: runhidden; RunOnceId: RemoveRetailService
 Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\service\Configure-Firewall.ps1"" -Action Remove"; Components: server; Flags: runhidden; RunOnceId: RemoveRetailFirewall
@@ -56,6 +58,7 @@ var
   ServerPage, PgPage, BusinessPage, ClientPage: TInputQueryWizardPage;
   BackupPage: TInputDirWizardPage;
   Prepared, Activated, HadServer: Boolean;
+  TrustedRoot: String;
 function J(S: String): String;
 begin
   StringChangeEx(S, '\', '\\', True); StringChangeEx(S, '"', '\"', True);
@@ -92,6 +95,12 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  if CurPageID = ServerPage.ID then
+    if (StrToIntDef(ServerPage.Values[1],0) < 1024) or (StrToIntDef(ServerPage.Values[1],0) > 65535) or (Pos('https://',Lowercase(ServerPage.Values[0])) <> 1) then begin MsgBox('Enter an HTTPS address and a port between 1024 and 65535.', mbError, MB_OK); Result := False; end;
+  if CurPageID = PgPage.ID then
+    if (StrToIntDef(PgPage.Values[0],0) < 1) or (StrToIntDef(PgPage.Values[0],0) > 65535) or (Length(PgPage.Values[1]) = 0) or (Pos('sham_touch_retail_',PgPage.Values[3]) <> 1) then begin MsgBox('Enter a valid local PostgreSQL port, administrator and independent Retail database.', mbError, MB_OK); Result := False; end;
+  if CurPageID = ClientPage.ID then
+    if (Pos('https://',Lowercase(ClientPage.Values[0])) <> 1) or ((not WizardIsComponentSelected('server')) and (not FileExists(ClientPage.Values[1]))) then begin MsgBox('Enter an HTTPS server and its public PEM certificate.', mbError, MB_OK); Result := False; end;
   if CurPageID = BusinessPage.ID then
     if (Length(BusinessPage.Values[2]) < 12) or (Length(BusinessPage.Values[1]) < 3) or (Length(BusinessPage.Values[0]) < 1) then begin MsgBox('Enter the business name, username and a password of at least 12 characters.', mbError, MB_OK); Result := False; end;
 end;
@@ -99,11 +108,24 @@ function RunPS(Script, Params: String): Boolean;
 var Code: Integer;
 begin Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + Script + '" ' + Params, '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 0); end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
-var Existing, Expected: String;
+var Existing, Expected, Pointer, PriorVersion: String; PointerRaw: AnsiString; Index, Last: Integer;
 begin
   Result := ''; Existing := ExpandConstant('{app}\versions\{#AppVersion}\release.json');
   if WizardIsComponentSelected('server') then Expected := '{#ServerReleaseHash}' else Expected := '{#CashierReleaseHash}';
   if FileExists(Existing) and (CompareText(GetSHA256OfFile(Existing), Expected) <> 0) then begin Result := 'A different package already uses this version. Use a new signed version; existing files were preserved.'; exit; end;
+  TrustedRoot := '';
+  if LoadStringFromFile(ExpandConstant('{app}\current.json'),PointerRaw) then begin
+    Pointer := PointerRaw;
+    StringChangeEx(Pointer,' ','',True); StringChangeEx(Pointer,#13,'',True); StringChangeEx(Pointer,#10,'',True); StringChangeEx(Pointer,#9,'',True);
+    Index := Pos('"version":"',Pointer);
+    if Index = 0 then begin Result := 'Invalid current Retail version pointer.'; exit; end;
+    Delete(Pointer,1,Index+10); Last := Pos('"',Pointer);
+    if Last < 2 then begin Result := 'Invalid current Retail version.'; exit; end;
+    PriorVersion := Copy(Pointer,1,Last-1);
+    for Index := 1 to Length(PriorVersion) do if Pos(Copy(PriorVersion,Index,1),'0123456789.rc-') = 0 then begin Result := 'Unsafe current Retail version path.'; exit; end;
+    TrustedRoot := ExpandConstant('{app}\versions\')+PriorVersion;
+    if not FileExists(TrustedRoot+'\desktop\verify-and-activate.mjs') then begin Result := 'This installed version needs a reviewed updater bootstrap. No files were changed.'; exit; end;
+  end;
   HadServer := FileExists(ExpandConstant('{app}\service\ShamTouchRetailServer.exe'));
   if HadServer then begin
     if not WizardIsComponentSelected('server') then begin Result := 'Include the server component to update this server installation safely.'; exit; end;
@@ -112,7 +134,7 @@ begin
   Prepared := True;
 end;
 procedure CurStepChanged(CurStep: TSetupStep);
-var VersionRoot, Input, Mode, Config, Certificate: String; Code: Integer;
+var VersionRoot, Input, Mode, Config, Certificate, Updater, NodePath: String; Code: Integer;
 begin
   if CurStep <> ssPostInstall then exit;
   VersionRoot := ExpandConstant('{app}\versions\{#AppVersion}'); Mode := 'cashier';
@@ -124,7 +146,9 @@ begin
       if not RunPS(VersionRoot+'\desktop\windows\Configure-Server.ps1','-InstallDir "'+VersionRoot+'" -InputPath "'+ExpandConstant('{tmp}\retail-setup.json')+'"') then RaiseException('Retail server configuration failed. Existing databases were preserved. Review installation prerequisites.');
     end;
   end;
-  if not Exec(VersionRoot+'\runtime\node.exe','"'+VersionRoot+'\desktop\activate.mjs" "'+ExpandConstant('{app}')+'" "'+VersionRoot+'" '+Mode,'',SW_HIDE,ewWaitUntilTerminated,Code) or (Code <> 0) then RaiseException('Retail activation/update failed. Previous code and database were preserved; review the update journal.');
+  NodePath := VersionRoot+'\runtime\node.exe'; Updater := VersionRoot+'\desktop\activate.mjs';
+  if TrustedRoot <> '' then begin NodePath := TrustedRoot+'\runtime\node.exe'; Updater := TrustedRoot+'\desktop\verify-and-activate.mjs'; end;
+  if not Exec(NodePath,'"'+Updater+'" "'+ExpandConstant('{app}')+'" "'+VersionRoot+'" '+Mode,'',SW_HIDE,ewWaitUntilTerminated,Code) or (Code <> 0) then RaiseException('Retail activation/update failed. Previous code and database were preserved; review the update journal.');
   Activated := True;
   if WizardIsComponentSelected('cashier') then begin
     Certificate := ClientPage.Values[1]; if Certificate = '' then Certificate := ExpandConstant('{commonappdata}\Sham Touch\Retail Public\server-ca.pem');

@@ -30,7 +30,7 @@ export function ProductOptionsEditor({ value, onChange, baseUnitId, allowFractio
       <label>{t("الباركود")}<input className={inputClass} value={variant.barcode} onChange={(event) => updateVariant(variant.id, 'barcode', event.target.value)} /></label>
       <label>{t("سعر الوحدة الأساسية")}<input className={inputClass} type="number" min="0" step="any" value={variant.price} onChange={(event) => updateVariant(variant.id, 'price', Number(event.target.value))} /></label>
       <label>{t("الرصيد")}<input className={inputClass} type="number" min="0" disabled={stockReadOnly || type !== 'stock'} step={allowFractional ? 'any' : '1'} value={variant.stock} onChange={(event) => updateVariant(variant.id, 'stock', Number(event.target.value))} /></label>
-      {value.units.map(unit => <label key={unit.id}>سعر مستقل — {unit.name || 'وحدة جديدة'}<input className={inputClass} type="number" min="0" step="any" placeholder={t("محسوب تلقائيًا")} value={variant.unitPrices?.[unit.id] ?? ''} onChange={event => {
+      {value.units.map(unit => <label key={unit.id}>{t('سعر مستقل')} — {unit.name || t('وحدة جديدة')}<input className={inputClass} type="number" min="0" step="any" placeholder={t("محسوب تلقائيًا")} value={variant.unitPrices?.[unit.id] ?? ''} onChange={event => {
         const unitPrices = { ...variant.unitPrices };
         if (event.target.value === '') delete unitPrices[unit.id]; else unitPrices[unit.id] = Number(event.target.value);
         updateVariant(variant.id, 'unitPrices', unitPrices);

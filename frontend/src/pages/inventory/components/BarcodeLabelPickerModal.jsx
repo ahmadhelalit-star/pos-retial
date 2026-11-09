@@ -7,11 +7,13 @@ export function BarcodeLabelPickerModal({
   onClose,
   products = [],
   onSelectProduct,
+  serverQuery,serverTotal,onServerQueryChange,
 }) {
   useLocale();
   const [query, setQuery] = useState('');
 
   const filteredProducts = useMemo(() => {
+    if(serverQuery)return products;
     const q = query.trim().toLowerCase();
     if (!q) return products;
     return products.filter(
@@ -19,7 +21,7 @@ export function BarcodeLabelPickerModal({
         product.name.toLowerCase().includes(q) ||
         (product.barcode || '').includes(q)
     );
-  }, [products, query]);
+  }, [products, query,serverQuery]);
 
   if (!isOpen) return null;
 
@@ -45,8 +47,9 @@ export function BarcodeLabelPickerModal({
             <SearchIcon className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={serverQuery?.q??query}
+              aria-label="Label product search"
+              onChange={(event) => {setQuery(event.target.value);onServerQueryChange?.({q:event.target.value,page:1});}}
               placeholder={t("ابحث بالاسم أو الباركود...")}
               className="w-full pr-9 pl-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
               autoFocus
@@ -80,6 +83,7 @@ export function BarcodeLabelPickerModal({
             </button>
           ))}
         </div>
+        {serverQuery&&<div className="retail-pager flex justify-center gap-4 p-3 border-t"><button type="button" disabled={serverQuery.page<=1} onClick={()=>onServerQueryChange({page:serverQuery.page-1})}>{t('السابق')}</button><span>{serverQuery.page} · {serverTotal??0}</span><button type="button" disabled={serverQuery.page*serverQuery.limit>=(serverTotal??0)} onClick={()=>onServerQueryChange({page:serverQuery.page+1})}>{t('التالي')}</button></div>}
       </div>
     </div>
   );

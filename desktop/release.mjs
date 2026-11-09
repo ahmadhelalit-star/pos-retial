@@ -1,7 +1,7 @@
 import { createHash,verify,createPublicKey } from 'node:crypto';
 import { readFile,readdir,lstat } from 'node:fs/promises';
 import { join,resolve,relative,sep } from 'node:path';
-export const releaseVersion='0.4.0-rc.1';
+export const releaseVersion='0.4.0-rc.2';
 export function compareVersions(a,b){const parse=value=>{const match=/^(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?$/.exec(value);if(!match)throw Error('Unsupported Retail version');return [Number(match[1]),Number(match[2]),Number(match[3]),match[4]===undefined?Number.MAX_SAFE_INTEGER:Number(match[4])];};const left=parse(a),right=parse(b);for(let i=0;i<4;i++)if(left[i]!==right[i])return left[i]>right[i]?1:-1;return 0;}
 export async function releaseFiles(directory){const files=[];async function walk(path){for(const entry of await readdir(path,{withFileTypes:true})){const full=join(path,entry.name);if((await lstat(full)).isSymbolicLink())throw Error('Release links are prohibited');if(entry.isDirectory())await walk(full);else{const name=relative(directory,full).split(sep).join('/');if(name==='release.json')continue;if(/(^|\/)(\.env|data|backups|secrets|logs|runtime-state|server-private\.json)(\/|$)/i.test(name))throw Error('Customer data or secrets cannot be packaged');const bytes=await readFile(full);files.push({path:name,size:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}}}await walk(directory);return files.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);}
 export async function verifyRelease(directory,publicKey,currentVersion){

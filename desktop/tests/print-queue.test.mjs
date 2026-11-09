@@ -14,3 +14,8 @@ test('crash between submitting and acknowledgement becomes uncertain on restart'
 test('failure before spool can retry the same job exactly once',async()=>{
   const directory=join(root,randomUUID());await mkdir(directory,{recursive:true});let renders=0,sends=0;const queue=new PrintQueue({directory,render:async()=>{if(++renders===1)throw Error('Synthetic renderer failure');return ['page'];},spool:async()=>{sends++;}}),job={id:randomUUID(),payload:{},kind:'receipt',format:'58mm'};await queue.enqueue(job,'Synthetic printer');await queue.work();assert.equal((await queue.read(job.id)).state,'render_failed');await queue.retry(job.id);await queue.work();await queue.work();assert.equal(sends,1);assert.equal((await queue.read(job.id)).state,'spooled');
 });
+
+test('concurrent duplicate enqueue remains one durable job and one spool submission',async()=>{
+  const directory=join(root,randomUUID());let sends=0;const queue=new PrintQueue({directory,render:async()=>['page'],spool:async()=>{sends++;}});await queue.initialize();const job={id:randomUUID(),kind:'receipt',format:'80mm',payload:{number:'CONCURRENT-ONLY'}};
+  await Promise.all(Array.from({length:20},()=>queue.enqueue(job,'Synthetic printer')));await Promise.all([queue.work(),queue.work()]);assert.equal(sends,1);assert.equal((await queue.list()).length,1);assert.equal((await queue.list())[0].state,'spooled');
+});

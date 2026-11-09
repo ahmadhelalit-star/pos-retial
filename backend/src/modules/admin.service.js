@@ -8,7 +8,7 @@ import { passwordSchema,usernameSchema } from './bootstrap.service.js';
 import { audit } from './common.js';
 
 const roleSchema = z.object({name:z.string().trim().min(1).max(100),permissions:z.array(z.enum(PERMISSIONS)).max(100)}).strict();
-const userSchema = z.object({username:usernameSchema,name:z.string().trim().min(1).max(200),password:passwordSchema.optional(),active:z.boolean().default(true),roleIds:z.array(z.string().uuid()).min(1).max(20),branches:z.array(z.string().uuid()).min(1).max(100),warehouses:z.array(z.string().uuid()).min(1).max(100)}).strict();
+const userSchema = z.object({username:usernameSchema.optional(),phone:z.string().max(50).optional(),name:z.string().trim().min(1).max(200),password:passwordSchema.optional(),active:z.boolean().default(true),roleIds:z.array(z.string().uuid()).min(1).max(20),branches:z.array(z.string().uuid()).min(1).max(100),warehouses:z.array(z.string().uuid()).min(1).max(100)}).strict();
 async function lockCompany(db,user) { await db.query('SELECT id FROM companies WHERE id=$1 FOR UPDATE',[user.companyId]); }
 async function protectAdmin(db,companyId) {
   const result=await db.query('SELECT 1 FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE u.company_id=$1 AND u.active AND r.is_admin LIMIT 1',[companyId]);
@@ -36,6 +36,7 @@ export async function saveUser(pool,user,id,input) {
   const data=userSchema.parse(input);
   if (!id && !data.password) fail(400,'PASSWORD_REQUIRED','Password required');
   if (data.branches.some(value=>!user.branches.includes(value)) || data.warehouses.some(value=>!user.warehouses.includes(value))) fail(403,'SCOPE_GRANT_DENIED','Cannot grant a wider branch/warehouse scope');
+  let loginName=data.username??(id?null:'local_'+randomUUID());
   const passwordHash=data.password?await hashPassword(data.password):null;
   return transaction(pool,async db=>{
     await lockCompany(db,user);
@@ -51,15 +52,16 @@ export async function saveUser(pool,user,id,input) {
       if (!warehouse || !data.branches.includes(warehouse.branch_id)) fail(400,'INVALID_SCOPE','Warehouse must belong to an assigned branch');
     }
     if (id) {
-      const result=await db.query('UPDATE users SET username=$3,name=$4,active=$5,password_hash=COALESCE($6,password_hash) WHERE company_id=$1 AND id=$2',[user.companyId,id,data.username,data.name,data.active,passwordHash]);
+      const result=await db.query('UPDATE users SET username=COALESCE($3,username),name=$4,active=$5,password_hash=COALESCE($6,password_hash),phone=COALESCE($7,phone) WHERE company_id=$1 AND id=$2 RETURNING username',[user.companyId,id,loginName,data.name,data.active,passwordHash,data.phone??null]);
       if (!result.rowCount) fail(404,'NOT_FOUND','User not found');
+      loginName=result.rows[0].username;
       for (const table of ['user_roles','user_branches','user_warehouses']) await db.query(`DELETE FROM ${table} WHERE user_id=$1`,[id]);
       await db.query('DELETE FROM sessions WHERE user_id=$1',[id]);
-    } else { id=randomUUID(); await db.query('INSERT INTO users(id,company_id,username,name,password_hash,active) VALUES($1,$2,$3,$4,$5,$6)',[id,user.companyId,data.username,data.name,passwordHash,data.active]); }
+    } else { id=randomUUID(); await db.query('INSERT INTO users(id,company_id,username,name,password_hash,active,phone) VALUES($1,$2,$3,$4,$5,$6,$7)',[id,user.companyId,loginName,data.name,passwordHash,data.active,data.phone??'']); }
     for (const roleId of new Set(data.roleIds)) await db.query('INSERT INTO user_roles VALUES($1,$2,$3)',[user.companyId,id,roleId]);
     for (const branchId of new Set(data.branches)) await db.query('INSERT INTO user_branches VALUES($1,$2,$3)',[user.companyId,id,branchId]);
     for (const warehouseId of new Set(data.warehouses)) await db.query('INSERT INTO user_warehouses VALUES($1,$2,$3)',[user.companyId,id,warehouseId]);
     await protectAdmin(db,user.companyId); await audit(db,user,'user.save',id,{active:data.active,roleIds:data.roleIds});
-    return {id,username:data.username,name:data.name,active:data.active};
+    return {id,username:loginName,name:data.name,active:data.active};
   });
 }

@@ -5,8 +5,8 @@ export function createApiClient({fetcher=globalThis.fetch,base='/api',onUnauthor
   let csrfToken=null;
   return {
     setCsrfToken(value){csrfToken=value;},
-    async request(path,{method='GET',body,key,signal}={}){
-      const headers={};if(body!==undefined)headers['Content-Type']='application/json';if(csrfToken&&!['GET','HEAD'].includes(method))headers['X-CSRF-Token']=csrfToken;if(key)headers['Idempotency-Key']=key;
+    async request(path,{method='GET',body,key,signal,epoch,setupToken}={}){
+      const headers={};if(setupToken)headers['X-Retail-Setup-Token']=setupToken;if(epoch)headers['X-Retail-Data-Epoch']=epoch;if(body!==undefined)headers['Content-Type']='application/json';if(csrfToken&&!['GET','HEAD'].includes(method))headers['X-CSRF-Token']=csrfToken;if(key)headers['Idempotency-Key']=key;
       const response=await fetcher(base+path,{method,headers,credentials:'include',signal,body:body===undefined?undefined:JSON.stringify(body)});
       let data;try{data=await response.json();}catch{throw new ApiError(response.status,{message:'استجابة الخادم غير صالحة / Invalid server response'});}
       if(!response.ok){if(response.status===401)onUnauthorized();if(data.error?.code==='ACTIVATION_REQUIRED')onActivationRequired(data.error.details??{});throw new ApiError(response.status,data.error);}

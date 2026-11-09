@@ -4,11 +4,11 @@ import { transaction } from '../db/pool.js';
 import { hashPassword } from './auth.service.js';
 import { DEFAULT_ROLES, PERMISSIONS } from './registry.js';
 import { audit } from './common.js';
-export const passwordSchema = z.string().min(12).max(200);
+export const passwordSchema = z.string().min(1).max(200);
 export const usernameSchema = z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9_.@-]+$/);
 
-export async function bootstrap(pool, input) {
-  const values = z.object({company:z.string().trim().min(1).max(200),username:usernameSchema,password:passwordSchema,currency:z.string().regex(/^[A-Z]{3}$/).default('SAR')}).parse(input);
+export async function bootstrap(pool, input, { localFirstAdmin = false } = {}) {
+  const values = z.object({company:z.string().trim().min(1).max(200),name:z.string().trim().min(2).max(200).optional(),username:usernameSchema,password:localFirstAdmin?z.string().min(1).max(200):passwordSchema,currency:z.string().regex(/^[A-Z]{3}$/).default('SAR')}).parse(input);
   const passwordHash = await hashPassword(values.password);
   return transaction(pool, async (db) => {
     await db.query("SELECT pg_advisory_xact_lock(hashtext('retail:bootstrap'))");
@@ -19,7 +19,7 @@ export async function bootstrap(pool, input) {
     await db.query('INSERT INTO company_currencies(company_id,code,rate) VALUES($1,$2,1)',[companyId,values.currency]);
     await db.query("INSERT INTO branches(id,company_id,name) VALUES($1,$2,'Main')",[branchId,companyId]);
     await db.query("INSERT INTO warehouses(id,company_id,branch_id,name) VALUES($1,$2,$3,'Main')",[warehouseId,companyId,branchId]);
-    await db.query('INSERT INTO users(id,company_id,username,name,password_hash) VALUES($1,$2,$3,$3,$4)',[userId,companyId,values.username,passwordHash]);
+    await db.query('INSERT INTO users(id,company_id,username,name,password_hash) VALUES($1,$2,$3,$4,$5)',[userId,companyId,values.username,values.name??values.username,passwordHash]);
     for (const permission of PERMISSIONS) await db.query('INSERT INTO permissions(id) VALUES($1) ON CONFLICT DO NOTHING',[permission]);
     const roleIds={};
     for (const [name,permissions] of Object.entries(DEFAULT_ROLES)) {

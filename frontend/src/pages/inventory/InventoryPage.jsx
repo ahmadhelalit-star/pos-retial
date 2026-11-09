@@ -12,6 +12,7 @@ import { BarcodeLabelPickerModal } from './components/BarcodeLabelPickerModal';
 export function InventoryPage({
   products = [],
   initialLabelsOpen = false,
+  serverTotal,
   taxRatePercent = 15,
   onSaveProduct,
   onDeleteProduct,
@@ -22,6 +23,7 @@ export function InventoryPage({
   ledgerMode = false,
   financialOptions,
   onPrepareLabels,
+  onOpenCategories,
 }) {
   useLocale();
   const [localSearch, setLocalSearch] = useState('');
@@ -117,6 +119,7 @@ export function InventoryPage({
         isFiltered={isFiltered}
         searchPortalTarget={headerSearchSlot}
         canCreate={allowed('catalog.create')}
+        onOpenCategories={onOpenCategories}
       />
 
       {/* Products Table */}
@@ -149,9 +152,12 @@ export function InventoryPage({
         isOpen={isLabelPickerOpen}
         onClose={() => setIsLabelPickerOpen(false)}
         products={products}
+        serverQuery={serverQuery}
+        serverTotal={serverTotal}
+        onServerQueryChange={onServerQueryChange}
         onSelectProduct={(product) => {
           setIsLabelPickerOpen(false);
-          setBarcodeProduct(product);
+          if(onPrepareLabels)onPrepareLabels(product);else setBarcodeProduct(product);
         }}
       />
 

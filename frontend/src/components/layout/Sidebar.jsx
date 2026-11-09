@@ -16,6 +16,8 @@ import {
   TruckIcon,
   UsersIcon,
   UserIcon,
+  PrinterIcon,
+  ShieldCheckIcon,
 } from '../common/Icons';
 
 const SIDEBAR_OPEN_KEY = 'shamtouch:v1:sidebarOpen';
@@ -78,6 +80,8 @@ const MAIN_ITEMS = [
   },
 ];
 
+MAIN_ITEMS.push({id:'users',label:'المستخدمون',path:'/users',icon:UsersIcon,permissions:['users.read','roles.read']},{id:'printing',label:'إعدادات الطباعة',path:'/printing',icon:PrinterIcon,permissions:['organization.read']},{id:'license',label:'التراخيص والتجديد',path:'/license',icon:ShieldCheckIcon});
+
 const QUICK_LINKS = [
   {
     id: 'returns',
@@ -135,6 +139,9 @@ export function Sidebar({
   cashier = 'سامر النجار',
   shiftStatus = 'open',
   invoicesCount = 0,
+  sessionControls,
+  permissions = [],
+  advancedSales = false,
 }) {
   useLocale();
   const location = useLocation();
@@ -233,7 +240,7 @@ export function Sidebar({
   return (
     <div
       className={`no-print h-full shrink-0 ${
-        isMobile ? 'fixed inset-y-0 right-0 z-40' : 'relative z-20'
+        isMobile ? 'fixed inset-y-0 start-0 z-40' : 'relative z-20'
       }`}
     >
       {isMobile && isOpen && (
@@ -250,9 +257,9 @@ export function Sidebar({
         onClick={toggle}
         aria-expanded={isOpen}
         aria-label={t(isOpen ? 'إخفاء القائمة الجانبية' : 'إظهار القائمة الجانبية')}
-        title={isOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
-        className={`absolute top-3 z-0 flex h-10 w-7 items-center justify-center rounded-l-lg border border-r-0 border-[#c5c5d3] bg-white text-[#444651] shadow-md transition-colors hover:bg-[#f0f3ff] hover:text-[#00236f] ${
-          isOpen ? '-left-5' : '-left-7'
+        title={t(isOpen ? 'إخفاء القائمة' : 'إظهار القائمة')}
+        className={`absolute top-3 z-0 flex h-10 w-7 items-center justify-center rounded-e-lg border border-s-0 border-[#c5c5d3] bg-white text-[#444651] shadow-md transition-colors hover:bg-[#f0f3ff] hover:text-[#00236f] ${
+          isOpen ? '-end-5' : '-end-7'
         }`}
       >
         <ChevronDownIcon
@@ -264,7 +271,7 @@ export function Sidebar({
 
       <aside
         className={`relative z-10 flex h-full flex-col overflow-hidden border-[#c5c5d3] bg-[#eef3ff] transition-all duration-300 ${
-          isOpen ? 'w-[216px] border-l' : 'w-0 border-l-0'
+          isOpen ? 'w-[216px] border-e' : 'w-0 border-e-0'
         }`}
         style={{ width: isOpen ? EXPANDED_WIDTH : 0 }}
       >
@@ -292,7 +299,8 @@ export function Sidebar({
             <p className="px-3 pb-1 pt-1 text-[11px] font-bold text-[#9a9ba8]">
               القائمة الرئيسية
             </p>
-            {MAIN_ITEMS.map(renderLink)}
+            {MAIN_ITEMS.filter(item=>!item.permissions||item.permissions.some(p=>permissions.includes(p))).map(renderLink)}
+            {advancedSales&&renderLink({id:'orders',label:'أوامر البيع',path:'/orders',icon:DocumentTextIcon})}
 
             <div className="my-2 border-t border-[#c5c5d3]" />
 
@@ -351,6 +359,8 @@ export function Sidebar({
               </kbd>
             </Link>
           </nav>
+
+          {sessionControls && <div className="retail-sidebar-session mt-2 shrink-0 border-t border-[#c5c5d3] pt-3">{sessionControls}</div>}
 
           {/* User + shift status */}
           <div className="mt-2 shrink-0 rounded-xl border border-[#c5c5d3] bg-white/70 p-2.5">

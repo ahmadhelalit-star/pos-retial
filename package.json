@@ -1,0 +1,17 @@
+{
+  "name": "sham-touch-retail-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node developer/manage.mjs start",
+    "dev:start": "node developer/manage.mjs start",
+    "dev:stop": "node developer/manage.mjs stop",
+    "dev:status": "node developer/manage.mjs status",
+    "dev:configure": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File developer/Configure-Developer.ps1",
+    "dev:inspect": "node developer/database.mjs inspect",
+    "dev:setup": "node developer/database.mjs setup",
+    "dev:login": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File developer/Show-Login.ps1",
+    "dev:verify": "node developer/verify.mjs",
+    "dev:activation-key": "powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File developer/Show-ActivationKey.ps1"
+  }
+}

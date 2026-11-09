@@ -1,3 +1,4 @@
+import { readPresentation,savePresentation } from '../modules/presentation.service.js';
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -17,17 +18,17 @@ import { registerLegacyRoutes } from '../modules/legacy-commercial.service.js';
 import { allocateCredit } from '../modules/credit-allocation.service.js';
 import { D,round,companyCurrency } from '../modules/money.js';
 
-export function commercialRoutes({pool,licenseProvider}){
+export function commercialRoutes({pool,licenseProvider,config}){
   const router=Router();
   const active=async(req,_res,next)=>{const license=req.activation??await licenseProvider();if(license?.status!=='ACTIVE'||license.product!=='retail'||license.activated!==true)fail(403,'ACTIVATION_REQUIRED','Activate Retail before commercial operations',{activationStatus:license?.status??'NOT_ACTIVATED'});req.activation=license;next();};
   const advanced=async(req,_res,next)=>{const enabled=(await pool.query("SELECT enabled FROM module_configuration WHERE company_id=$1 AND module_id='advancedSales'",[req.user.companyId])).rows[0]?.enabled;if(!moduleAccess('advancedSales',req.activation,enabled,req.user.permissions))fail(403,'MODULE_UNAVAILABLE','Advanced Sales license, setting and permission required');next();};
   const route=(method,path,permission,handler,...middleware)=>router[method](path,requirePermission(permission),active,...middleware,handler);
   route('post','/sales/quote','sales.post',async(req,res)=>{const body=documentSchema.parse(req.body);res.json(await calculateCart(pool,req.user,bodyToCart(body)));});
   route('post','/purchases/quote','purchases.post',async(req,res)=>{const body=documentSchema.parse(req.body);res.json(await calculateCart(pool,req.user,bodyToCart(body),'purchase'));});
-  route('post','/sales','sales.post',async(req,res)=>res.status(201).json(await postDocument(pool,req.user,req.headers['idempotency-key'],req.body,'sale')));
+  route('post','/sales','sales.post',async(req,res)=>{if(req.headers['x-retail-data-epoch']&&req.headers['x-retail-data-epoch']!==config?.dataEpoch)fail(409,'DATA_EPOCH_CHANGED','Database was restored; administrator review of the pending sale required');res.status(201).json(await postDocument(pool,req.user,req.headers['idempotency-key'],req.body,'sale'));});
   route('get','/sales/recovery/:key','sales.post',async(req,res)=>{const key=z.string().regex(/^[A-Za-z0-9:_-]{8,160}$/).parse(req.params.key);res.json(await transaction(pool,async db=>{
     await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${req.user.companyId}:${key}`]);
-    const row=(await db.query('SELECT operation,response FROM idempotency_requests WHERE company_id=$1 AND key=$2',[req.user.companyId,key])).rows[0];if(!row)return {found:false};
+    const row=(await db.query('SELECT operation,response FROM idempotency_requests WHERE company_id=$1 AND key=$2',[req.user.companyId,key])).rows[0];if(!row)return {found:false,epoch:config?.dataEpoch};
     if(row.operation!=='document.sale')fail(409,'RECOVERY_OPERATION_MISMATCH','Request belongs to another operation');const document=(await db.query('SELECT created_by,warehouse_id FROM commercial_documents WHERE company_id=$1 AND id=$2',[req.user.companyId,row.response.id])).rows[0];if(!document||document.created_by!==req.user.id)fail(403,'RECOVERY_DENIED','Request belongs to another cashier');await requireWarehouse(db,req.user,document.warehouse_id);return {found:true,result:row.response};
   }));});
   route('get','/users/:id','users.read',async(req,res)=>{
@@ -41,14 +42,24 @@ export function commercialRoutes({pool,licenseProvider}){
   });
   for(const type of ['sales','purchases']){
     const kind=type==='sales'?'sale':'purchase';
-    route('get',`/${type}`,`${type}.read`,async(req,res)=>{const query=pagination.extend({q:z.string().max(100).optional()}).strict().parse(req.query),filter=query.q?' AND number ILIKE $5':'';const values=[req.user.companyId,[kind,`${kind}_return`],req.user.warehouses,...(query.q?[`%${query.q}%`]:[])];const total=Number((await pool.query(`SELECT count(*) FROM commercial_documents WHERE company_id=$1 AND kind=ANY($2::text[]) AND warehouse_id=ANY($3::uuid[])${filter.replace('$5','$4')}`,values)).rows[0].count);values.push(query.limit,(query.page-1)*query.limit);const items=(await pool.query(`SELECT id,number,kind,total,currency,created_at,snapshot FROM commercial_documents WHERE company_id=$1 AND kind=ANY($2::text[]) AND warehouse_id=ANY($3::uuid[])${filter.replace('$5','$4')} ORDER BY created_at DESC,id LIMIT $${values.length-1} OFFSET $${values.length}`,values)).rows;res.json({items,total,...query});});
+    route('get',`/${type}`,`${type}.read`,async(req,res)=>{
+      const query=pagination.extend({q:z.string().max(100).optional(),status:z.enum(['all','invoices','refunded']).default('all')}).strict().parse(req.query);
+      const kinds=query.status==='refunded'?[`${kind}_return`]:query.status==='invoices'?[kind]:[kind,`${kind}_return`],values=[req.user.companyId,kinds,req.user.warehouses];let where='company_id=$1 AND kind=ANY($2::text[]) AND warehouse_id=ANY($3::uuid[])';
+      if(query.q){values.push(`%${query.q}%`);where+=` AND number ILIKE $${values.length}`;}
+      const total=Number((await pool.query(`SELECT count(*) FROM commercial_documents WHERE ${where}`,values)).rows[0].count),items=(await pool.query(`SELECT id,number,kind,total,currency,created_at,snapshot FROM commercial_documents WHERE ${where} ORDER BY created_at DESC,id LIMIT $${values.length+1} OFFSET $${values.length+2}`,[...values,query.limit,(query.page-1)*query.limit])).rows;res.json({items,total,...query});
+    });
     route('post',`/${type}/:id/returns`,`${type}.return`,async(req,res)=>res.status(201).json(await reverseDocument(pool,req.user,req.headers['idempotency-key'],z.string().uuid().parse(req.params.id),req.body)));
   }
   route('post','/sales/:id/cancel','sales.cancel',async(req,res)=>res.status(201).json(await reverseDocument(pool,req.user,req.headers['idempotency-key'],z.string().uuid().parse(req.params.id),req.body,{cancel:true})));
   route('get','/documents/:id','catalog.read',async(req,res)=>{
     const row=(await pool.query('SELECT * FROM commercial_documents WHERE company_id=$1 AND id=$2',[req.user.companyId,z.string().uuid().parse(req.params.id)])).rows[0];if(!row)fail(404,'NOT_FOUND','Document not found');await requireWarehouse(pool,req.user,row.warehouse_id);if(!req.user.permissions.includes(row.kind.startsWith('sale')?'sales.read':'purchases.read'))fail(403,'PERMISSION_DENIED','Document permission required');const payments=(await pool.query('SELECT number,direction,method,currency,amount,exchange_rate,fx_base FROM payments WHERE company_id=$1 AND document_id=$2',[req.user.companyId,row.id])).rows;res.json({...row.snapshot,payments,cancelled:(await pool.query('SELECT 1 FROM document_cancellations WHERE company_id=$1 AND document_id=$2',[req.user.companyId,row.id])).rowCount>0});
   });
-  route('get','/partners','partners.read',async(req,res)=>{const query=pagination.extend({kind:z.enum(['customer','supplier']).optional(),q:z.string().max(100).default('')}).strict().parse(req.query);const values=[req.user.companyId,query.kind??null,`%${query.q}%`];const condition='company_id=$1 AND ($2::text IS NULL OR kind=$2) AND name ILIKE $3 AND archived_at IS NULL';const total=Number((await pool.query(`SELECT count(*) FROM partners WHERE ${condition}`,values)).rows[0].count);const items=(await pool.query(`SELECT id,kind,name,credit_limit,data FROM partners WHERE ${condition} ORDER BY lower(name),id LIMIT $4 OFFSET $5`,[...values,query.limit,(query.page-1)*query.limit])).rows;res.json({items,total,...query});});
+  route('get','/partners','partners.read',async(req,res)=>{
+    const query=pagination.extend({kind:z.enum(['customer','supplier']).optional(),q:z.string().max(100).default(''),accountType:z.enum(['all','company','individual']).default('all')}).strict().parse(req.query),values=[req.user.companyId,query.kind??null,`%${query.q}%`];
+    let condition="company_id=$1 AND ($2::text IS NULL OR kind=$2) AND (name ILIKE $3 OR data->>'phone' ILIKE $3 OR data->>'taxNumber' ILIKE $3 OR data->>'email' ILIKE $3) AND archived_at IS NULL";
+    if(query.accountType!=='all'){values.push(query.accountType);condition+=` AND COALESCE(data->>'type','individual')=$${values.length}`;}
+    const total=Number((await pool.query(`SELECT count(*) FROM partners WHERE ${condition}`,values)).rows[0].count),items=(await pool.query(`SELECT id,kind,name,credit_limit,data FROM partners WHERE ${condition} ORDER BY lower(name),id LIMIT $${values.length+1} OFFSET $${values.length+2}`,[...values,query.limit,(query.page-1)*query.limit])).rows;res.json({items,total,...query});
+  });
   route('post','/partners','partners.manage',async(req,res)=>res.status(201).json(await savePartner(pool,req.user,undefined,req.body)));
   route('put','/partners/:id','partners.manage',async(req,res)=>res.json(await savePartner(pool,req.user,req.params.id,req.body)));
   route('get','/partners/:id/statement','payments.read',async(req,res)=>{
@@ -58,7 +69,7 @@ export function commercialRoutes({pool,licenseProvider}){
   });
   route('post','/payments','payments.post',async(req,res)=>res.status(201).json(await postPayment(pool,req.user,req.headers['idempotency-key'],req.body)));
   route('post','/payments/:id/allocate','payments.post',async(req,res)=>res.json(await allocateCredit(pool,req.user,req.headers['idempotency-key'],z.string().uuid().parse(req.params.id),req.body)));
-  route('get','/payments','payments.read',async(req,res)=>{const query=pagination.strict().parse(req.query);const from='FROM payments p JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE p.company_id=$1 AND c.branch_id=ANY($2::uuid[])';const items=(await pool.query(`SELECT p.* ${from} ORDER BY p.created_at DESC,p.id LIMIT $3 OFFSET $4`,[req.user.companyId,req.user.branches,query.limit,(query.page-1)*query.limit])).rows;res.json({items,total:Number((await pool.query(`SELECT count(*) ${from}`,[req.user.companyId,req.user.branches])).rows[0].count),...query});});
+  route('get','/payments','payments.read',async(req,res)=>{const query=pagination.strict().parse(req.query);const from='FROM payments p JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE p.company_id=$1 AND c.branch_id=ANY($2::uuid[])';const items=(await pool.query(`SELECT p.*,(SELECT kind FROM partners WHERE company_id=p.company_id AND id=p.partner_id) partner_kind ${from} ORDER BY p.created_at DESC,p.id LIMIT $3 OFFSET $4`,[req.user.companyId,req.user.branches,query.limit,(query.page-1)*query.limit])).rows;res.json({items,total:Number((await pool.query(`SELECT count(*) ${from}`,[req.user.companyId,req.user.branches])).rows[0].count),...query});});
   route('post','/cashboxes','organization.manage',async(req,res)=>{const body=z.object({branchId:z.string().uuid(),name:z.string().min(1).max(200)}).strict().parse(req.body);if(!req.user.branches.includes(body.branchId))fail(403,'SCOPE_DENIED','Branch outside scope');const id=randomUUID();await transaction(pool,async db=>{await db.query('INSERT INTO cashboxes VALUES($1,$2,$3,$4)',[req.user.companyId,id,body.branchId,body.name]);await audit(db,req.user,'cashbox.create',id);});res.status(201).json({id,...body});});
   route('get','/shifts','shifts.read',async(req,res)=>{const items=(await pool.query('SELECT s.*,c.name AS cashbox_name FROM shifts s JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE s.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND (s.user_id=$3 OR $4) ORDER BY s.opened_at DESC LIMIT 100',[req.user.companyId,req.user.branches,req.user.id,req.user.permissions.includes('shifts.manage')])).rows;const cashboxes=(await pool.query('SELECT * FROM cashboxes WHERE company_id=$1 AND branch_id=ANY($2::uuid[]) ORDER BY name',[req.user.companyId,req.user.branches])).rows;res.json({items,cashboxes});});
   route('post','/shifts','shifts.open',async(req,res)=>res.status(201).json(await openShift(pool,req.user,req.headers['idempotency-key'],req.body)));
@@ -68,11 +79,13 @@ export function commercialRoutes({pool,licenseProvider}){
     const id=z.string().uuid().parse(req.params.id),body=z.object({reason:z.string().trim().min(3).max(500)}).strict().parse(req.body);
     const result=await transaction(pool,async db=>{const report=await shiftReport(db,req.user,id);if(!report.shift.closed_at)fail(409,'SHIFT_ALREADY_OPEN','Shift is already open');await db.query('UPDATE shifts SET closed_at=NULL WHERE company_id=$1 AND id=$2',[req.user.companyId,id]);await db.query("INSERT INTO shift_events(company_id,id,shift_id,kind,reason,snapshot,created_by) VALUES($1,$2,$3,'reopened',$4,$5,$6)",[req.user.companyId,randomUUID(),id,body.reason,report,req.user.id]);await audit(db,req.user,'shift.reopen',id,body);return {id,reopened:true};});res.json(result);
   });
+  route('get','/organization/presentation','organization.read',async(req,res)=>res.json(await readPresentation(pool,req.user.companyId)));
+  route('put','/organization/presentation','organization.manage',async(req,res)=>res.json(await transaction(pool,db=>savePresentation(db,req.user,req.body))));
   route('get','/reports/basic','reports.read',async(req,res)=>{
     const query=z.object({from:z.iso.datetime().optional(),to:z.iso.datetime().optional()}).strict().parse(req.query),values=[req.user.companyId,req.user.warehouses,query.from??'1970-01-01T00:00:00Z',query.to??'9999-01-01T00:00:00Z'];
     const documents=(await pool.query("SELECT kind,count(*) count,sum(total_base) total_base,sum(tax*exchange_rate) tax_base,sum((subtotal-discount)*exchange_rate) net_base,sum(cost_base) cost_base FROM commercial_documents WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[]) AND created_at>=$3 AND created_at<$4 GROUP BY kind",values)).rows;
     const stock=(await pool.query('SELECT COALESCE(sum(quantity*average_cost),0) valuation,COALESCE(sum(quantity),0) quantity FROM stock_balances WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[])',[req.user.companyId,req.user.warehouses])).rows[0];
-    const payments=(await pool.query('SELECT method,direction,currency,sum(p.amount) amount,sum(p.amount_base) amount_base,sum(p.fx_base) fx_base FROM payments p JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE p.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND p.created_at>=$3 AND p.created_at<$4 GROUP BY method,direction,currency',[req.user.companyId,req.user.branches,values[2],values[3]])).rows;
+    const payments=(await pool.query('SELECT method,direction,currency,count(*) count,sum(p.amount) amount,sum(p.amount_base) amount_base,sum(p.fx_base) fx_base FROM payments p JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE p.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND p.created_at>=$3 AND p.created_at<$4 GROUP BY method,direction,currency',[req.user.companyId,req.user.branches,values[2],values[3]])).rows;
     const allocationFx=(await pool.query('SELECT COALESCE(sum(e.fx_base),0) fx_base FROM allocation_events e JOIN payments p ON p.company_id=e.company_id AND p.id=e.payment_id JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE e.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND e.created_at>=$3 AND e.created_at<$4',[req.user.companyId,req.user.branches,values[2],values[3]])).rows[0].fx_base;
     const baseCurrency=await companyCurrency(pool,req.user.companyId),roundBase=value=>round(value,baseCurrency.decimals);
     const amount=(kind,field)=>D(documents.find(row=>row.kind===kind)?.[field]??0);
@@ -84,7 +97,25 @@ export function commercialRoutes({pool,licenseProvider}){
       WHERE e.company_id=$1 AND e.created_at<$4 AND (d.warehouse_id=ANY($2::uuid[]) OR c.branch_id=ANY($3::uuid[]) OR (e.opening_id IS NOT NULL AND $5)) GROUP BY p.kind,e.partner_id)
       SELECT kind,count(*) accounts,COALESCE(sum(GREATEST(balance,0)),0) due_base,COALESCE(sum(GREATEST(-balance,0)),0) credit_base FROM scoped GROUP BY kind`,[req.user.companyId,req.user.warehouses,req.user.branches,values[3],req.user.roles.some(role=>role.is_admin)])).rows;
     const shifts=(await pool.query('SELECT (s.closed_at IS NOT NULL) closed,count(*) count FROM shifts s JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE s.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND s.opened_at>=$3 AND s.opened_at<$4 GROUP BY (s.closed_at IS NOT NULL)',[req.user.companyId,req.user.branches,values[2],values[3]])).rows;
-    res.json({documents,stock,payments,summary,accounts,shifts,baseCurrency:baseCurrency.code,decimals:baseCurrency.decimals,allocationFxBase:allocationFx,from:values[2],to:values[3]});
+    const daily=(await pool.query(`SELECT (created_at AT TIME ZONE 'UTC')::date::text AS "day",
+      sum(CASE WHEN kind='sale' THEN total_base ELSE -total_base END) sales,
+      sum((CASE WHEN kind='sale' THEN 1 ELSE -1 END)*((subtotal-discount)*exchange_rate-cost_base)) profit
+      FROM commercial_documents WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[]) AND kind IN('sale','sale_return') AND created_at>=GREATEST($3::timestamptz,date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'-interval '6 days') AND created_at<$4 GROUP BY 1 ORDER BY 1`,values)).rows;
+    const topProducts=(await pool.query(`SELECT l.product_id id,max(l.snapshot->>'name') name,max(l.snapshot->>'barcode') barcode,
+      sum((CASE WHEN d.kind='sale' THEN 1 ELSE -1 END)*(l.snapshot->>'baseQuantity')::numeric) quantity,
+      sum((CASE WHEN d.kind='sale' THEN 1 ELSE -1 END)*(l.snapshot->>'total')::numeric*d.exchange_rate) revenue,
+      sum((CASE WHEN d.kind='sale' THEN 1 ELSE -1 END)*((l.snapshot->>'net')::numeric*d.exchange_rate-(l.snapshot->>'costBase')::numeric)) profit
+      FROM commercial_lines l JOIN commercial_documents d ON d.company_id=l.company_id AND d.id=l.document_id
+      WHERE d.company_id=$1 AND d.warehouse_id=ANY($2::uuid[]) AND d.created_at>=$3 AND d.created_at<$4 AND d.kind IN('sale','sale_return') GROUP BY l.product_id ORDER BY revenue DESC LIMIT 5`,values)).rows;
+    const categorySales=(await pool.query(`SELECT COALESCE(c.name,p.category_id,'غير مصنف') name,
+      sum((CASE WHEN d.kind='sale' THEN 1 ELSE -1 END)*(l.snapshot->>'total')::numeric*d.exchange_rate) amount,
+      sum((CASE WHEN d.kind='sale' THEN 1 ELSE -1 END)*(l.snapshot->>'baseQuantity')::numeric) qty
+      FROM commercial_lines l JOIN commercial_documents d ON d.company_id=l.company_id AND d.id=l.document_id JOIN products p ON p.company_id=l.company_id AND p.id=l.product_id LEFT JOIN categories c ON c.company_id=p.company_id AND c.id=p.category_id
+      WHERE d.company_id=$1 AND d.warehouse_id=ANY($2::uuid[]) AND d.created_at>=$3 AND d.created_at<$4 AND d.kind IN('sale','sale_return') GROUP BY 1 ORDER BY amount DESC LIMIT 30`,values)).rows;
+    const lowStockProducts=(await pool.query(`SELECT p.id,p.name,p.sku barcode,p.data->>'unit' unit,COALESCE(sum(s.quantity),0) stock
+      FROM products p LEFT JOIN stock_balances s ON s.company_id=p.company_id AND s.product_id=p.id AND s.warehouse_id=ANY($2::uuid[])
+      WHERE p.company_id=$1 AND p.type='stock' AND p.archived_at IS NULL GROUP BY p.company_id,p.id HAVING COALESCE(sum(s.quantity),0)<=10 ORDER BY stock,p.name LIMIT 30`,values.slice(0,2))).rows;
+    res.json({documents,stock,payments,summary,accounts,shifts,dashboard:{daily,topProducts,categorySales,lowStockProducts},baseCurrency:baseCurrency.code,decimals:baseCurrency.decimals,allocationFxBase:allocationFx,from:values[2],to:values[3]});
   });
   route('get','/products/scan/:code','catalog.read',async(req,res)=>{
     const code=z.string().regex(/^\d{13}$/).parse(req.params.code),digits=code.split('').map(Number);if((10-digits.slice(0,12).reduce((sum,value,index)=>sum+value*(index%2?3:1),0)%10)%10!==digits[12]||code[0]!=='2')fail(400,'INVALID_SCALE_BARCODE','Expected a valid weighted EAN-13 barcode');

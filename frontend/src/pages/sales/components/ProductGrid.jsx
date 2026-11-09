@@ -7,15 +7,12 @@ import { getVirtualRange, useVirtualScroll } from '../../../hooks/useVirtualRows
 import { CategoryBar } from './CategoryBar';
 import { ProductCard } from './ProductCard';
 import { ProductListRow } from './ProductListRow';
-import { CATEGORIES } from '../../../data/mockProducts';
+import { useCategories } from '../../../domain/categories';
 import { findBarcodeLine } from '../../../domain/products';
 
 const VIEW_STORAGE_KEY = 'shamtouch:v1:salesView';
 const GRID_ROW_HEIGHT = 124;
 const LIST_ROW_HEIGHT = 60;
-const CATEGORY_ICONS = Object.fromEntries(
-  CATEGORIES.map((category) => [category.id, category.icon])
-);
 
 function getInitialViewMode(productsCount) {
   let stored = null;
@@ -40,6 +37,8 @@ function getGridColumns(width) {
 
 export function ProductGrid({ products, onAddToCart, serverQuery, onServerSearch, onServerCategory, onServerBarcode }) {
   useLocale();
+  const categories=useCategories();
+  const categoryIcons=Object.fromEntries(categories.map(category=>[category.id,category.icon]));
   const [localSearch, setLocalSearch] = useState('');
   const searchQuery = serverQuery ?? localSearch;
   const setSearchQuery = value => { setLocalSearch(value); onServerSearch?.(value); };
@@ -140,7 +139,7 @@ export function ProductGrid({ products, onAddToCart, serverQuery, onServerSearch
       )}
 
       <CategoryBar
-        categories={CATEGORIES}
+        categories={categories}
         activeCategory={selectedCategory}
         onSelectCategory={value => { setSelectedCategory(value); onServerCategory?.(value); }}
         viewMode={viewMode}
@@ -199,7 +198,7 @@ export function ProductGrid({ products, onAddToCart, serverQuery, onServerSearch
                     >
                       <ProductListRow
                         product={product}
-                        categoryIcon={CATEGORY_ICONS[product.category]}
+                        categoryIcon={categoryIcons[product.category]}
                         onAddToCart={onAddToCart}
                       />
                     </div>

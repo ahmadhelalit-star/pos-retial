@@ -109,7 +109,7 @@ export function ProductListTable({
                     disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length)) || (!ledgerMode && prod.stock <= 0)}
                     onClick={() => onAdjustStock(prod.id, -1)}
                     className="w-6 h-6 rounded-lg bg-white disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                    title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1"}
+                    title={t(ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1")}
                   >
                     <MinusIcon className="w-3 h-3" />
                   </button>
@@ -123,7 +123,7 @@ export function ProductListTable({
                     disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length))}
                     onClick={() => onAdjustStock(prod.id, 1)}
                     className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                    title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1"}
+                    title={t(ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1")}
                   >
                     <PlusIcon className="w-3 h-3" />
                   </button>
@@ -235,7 +235,7 @@ export function ProductListTable({
                           disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length)) || (!ledgerMode && prod.stock <= 0)}
                           onClick={() => onAdjustStock(prod.id, -1)}
                           className="w-6 h-6 rounded-lg bg-white disabled:opacity-30 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                          title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1"}
+                          title={t(ledgerMode ? "تسجيل حركة مخزون موثقة" : "إنقاص المخزون بمقدار 1")}
                         >
                           <MinusIcon className="w-3 h-3" />
                         </button>
@@ -249,7 +249,7 @@ export function ProductListTable({
                           disabled={!canStock || !tracksInventory(prod) || (!ledgerMode && Boolean(prod.variants?.length))}
                     onClick={() => onAdjustStock(prod.id, 1)}
                           className="w-6 h-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                          title={ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1"}
+                          title={t(ledgerMode ? "تسجيل حركة مخزون موثقة" : "زيادة المخزون بمقدار 1")}
                         >
                           <PlusIcon className="w-3 h-3" />
                         </button>

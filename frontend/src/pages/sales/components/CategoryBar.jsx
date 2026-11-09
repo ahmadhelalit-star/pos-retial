@@ -25,7 +25,7 @@ export function CategoryBar({
                   : 'border-[#c5c5d3]/70 bg-white text-gray-600 hover:border-[#00236f]/40 hover:bg-[#f0f3ff] hover:text-[#00236f]'
               }`}
             >
-              {cat.name}
+              {t(cat.name)}
             </button>
           );
         })}

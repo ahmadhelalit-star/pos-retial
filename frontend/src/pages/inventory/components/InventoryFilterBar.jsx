@@ -1,7 +1,7 @@
 import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { createPortal } from 'react-dom';
 import { SearchIcon, XMarkIcon, PlusIcon, FunnelIcon } from '../../../components/common/Icons';
-import { CATEGORIES } from '../../../data/mockProducts';
+import { useCategories } from '../../../domain/categories';
 
 export function InventoryFilterBar({
   searchQuery,
@@ -15,8 +15,10 @@ export function InventoryFilterBar({
   isFiltered,
   searchPortalTarget,
   canCreate = true,
+  onOpenCategories,
 }) {
   useLocale();
+  const categories=useCategories();
   const searchField = (
     <div className="relative flex-1 w-full">
       <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-500">
@@ -49,6 +51,7 @@ export function InventoryFilterBar({
 
         {/* Add Product Button & Reset */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {onOpenCategories&&<button type="button" onClick={onOpenCategories} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#c5c5d3] text-[#00236f] bg-[#f0f3ff] text-xs font-bold whitespace-nowrap">{t('التصنيفات')}</button>}
           {isFiltered && (
             <button
               type="button"
@@ -81,13 +84,14 @@ export function InventoryFilterBar({
             التصنيف:
           </span>
           <select
+            aria-label={t('تصفية حسب التصنيف')}
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
             className="bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
+                {c.icon} {t(c.name)}
               </option>
             ))}
           </select>
@@ -113,7 +117,7 @@ export function InventoryFilterBar({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {tab.label}
+                {t(tab.label)}
               </button>
             ))}
           </div>

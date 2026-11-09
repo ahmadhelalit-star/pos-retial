@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright-core';
+import {settings,readJSON} from '../../developer/common.mjs';
+test('business tools move into permission-aware sidebar pages and page tabs',async()=>{
+ const cfg=await settings(),login=await readJSON('login.json'),browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true}),page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],writes=[];
+ page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));await page.route('**/api/**',route=>{const r=route.request(),path=new URL(r.url()).pathname;if(!['GET','HEAD','OPTIONS'].includes(r.method())&&path!=='/api/auth/login'){writes.push(path);return route.abort();}return route.continue();});
+ try{
+ await page.goto(cfg.origin+'/inventory');await page.locator('input[name=username]').fill(login.username);await page.locator('input[name=password]').fill(login.password);await page.getByRole('button',{name:'تسجيل الدخول',exact:true}).click();await page.getByRole('button',{name:'إضافة منتج جديد',exact:true}).waitFor();assert.equal(await page.locator('.retail-tools').count(),0);
+ await page.getByRole('link',{name:'المستخدمون',exact:true}).click();await page.getByRole('heading',{name:'المستخدمون',exact:true}).waitFor();await page.locator('.retail-section-tabs').getByRole('button',{name:'الأدوار',exact:true}).click();await page.getByRole('heading',{name:'الأدوار',exact:true}).waitFor();
+ await page.getByRole('link',{name:/الإعدادات.*F6/}).click();await page.getByRole('heading',{name:'إعدادات المتجر',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'تخصيص فاتورة الكاشير',exact:true}).count(),0);
+ for(const [tab,heading]of [['الوحدات','الوحدات الإضافية'],['استيراد نسخة','استيراد نسخة من الكتالوج'],['النسخ والاستعادة','نسخ السيرفر والاستعادة']]){await page.getByRole('button',{name:tab,exact:true}).click();await page.getByRole('heading',{name:heading,exact:true}).waitFor();}
+ await page.getByRole('link',{name:'إعدادات الطباعة',exact:true}).click();await page.getByRole('button',{name:'تخصيص فاتورة الكاشير',exact:true}).waitFor();await page.getByText('معاينة تصميم الإيصال · بيانات توضيحية',{exact:true}).waitFor();await page.getByRole('button',{name:'الجهاز والطابعات',exact:true}).click();await page.getByRole('heading',{name:'هذا الجهاز والطابعات',exact:true}).waitFor();
+ await page.getByRole('link',{name:/المشتريات.*F5/}).click();await page.locator('.retail-section-tabs').getByRole('button',{name:'سجل الشراء',exact:true}).click();assert.ok(page.url().includes('tab=history'));await page.getByRole('link',{name:/الفواتير.*F2/}).click();await page.locator('.retail-section-tabs').getByRole('button',{name:'السندات',exact:true}).click();await page.getByRole('heading',{name:'سندات القبض والصرف والدفعات المقدمة',exact:true}).waitFor();
+ for(const [old,target]of [['/admin/roles','/users?tab=roles'],['/admin/modules','/settings?tab=modules'],['/devices','/printing?tab=device'],['/operations','/settings?tab=backups'],['/purchase-history','/purchases?tab=history'],['/payments?kind=supplier','/invoices?kind=supplier&tab=payments']]){await page.goto(cfg.origin+old);await page.waitForURL(cfg.origin+target);}
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'إظهار القائمة الجانبية',exact:true}).click();await page.getByRole('link',{name:'إعدادات الطباعة',exact:true}).click();await page.getByRole('button',{name:'الجهاز والطابعات',exact:true}).waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.getByRole('link',{name:'التراخيص والتجديد',exact:true}).count(),1);
+ assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
+ }finally{await browser.close();}
+});

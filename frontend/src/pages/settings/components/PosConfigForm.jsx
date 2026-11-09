@@ -1,6 +1,6 @@
-import { LockClosedIcon, BanknotesIcon } from '../../../components/common/Icons';
+import { LockClosedIcon } from '../../../components/common/Icons';
 
-export function PosConfigForm({ settings, onChange }) {
+export function PosConfigForm({ settings, onChange,serverControlled=false }) {
   const handleChange = (field, value) => {
     onChange({ ...settings, [field]: value });
   };
@@ -53,6 +53,7 @@ export function PosConfigForm({ settings, onChange }) {
         </div>
       </div>
 
+      {serverControlled&&<p className="text-xs text-amber-700">الطباعة ودرج النقدية يُضبطان من إعدادات الجهاز. سياسة البيع بالسالب تُعرض من إعداد الشركة ولا تتغير من تخصيص الإيصال.</p>}
       {/* POS Toggles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
@@ -76,7 +77,7 @@ export function PosConfigForm({ settings, onChange }) {
           return (
             <div
               key={toggle.field}
-              onClick={() => handleToggle(toggle.field)}
+              aria-disabled={serverControlled} onClick={() => {if(!serverControlled)handleToggle(toggle.field);}}
               className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-3 select-none ${
                 isChecked
                   ? 'bg-amber-50/70 border-amber-200 text-amber-950'

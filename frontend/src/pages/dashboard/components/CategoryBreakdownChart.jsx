@@ -1,4 +1,3 @@
-import { ArchiveBoxIcon } from '../../../components/common/Icons';
 
 export function CategoryBreakdownChart({
   categorySales = [],
@@ -41,7 +40,7 @@ export function CategoryBreakdownChart({
               <div className="flex items-center gap-2">
                 <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
                   <div
-                    style={{ width: `${Math.max(4, pct)}%` }}
+                    style={{ width: `${Math.min(100,Math.max(0, pct))}%` }}
                     className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                   />
                 </div>

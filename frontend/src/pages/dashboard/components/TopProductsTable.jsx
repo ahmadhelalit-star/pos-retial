@@ -1,4 +1,4 @@
-import { SparklesIcon, TagIcon } from '../../../components/common/Icons';
+import { SparklesIcon } from '../../../components/common/Icons';
 
 export function TopProductsTable({
   topProducts = [],
@@ -30,7 +30,7 @@ export function TopProductsTable({
               <th className="py-2.5 px-3.5">اسم الصنف</th>
               <th className="py-2.5 px-3.5 text-center">الكمية المباعة</th>
               <th className="py-2.5 px-3.5">إجمالي الإيراد</th>
-              <th className="py-2.5 px-3.5">صافي الربح</th>
+              <th className="py-2.5 px-3.5">إجمالي الربح</th>
               <th className="py-2.5 px-3.5 text-center">هامش الربح</th>
             </tr>
           </thead>

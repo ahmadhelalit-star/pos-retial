@@ -1,0 +1,14 @@
+import { useState } from 'react';
+import { EmptyState } from '../../commercial/ConnectedUI';
+import { DocumentTextIcon } from './Icons';
+
+// Shared presentation extracted from the original customer, supplier and invoice tables.
+// Records and actions are supplied by server controllers; this component never stores business data.
+export function RecordsTable({rows=[],columns=[],actions=[],emptyTitle,emptyDescription,icon:Icon=DocumentTextIcon}){
+  const [error,setError]=useState('');
+  const buttons=row=><div className="flex items-center gap-1.5 justify-end">{actions.filter(action=>!action.visible||action.visible(row)).map(action=><button key={action.id} type="button" aria-label={action.label} title={action.label} disabled={action.disabled?.(row)} onClick={async()=>{setError('');try{await action.run(row);}catch(failure){setError(failure.message);}}} className={`retail-record-action retail-record-action-${action.tone??'blue'}`}><action.icon className="w-4 h-4"/><span className="sr-only">{action.label}</span></button>)}</div>;
+  return <div>{error&&<p role="alert" className="p-3 rounded-xl bg-red-50 text-red-700 text-sm mb-3">{error}</p>}{!rows.length?<div className="retail-panel"><EmptyState icon={Icon} title={emptyTitle} description={emptyDescription}/></div>:<>
+    <div className="hidden md:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-x-auto"><table className="w-full text-start border-collapse"><thead className="bg-gray-50 text-gray-500 border-b border-gray-200"><tr>{columns.map(column=><th className="px-4 py-3 text-start text-xs font-bold whitespace-nowrap" key={column.id}>{column.label}</th>)}<th className="px-4 py-3"><span className="sr-only">Actions</span></th></tr></thead><tbody className="divide-y divide-gray-200/70">{rows.map(row=><tr key={row.id} className="hover:bg-gray-50/70 transition-colors">{columns.map((column,index)=><td className="px-4 py-3 text-xs" key={column.id}>{index===0?<div className="flex items-center gap-2.5"><span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-[#eef3ff] text-[#00236f]"><Icon className="w-4 h-4"/></span><div className="font-semibold text-gray-800">{column.render(row)}</div></div>:column.render(row)}</td>)}<td className="px-4 py-3">{buttons(row)}</td></tr>)}</tbody></table></div>
+    <div className="md:hidden space-y-3">{rows.map(row=><article key={row.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-xs"><div className="flex items-center gap-2 mb-3 text-sm font-bold"><span className="p-2 rounded-xl bg-[#eef3ff] text-[#00236f]"><Icon className="w-4 h-4"/></span>{columns[0]?.render(row)}</div>{columns.slice(1).map(column=><div key={column.id} className="flex justify-between gap-3 text-xs py-1"><span className="text-gray-500">{column.label}</span><span>{column.render(row)}</span></div>)}<div className="border-t border-gray-100 mt-3 pt-3">{buttons(row)}</div></article>)}</div>
+  </>}</div>;
+}

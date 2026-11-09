@@ -1,7 +1,7 @@
 import { translateUI as t,useLocale } from "../../../runtime/i18n.js";
 import { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon, SparklesIcon } from '../../../components/common/Icons';
-import { CATEGORIES } from '../../../data/mockProducts';
+import { useCategories } from '../../../domain/categories';
 import { normalizeProduct, validateProduct } from '../../../domain/products';
 import { ProductOptionsEditor } from './ProductOptionsEditor';
 
@@ -16,9 +16,10 @@ export function ProductFormModal({
   financialOptions,
 }) {
   useLocale();
+  const categories=useCategories();
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [category, setCategory] = useState('beverages');
+  const [category, setCategory] = useState('');
   const [unit, setUnit] = useState('حبة');
   const [price, setPrice] = useState('');
   const [costPrice, setCostPrice] = useState('');
@@ -44,7 +45,7 @@ export function ProductFormModal({
     if (productToEdit) {
       setName(productToEdit.name || '');
       setBarcode(productToEdit.barcode || '');
-      setCategory(productToEdit.category || 'beverages');
+      setCategory(productToEdit.category || '');
       setUnit(productToEdit.unit || 'حبة');
       setPrice(productToEdit.price?.toString() || '');
       setCostPrice(
@@ -56,7 +57,7 @@ export function ProductFormModal({
       // Reset for add
       setName('');
       setBarcode('');
-      setCategory('beverages');
+      setCategory('');
       setUnit('حبة');
       setPrice('');
       setCostPrice('');
@@ -184,13 +185,15 @@ export function ProductFormModal({
             <div>
               <label className="block text-gray-700 font-bold mb-1">{t("التصنيف")}</label>
               <select
+                aria-label={t('تصنيف المنتج')}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
-                {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
+                <option value="">{t('بدون تصنيف')}</option>
+                {categories.filter((c) => c.id !== 'all').map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.icon} {c.name}
+                    {c.icon} {t(c.name)}
                   </option>
                 ))}
               </select>
@@ -205,7 +208,7 @@ export function ProductFormModal({
               >
                 {UNITS.map((u) => (
                   <option key={u} value={u}>
-                    {u}
+                    {t(u)}
                   </option>
                 ))}
               </select>

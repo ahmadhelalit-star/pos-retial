@@ -27,10 +27,10 @@ export function PaymentMethodsChart({
       bgColor: 'bg-emerald-50',
     },
     {
-      id: 'credit',
-      label: 'آجل / حسابات عملاء',
-      amount: paymentBreakdown.credit?.amount || 0,
-      count: paymentBreakdown.credit?.count || 0,
+      id: 'transfer',
+      label: 'تحويل بنكي',
+      amount: paymentBreakdown.transfer?.amount || 0,
+      count: paymentBreakdown.transfer?.count || 0,
       icon: UsersIcon,
       color: 'bg-amber-500',
       textColor: 'text-amber-700',
@@ -42,10 +42,10 @@ export function PaymentMethodsChart({
     <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
       <div className="mb-4">
         <h3 className="text-xs font-black text-gray-900 mb-0.5">
-          توزيع المبيعات حسب طرق الدفع
+          توزيع التحصيلات حسب طرق الدفع
         </h3>
         <p className="text-xs text-gray-500">
-          نسبة المبيعات النقدية والإلكترونية والآجلة
+          القبض الفعلي خلال الفترة بالعملة الأساسية
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export function PaymentMethodsChart({
                 <div>
                   <div className="text-xs font-bold text-gray-800">{m.label}</div>
                   <div className="text-[11px] text-gray-500">
-                    {m.count} عملية بيع
+                    {m.count} دفعة قبض
                   </div>
                 </div>
               </div>

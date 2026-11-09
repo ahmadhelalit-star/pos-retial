@@ -23,10 +23,10 @@ export function SalesTrendChart({
           </div>
           <div>
             <h3 className="text-xs font-black text-gray-900">
-              حركة المبيعات وصافي الأرباح اليومية
+              حركة المبيعات وإجمالي الربح اليومية
             </h3>
             <p className="text-xs text-gray-500">
-              مقارنة الإيرادات اليومية بهامش الربح الفعلي بعد خصم تكلفة الشراء
+              مقارنة الإيرادات اليومية بإجمالي الربح بعد خصم تكلفة الشراء
             </p>
           </div>
         </div>
@@ -35,11 +35,11 @@ export function SalesTrendChart({
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md bg-emerald-500" />
-            <span className="text-gray-600 font-bold">المبيعات الإجمالية</span>
+            <span className="text-gray-600 font-bold">صافي المبيعات</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md bg-indigo-500" />
-            <span className="text-gray-600 font-bold">صافي الربح</span>
+            <span className="text-gray-600 font-bold">إجمالي الربح</span>
           </div>
         </div>
       </div>
@@ -54,8 +54,8 @@ export function SalesTrendChart({
         </div>
 
         {dailyData.map((day, idx) => {
-          const salesHeightPercent = Math.min(100, Math.max(10, (day.sales / maxVal) * 100));
-          const profitHeightPercent = Math.min(100, Math.max(8, (day.profit / maxVal) * 100));
+          const salesHeightPercent = Math.min(100, Math.max(0, (Math.abs(day.sales) / maxVal) * 100));
+          const profitHeightPercent = Math.min(100, Math.max(0, (Math.abs(day.profit) / maxVal) * 100));
           const isHovered = hoveredIndex === idx;
 
           return (
@@ -88,7 +88,7 @@ export function SalesTrendChart({
                 <div
                   style={{ height: `${salesHeightPercent}%` }}
                   className={`w-1/2 rounded-t-lg transition-all duration-300 ${
-                    isHovered
+                    day.sales<0?'bg-red-500':isHovered
                       ? 'bg-emerald-600 shadow-md scale-y-105'
                       : 'bg-emerald-500 hover:bg-emerald-600'
                   }`}
@@ -98,7 +98,7 @@ export function SalesTrendChart({
                 <div
                   style={{ height: `${profitHeightPercent}%` }}
                   className={`w-1/2 rounded-t-lg transition-all duration-300 ${
-                    isHovered
+                    day.profit<0?'bg-red-500':isHovered
                       ? 'bg-indigo-600 shadow-md scale-y-105'
                       : 'bg-indigo-400 hover:bg-indigo-500'
                   }`}

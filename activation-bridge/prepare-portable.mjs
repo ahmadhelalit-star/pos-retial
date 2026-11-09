@@ -11,7 +11,8 @@ await cp(join(source,'dist/POS-Activation-Tool/app/node_modules'),join(target,'a
 await cp(join(source,'dist/POS-Activation-Tool/runtime'),join(target,'runtime'),{recursive:true});
 await copyFile(join(source,'dist/POS-Activation-Tool/POS Activation Tool.exe'),join(target,'POS Activation Tool.exe'));
 await writeFile(join(target,'app/package.json'),JSON.stringify({type:'commonjs',private:true}));
-for(const name of ['retail.cjs','retail-tool.cjs'])await copyFile(new URL(name,import.meta.url),join(target,'app',name));
+for(const name of ['retail.cjs','retail-tool.cjs','retail-recovery.cjs','retail-records.cjs'])await copyFile(new URL(name,import.meta.url),join(target,'app',name));
+await cp(new URL('issuer-ui/',import.meta.url),join(target,'app/issuer-ui'),{recursive:true});
 await cp(new URL('vendor/',import.meta.url),join(target,'app/vendor'),{recursive:true});
 const server=join(target,'app/tool/server.js'),serverSource=await readFile(server,'utf8');await writeFile(server,serverSource.includes('retail-tool.cjs')?serverSource:serverSource+'\nrequire("../retail-tool.cjs").wrap(module.exports);\n');
 const html=join(target,'app/tool/public/index.html'),htmlSource=await readFile(html,'utf8');await writeFile(html,htmlSource.includes('href="/retail"')?htmlSource:htmlSource.replace('<body>','<body><p style="padding:12px;background:#eef3ff"><a href="/retail">Retail activation — review candidate</a></p>'));

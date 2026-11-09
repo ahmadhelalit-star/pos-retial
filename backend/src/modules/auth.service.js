@@ -18,7 +18,7 @@ export async function verifyPassword(password, stored) {
 }
 export async function login(pool, username, password, ip, sessionHours) {
   const result = await transaction(pool, async (db) => {
-    const key = hash(`${ip}:${username.toLowerCase()}`);
+    const key = hash(`${ip}:${(username??'').toLowerCase()}`);
     await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`login:${key}`]);
     await db.query("INSERT INTO login_attempts(key) VALUES($1) ON CONFLICT(key) DO UPDATE SET failures=CASE WHEN login_attempts.window_start<now()-interval '15 minutes' THEN 0 ELSE login_attempts.failures END,window_start=CASE WHEN login_attempts.window_start<now()-interval '15 minutes' THEN now() ELSE login_attempts.window_start END",[key]);
     const attempt = (await db.query('SELECT failures FROM login_attempts WHERE key=$1',[key])).rows[0];

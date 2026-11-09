@@ -4,6 +4,7 @@ import { transaction } from '../db/pool.js';
 import { fail } from './errors.js';
 import { login,requireWarehouse } from '../modules/auth.service.js';
 import { saveRole,saveUser } from '../modules/admin.service.js';
+import {listCategories,saveCategory,deleteCategory} from '../modules/categories.service.js';
 import { getProduct,listProducts } from '../modules/products.repository.js';
 import { saveProduct,archiveProduct } from '../modules/products.service.js';
 import { postMovement } from '../modules/stock.service.js';
@@ -17,8 +18,9 @@ export function controllers({pool,config,licenseProvider}) {
   const cookieOptions={httpOnly:true,sameSite:'strict',secure:config.secureCookie,path:'/api',maxAge:config.sessionHours*3600000};
   return {
     login:async(req,res)=>{
-      const input=z.object({username:z.string().trim().min(1).max(80),password:z.string().min(1).max(200)}).strict().parse(req.body);
-      const result=await login(pool,input.username,input.password,req.ip,config.sessionHours);
+      const input=z.union([z.object({userId:z.string().uuid(),password:z.string().min(1).max(200)}).strict(),z.object({username:z.string().trim().min(1).max(80),password:z.string().min(1).max(200)}).strict()]).parse(req.body);
+      const username=input.username??(await pool.query('SELECT username FROM users WHERE id=$1 AND active',[input.userId])).rows[0]?.username??null;
+      const result=await login(pool,username,input.password,req.ip,config.sessionHours);
       res.cookie('retail_session',result.token,cookieOptions).json({user:result.user,csrfToken:result.csrfToken});
     },
     me:async(req,res)=>res.json({user:req.user,csrfToken:req.csrfToken}),
@@ -28,6 +30,10 @@ export function controllers({pool,config,licenseProvider}) {
       res.json(await listProducts(pool,req.user.companyId,query,await warehouse(req)));
     },
     product:async(req,res)=>res.json(await getProduct(pool,req.user.companyId,req.params.id,await warehouse(req))),
+    categories:async(req,res)=>res.json(await listCategories(pool,req.user.companyId)),
+    createCategory:async(req,res)=>res.status(201).json(await saveCategory(pool,req.user,undefined,req.body)),
+    updateCategory:async(req,res)=>res.json(await saveCategory(pool,req.user,req.params.id,req.body)),
+    deleteCategory:async(req,res)=>res.json(await deleteCategory(pool,req.user,req.params.id)),
     createProduct:async(req,res)=>res.status(201).json(await saveProduct(pool,req.user,undefined,req.body,await warehouse(req))),
     updateProduct:async(req,res)=>res.json(await saveProduct(pool,req.user,req.params.id,req.body,await warehouse(req))),
     archiveProduct:async(req,res)=>res.json(await archiveProduct(pool,req.user,req.params.id)),
@@ -44,9 +50,15 @@ export function controllers({pool,config,licenseProvider}) {
     previewImport:async(req,res)=>{const result=await previewImport(pool,req.user,req.body);delete result.products;res.json(result);},
     commitImport:async(req,res)=>res.status(201).json(await commitImport(pool,req.user,req.body)),
     users:async(req,res)=>{
-      const query=pagination.strict().parse(req.query);
-      const items=(await pool.query('SELECT id,username,name,active FROM users WHERE company_id=$1 ORDER BY lower(username),id LIMIT $2 OFFSET $3',[req.user.companyId,query.limit,(query.page-1)*query.limit])).rows;
-      res.json({items,...query,total:Number((await pool.query('SELECT count(*) FROM users WHERE company_id=$1',[req.user.companyId])).rows[0].count)});
+      const query=pagination.extend({q:z.string().trim().max(200).default('')}).strict().parse(req.query);
+      const items=(await pool.query(`SELECT u.id,u.username,u.name,u.active,u.phone,COALESCE((SELECT jsonb_agg(jsonb_build_object('id',r.id,'name',r.name,'is_admin',r.is_admin)) FROM user_roles ur JOIN roles r ON r.id=ur.role_id AND r.company_id=ur.company_id WHERE ur.user_id=u.id AND ur.company_id=u.company_id),'[]') roles FROM users u WHERE u.company_id=$1 AND ($4='' OR u.name ILIKE '%'||$4||'%' OR u.phone ILIKE '%'||$4||'%') ORDER BY lower(u.name),u.id LIMIT $2 OFFSET $3`,[req.user.companyId,query.limit,(query.page-1)*query.limit,query.q])).rows;
+      res.json({items,...query,total:Number((await pool.query(`SELECT count(*) FROM users WHERE company_id=$1 AND ($2='' OR name ILIKE '%'||$2||'%' OR phone ILIKE '%'||$2||'%')`,[req.user.companyId,query.q])).rows[0].count)});
+    },
+    user:async(req,res)=>{
+      const id=z.string().uuid().parse(req.params.id),row=(await pool.query('SELECT id,username,name,active,phone FROM users WHERE company_id=$1 AND id=$2',[req.user.companyId,id])).rows[0];if(!row)fail(404,'NOT_FOUND','User not found');
+      const roles=(await pool.query('SELECT r.id,r.name,r.is_admin FROM user_roles ur JOIN roles r ON r.id=ur.role_id AND r.company_id=ur.company_id WHERE ur.company_id=$1 AND ur.user_id=$2',[req.user.companyId,id])).rows;
+      const permissions=(await pool.query('SELECT DISTINCT rp.permission_id FROM user_roles ur JOIN role_permissions rp ON rp.role_id=ur.role_id WHERE ur.company_id=$1 AND ur.user_id=$2 ORDER BY rp.permission_id',[req.user.companyId,id])).rows.map(row=>row.permission_id);
+      res.json({...row,roles,roleIds:roles.map(role=>role.id),permissions,branches:(await pool.query('SELECT branch_id FROM user_branches WHERE company_id=$1 AND user_id=$2',[req.user.companyId,id])).rows.map(row=>row.branch_id),warehouses:(await pool.query('SELECT warehouse_id FROM user_warehouses WHERE company_id=$1 AND user_id=$2',[req.user.companyId,id])).rows.map(row=>row.warehouse_id)});
     },
     saveUser:async(req,res)=>res.json(await saveUser(pool,req.user,req.params.id,req.body)),
     roles:async(req,res)=>res.json({permissions:PERMISSIONS,items:(await pool.query("SELECT r.id,r.name,r.is_admin,COALESCE(jsonb_agg(rp.permission_id) FILTER(WHERE rp.permission_id IS NOT NULL),'[]') AS permissions FROM roles r LEFT JOIN role_permissions rp ON rp.role_id=r.id WHERE r.company_id=$1 GROUP BY r.id ORDER BY r.name",[req.user.companyId])).rows}),

@@ -1,8 +1,8 @@
-import { ReceiptPercentIcon, SparklesIcon } from '../../../components/common/Icons';
+import { ReceiptPercentIcon } from '../../../components/common/Icons';
 
 const LOGO_OPTIONS = ['🏪', '🛒', '🛍️', '🏬', '☕', '🥤', '🍞', '🥩', '💊', '🧴'];
 
-export function ReceiptCustomizationForm({ settings, onChange }) {
+export function ReceiptCustomizationForm({ settings, onChange,serverControlled=false }) {
   const handleChange = (field, value) => {
     onChange({ ...settings, [field]: value });
   };
@@ -128,6 +128,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
         </div>
       </div>
 
+      {serverControlled&&<p className="text-xs text-amber-700">رمز الفوترة الإلكترونية ونقاط الولاء غير متاحين حاليًا؛ لا يُفعّلان من خيارات التصميم.</p>}
       {/* خيارات وتخصيصات الظهور على الإيصال */}
       <div className="pt-2">
         <label className="block text-xs font-bold text-gray-800 mb-2">
@@ -170,7 +171,7 @@ export function ReceiptCustomizationForm({ settings, onChange }) {
             return (
               <div
                 key={toggle.field}
-                onClick={() => handleToggle(toggle.field)}
+                aria-disabled={serverControlled&&['showQrCode','showLoyaltyPoints'].includes(toggle.field)} onClick={() => {if(!(serverControlled&&['showQrCode','showLoyaltyPoints'].includes(toggle.field)))handleToggle(toggle.field);}}
                 className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-3 select-none ${
                   isChecked
                     ? 'bg-indigo-50/60 border-indigo-200 text-indigo-900'

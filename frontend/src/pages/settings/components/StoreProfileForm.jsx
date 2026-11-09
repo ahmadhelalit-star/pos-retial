@@ -1,6 +1,6 @@
 import { BuildingOfficeIcon } from '../../../components/common/Icons';
 
-export function StoreProfileForm({ settings, onChange }) {
+export function StoreProfileForm({ settings, onChange,serverControlled=false }) {
   const handleChange = (field, value) => {
     onChange({ ...settings, [field]: value });
   };
@@ -161,7 +161,7 @@ export function StoreProfileForm({ settings, onChange }) {
           </label>
           <input
             type="text"
-            value={settings.currency || 'ر.س'}
+            disabled={serverControlled} value={settings.currency || 'ر.س'}
             onChange={(e) => handleChange('currency', e.target.value)}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
           />
@@ -177,7 +177,7 @@ export function StoreProfileForm({ settings, onChange }) {
               type="number"
               min="0"
               max="100"
-              value={settings.defaultTaxRate ?? 15}
+              disabled={serverControlled} value={settings.defaultTaxRate ?? 0}
               onChange={(e) =>
                 handleChange('defaultTaxRate', parseFloat(e.target.value) || 0)
               }
