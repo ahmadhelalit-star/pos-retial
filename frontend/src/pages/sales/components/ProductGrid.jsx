@@ -131,7 +131,7 @@ export function ProductGrid({ products, onAddToCart, serverQuery, onServerSearch
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#f9f9ff] p-3">
+    <div className="retail-sales-catalog flex h-full flex-col overflow-hidden bg-[#f9f9ff] p-3">
       {searchSlot ? (
         createPortal(searchField, searchSlot)
       ) : (

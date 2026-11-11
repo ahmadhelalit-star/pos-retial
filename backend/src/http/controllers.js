@@ -1,16 +1,18 @@
 import {setBaseCurrency} from '../modules/currency-settings.service.js';
+import {saveStockSettings} from '../modules/stock-settings.service.js';
+import {deleteCurrency,deleteTax} from '../modules/finance-removal.service.js';
 import {variantBalances} from '../modules/variant-stock.service.js';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { transaction } from '../db/pool.js';
 import { fail } from './errors.js';
 import { login,requireWarehouse } from '../modules/auth.service.js';
-import { saveRole,saveUser } from '../modules/admin.service.js';
+import { saveRole,saveUser,deleteUser } from '../modules/admin.service.js';
+import {loadUser} from '../modules/auth.repository.js';
 import {listCategories,saveCategory,deleteCategory,moveCategory} from '../modules/categories.service.js';
 import { getProduct,listProducts } from '../modules/products.repository.js';
 import { saveProduct,archiveProduct } from '../modules/products.service.js';
 import { postMovement } from '../modules/stock.service.js';
-import { previewImport,commitImport } from '../modules/import.service.js';
 import { audit } from '../modules/common.js';
 import { OPTIONAL_MODULES,PERMISSIONS,moduleAccess } from '../modules/registry.js';
 
@@ -19,6 +21,7 @@ export function controllers({pool,config,licenseProvider}) {
   const warehouse=async req=>{const id=z.string().uuid().parse(req.query.warehouseId??req.user.warehouses[0]);await requireWarehouse(pool,req.user,id);return id;};
   const cookieOptions={httpOnly:true,sameSite:'strict',secure:config.secureCookie,path:'/api',maxAge:config.sessionHours*3600000};
   return {
+    saveStockSettings:async(req,res)=>res.json(await saveStockSettings(pool,req.user,req.body)),
     login:async(req,res)=>{
       const input=z.union([z.object({userId:z.string().uuid(),password:z.string().min(1).max(200)}).strict(),z.object({username:z.string().trim().min(1).max(80),password:z.string().min(1).max(200)}).strict()]).parse(req.body);
       const username=input.username??(await pool.query('SELECT username FROM users WHERE id=$1 AND active',[input.userId])).rows[0]?.username??null;
@@ -52,31 +55,39 @@ export function controllers({pool,config,licenseProvider}) {
       const items=(await pool.query(`SELECT * FROM stock_ledger WHERE company_id=$1 AND warehouse_id=$2${filter} ORDER BY created_at DESC,id LIMIT $${values.length-1} OFFSET $${values.length}`,values)).rows;
       res.json({items,total,page:query.page,limit:query.limit});
     },
-    previewImport:async(req,res)=>{const result=await previewImport(pool,req.user,req.body);delete result.products;res.json(result);},
-    commitImport:async(req,res)=>res.status(201).json(await commitImport(pool,req.user,req.body)),
     users:async(req,res)=>{
       const query=pagination.extend({q:z.string().trim().max(200).default('')}).strict().parse(req.query);
-      const items=(await pool.query(`SELECT u.id,u.username,u.name,u.active,u.phone,COALESCE((SELECT jsonb_agg(jsonb_build_object('id',r.id,'name',r.name,'is_admin',r.is_admin)) FROM user_roles ur JOIN roles r ON r.id=ur.role_id AND r.company_id=ur.company_id WHERE ur.user_id=u.id AND ur.company_id=u.company_id),'[]') roles FROM users u WHERE u.company_id=$1 AND ($4='' OR u.name ILIKE '%'||$4||'%' OR u.phone ILIKE '%'||$4||'%') ORDER BY lower(u.name),u.id LIMIT $2 OFFSET $3`,[req.user.companyId,query.limit,(query.page-1)*query.limit,query.q])).rows;
-      res.json({items,...query,total:Number((await pool.query(`SELECT count(*) FROM users WHERE company_id=$1 AND ($2='' OR name ILIKE '%'||$2||'%' OR phone ILIKE '%'||$2||'%')`,[req.user.companyId,query.q])).rows[0].count)});
+      const items=(await pool.query(`SELECT u.id,u.username,u.name,u.active,u.phone,u.is_primary_admin,COALESCE((SELECT jsonb_agg(jsonb_build_object('id',r.id,'name',r.name,'is_admin',r.is_admin)) FROM user_roles ur JOIN roles r ON r.id=ur.role_id AND r.company_id=ur.company_id WHERE ur.user_id=u.id AND ur.company_id=u.company_id),'[]') roles FROM users u WHERE u.company_id=$1 AND u.deleted_at IS NULL AND ($4='' OR u.name ILIKE '%'||$4||'%' OR u.phone ILIKE '%'||$4||'%') ORDER BY lower(u.name),u.id LIMIT $2 OFFSET $3`,[req.user.companyId,query.limit,(query.page-1)*query.limit,query.q])).rows;
+      res.json({items,...query,total:Number((await pool.query(`SELECT count(*) FROM users WHERE company_id=$1 AND deleted_at IS NULL AND ($2='' OR name ILIKE '%'||$2||'%' OR phone ILIKE '%'||$2||'%')`,[req.user.companyId,query.q])).rows[0].count)});
     },
     user:async(req,res)=>{
-      const id=z.string().uuid().parse(req.params.id),row=(await pool.query('SELECT id,username,name,active,phone FROM users WHERE company_id=$1 AND id=$2',[req.user.companyId,id])).rows[0];if(!row)fail(404,'NOT_FOUND','User not found');
+      const id=z.string().uuid().parse(req.params.id),row=(await pool.query('SELECT id,username,name,active,phone,is_primary_admin FROM users WHERE company_id=$1 AND id=$2 AND deleted_at IS NULL',[req.user.companyId,id])).rows[0];if(!row)fail(404,'NOT_FOUND','User not found');
+      if(row.is_primary_admin){
+        const primary=await loadUser(pool,id);
+        return res.json({...row,roles:primary.roles,roleIds:primary.roles.map(role=>role.id),permissions:primary.permissions,branches:primary.branches,warehouses:primary.warehouses});
+      }
       const roles=(await pool.query('SELECT r.id,r.name,r.is_admin FROM user_roles ur JOIN roles r ON r.id=ur.role_id AND r.company_id=ur.company_id WHERE ur.company_id=$1 AND ur.user_id=$2',[req.user.companyId,id])).rows;
       const permissions=(await pool.query('SELECT DISTINCT rp.permission_id FROM user_roles ur JOIN role_permissions rp ON rp.role_id=ur.role_id WHERE ur.company_id=$1 AND ur.user_id=$2 ORDER BY rp.permission_id',[req.user.companyId,id])).rows.map(row=>row.permission_id);
       res.json({...row,roles,roleIds:roles.map(role=>role.id),permissions,branches:(await pool.query('SELECT branch_id FROM user_branches WHERE company_id=$1 AND user_id=$2',[req.user.companyId,id])).rows.map(row=>row.branch_id),warehouses:(await pool.query('SELECT warehouse_id FROM user_warehouses WHERE company_id=$1 AND user_id=$2',[req.user.companyId,id])).rows.map(row=>row.warehouse_id)});
     },
     saveUser:async(req,res)=>res.json(await saveUser(pool,req.user,req.params.id,req.body)),
+    deleteUser:async(req,res)=>res.json(await deleteUser(pool,req.user,req.params.id)),
     roles:async(req,res)=>res.json({permissions:PERMISSIONS,items:(await pool.query("SELECT r.id,r.name,r.is_admin,COALESCE(jsonb_agg(rp.permission_id) FILTER(WHERE rp.permission_id IS NOT NULL),'[]') AS permissions FROM roles r LEFT JOIN role_permissions rp ON rp.role_id=r.id WHERE r.company_id=$1 GROUP BY r.id ORDER BY r.name",[req.user.companyId])).rows}),
     saveRole:async(req,res)=>res.json(await saveRole(pool,req.user,req.params.id,req.body)),
     organization:async(req,res)=>res.json({
       company:(await pool.query('SELECT id,name,base_currency,allow_negative_stock FROM companies WHERE id=$1',[req.user.companyId])).rows[0],
       branches:(await pool.query('SELECT id,name FROM branches WHERE company_id=$1 AND id=ANY($2::uuid[])',[req.user.companyId,req.user.branches])).rows,
       warehouses:(await pool.query('SELECT id,name,branch_id FROM warehouses WHERE company_id=$1 AND id=ANY($2::uuid[]) AND branch_id=ANY($3::uuid[])',[req.user.companyId,req.user.warehouses,req.user.branches])).rows,
+      ...(req.user.roles.some(role=>role.is_admin)&&req.user.permissions.some(permission=>['organization.manage','users.manage'].includes(permission))?{
+        manageableWarehouses:(await pool.query('SELECT id,name,branch_id FROM warehouses WHERE company_id=$1 AND branch_id=ANY($2::uuid[]) ORDER BY name,id',[req.user.companyId,req.user.branches])).rows,
+      }:{}),
       currencies:(await pool.query('SELECT cc.code,cc.rate,c.decimals FROM company_currencies cc JOIN currencies c ON c.code=cc.code WHERE cc.company_id=$1',[req.user.companyId])).rows,
       taxes:(await pool.query('SELECT id,name,rate,price_includes_tax FROM tax_configurations WHERE company_id=$1',[req.user.companyId])).rows,
       categories:(await pool.query('SELECT id,name FROM categories WHERE company_id=$1 ORDER BY sort_position,lower(name),id',[req.user.companyId])).rows,
     }),
     setBaseCurrency:async(req,res)=>res.json(await setBaseCurrency(pool,req.user,req.body)),
+    deleteCurrency:async(req,res)=>res.json(await deleteCurrency(pool,req.user,req.params.code)),
+    deleteTax:async(req,res)=>res.json(await deleteTax(pool,req.user,req.params.id)),
     configureCurrency:async(req,res)=>{
       const input=z.object({code:z.string().regex(/^[A-Z]{3}$/),rate:z.number().finite().positive().max(1e12),decimals:z.number().int().min(0).max(6).default(2)}).strict().parse(req.body);
       await transaction(pool,async db=>{const company=(await db.query('SELECT base_currency FROM companies WHERE id=$1 FOR UPDATE',[req.user.companyId])).rows[0];if(company.base_currency===input.code&&input.rate!==1)fail(400,'BASE_CURRENCY_RATE','Base currency rate must equal 1');await db.query('INSERT INTO currencies VALUES($1,$2) ON CONFLICT(code) DO NOTHING',[input.code,input.decimals]);await db.query('INSERT INTO company_currencies VALUES($1,$2,$3) ON CONFLICT(company_id,code) DO UPDATE SET rate=excluded.rate',[req.user.companyId,input.code,input.rate]);await audit(db,req.user,'currency.configure',input.code);});res.json(input);

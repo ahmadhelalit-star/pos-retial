@@ -10,7 +10,7 @@ export function ProductCard({ product, onAddToCart }) {
     <button
       type="button"
       onClick={() => onAddToCart(product)}
-      className="group relative flex h-[112px] w-full flex-col overflow-hidden rounded-xl border border-[#c5c5d3]/70 bg-white p-2.5 text-right transition-all duration-150 hover:border-[#00236f]/40 hover:bg-[#f0f3ff]/40 hover:shadow-sm active:scale-[0.98] cursor-pointer select-none"
+      className="retail-sales-product group relative flex h-[112px] w-full flex-col overflow-hidden rounded-xl border border-[#c5c5d3]/70 bg-white p-2.5 text-right transition-all duration-150 hover:border-[#00236f]/40 hover:bg-[#f0f3ff]/40 hover:shadow-sm active:scale-[0.98] cursor-pointer select-none"
     >
       <div className="flex w-full items-start justify-between gap-1.5">
         <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-gray-800 transition-colors group-hover:text-[#00236f]">

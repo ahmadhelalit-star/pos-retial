@@ -10,7 +10,7 @@ export function CategoryBar({
 }) {
   useLocale();
   return (
-    <div className="flex items-end gap-2 select-none">
+    <div className="retail-sales-categories flex items-end gap-2 select-none">
       <div className="scrollbar-none flex flex-1 items-center gap-1.5 overflow-x-auto pb-2">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
@@ -18,6 +18,7 @@ export function CategoryBar({
             <button
               key={cat.id}
               type="button"
+              aria-pressed={isActive}
               onClick={() => onSelectCategory(cat.id)}
               className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors duration-150 cursor-pointer active:scale-95 ${
                 isActive

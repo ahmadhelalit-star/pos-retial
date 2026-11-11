@@ -21,10 +21,10 @@ import { CustomersPage as PartnersView } from '../pages/customers/CustomersPage'
 import { ShiftPage as ShiftsView } from '../pages/shift/ShiftPage';
 import { InvoicesPage as DocumentsView } from '../pages/invoices/InvoicesPage';
 import { PurchasesPage as PurchasingView } from '../pages/purchases/PurchasesPage';
-import { ReportsView } from '../commercial/views';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { AccessEditor } from '../commercial/admin';
 import { SettingsPage as FinanceSettings } from '../pages/settings/SettingsPage';
+import { WarehouseSettings } from '../pages/settings/WarehouseSettings';
 import { terminalId } from '../commercial/device';
 import { OperationsSettings } from '../commercial/OperationsSettings';
 import { DeviceSettings } from '../commercial/AgentPrinting';
@@ -64,13 +64,13 @@ export function RetailRuntime() {
 }
 
 function CommercialContent(props){
-  const {api,user,organization,english,path,search,onShift,onOrganizationChange}=props;
+  const {api,user,organization,english,path,search,salesControls,onOrganizationChange}=props;
   const allowed=permission=>user.permissions.includes(permission),denied=<p className="p-6">{english?'Permission required':'ليست لديك صلاحية'}</p>;
   if(!organization)return null;
   if(path==='/license')return <Suspense fallback={<p role="status">Loading…</p>}><LicenseManagementPage api={api} user={user} english={english}/></Suspense>;
   if(path==='/devices')return allowed('printing.create')?<DeviceSettings api={api} english={english}/>:denied;
   if(path==='/operations')return allowed('organization.manage')&&user.roles.some(role=>role.is_admin)?<OperationsSettings api={api} english={english}/>:denied;
-  if(path==='/sales'&&allowed('sales.post'))return <ServerPOS api={api} user={user} organization={organization} english={english} onShift={onShift}/>;
+  if(path==='/sales'&&allowed('sales.post'))return <ServerPOS api={api} user={user} organization={organization} english={english} headerControls={salesControls}/>;
   if(path==='/invoices')return allowed('sales.read')?<DocumentsView key={path+search} api={api} user={user} organization={organization} english={english}/>:denied;
   if(path==='/purchases'&&new URLSearchParams(search).get('view')==='suppliers')return allowed('partners.read')?<PartnersView key={path+search} api={api} user={user} english={english} kind="supplier"/>:denied;
   if(path==='/purchases')return allowed('purchases.post')?<PurchasingView key="new-purchase" api={api} user={user} organization={organization} english={english}/>:denied;
@@ -78,21 +78,22 @@ function CommercialContent(props){
   if(path==='/customers'||path==='/suppliers')return allowed('partners.read')?<PartnersView key={path+search} api={api} user={user} english={english} kind={path==='/customers'?'customer':'supplier'}/>:denied;
   if(path==='/shift')return allowed('shifts.read')?<ShiftsView api={api} user={user} organization={organization} english={english}/>:denied;
   if(path==='/payments')return allowed('payments.read')?<PaymentsView key={path+search} api={api} user={user} organization={organization} english={english}/>:denied;
-  if(path==='/reports')return allowed('reports.read')?<ReportsView api={api} english={english}/>:denied;
-  if(path==='/dashboard')return allowed('reports.read')?<DashboardPage api={api} english={english}/>:denied;
+  if(path==='/reports')return <Navigate replace to='/dashboard'/>;
+  if(path==='/dashboard')return allowed('reports.read')?<DashboardPage api={api} user={user} english={english}/>:denied;
   if(path==='/orders')return allowed('modules.advancedSales')?<OrdersView api={api} user={user} english={english}/>:denied;
   if(path==='/settings')return allowed('organization.read')?<FinanceSettings api={api} user={user} organization={organization} english={english} onSaved={onOrganizationChange}/>:denied;
   return <EmptyState title={english?'Page unavailable':'الصفحة غير متاحة'} description={english?'Choose an available page from the navigation.':'اختر إحدى الصفحات المتاحة من القائمة.'}/>;
 }
 
 function ServerShell({api,session,preferences,locale,dark,onLogout}) {
-  const [organization,setOrganization]=useState(null),[error,setError]=useState(''),[searchSlot,setSearchSlot]=useState(null);
+  const [organization,setOrganization]=useState(null),[error,setError]=useState(''),[searchSlot,setSearchSlot]=useState(null),[salesControls,setSalesControls]=useState(null);
   const location=useLocation(),navigate=useNavigate(),user=session.user,english=locale==='en';
-  const [orgRevision,setOrgRevision]=useState(0),[currentShift,setCurrentShift]=useState(null),[modules,setModules]=useState([]),[device]=useState(()=>terminalId());
+  const [orgRevision,setOrgRevision]=useState(0),[shiftRevision,setShiftRevision]=useState(0),[currentShift,setCurrentShift]=useState(null),[modules,setModules]=useState([]),[device]=useState(()=>terminalId());
   useEffect(()=>{const update=()=>setOrgRevision(value=>value+1);window.addEventListener('retail-license-updated',update);return()=>window.removeEventListener('retail-license-updated',update);},[]);
+  useEffect(()=>{const update=()=>setShiftRevision(value=>value+1);window.addEventListener('retail-shift-updated',update);return()=>window.removeEventListener('retail-shift-updated',update);},[]);
   const categoriesChanged=useCallback(items=>setOrganization(previous=>previous?{...previous,categories:items.map(({id,name})=>({id,name}))}:previous),[]);
   useEffect(()=>{let active=true;api.request('/organization').then(value=>{if(active)setOrganization(value);}).catch(failure=>{if(active)setError(failure.message);});api.request('/modules').then(value=>{if(active)setModules(value.items);}).catch(()=>{});return()=>{active=false;};},[api,orgRevision]);
-  useEffect(()=>{if(!user.permissions.includes('shifts.read'))return;let active=true;api.request('/shifts').then(value=>{if(active)setCurrentShift(value.items.find(row=>!row.closed_at&&row.user_id===user.id&&row.device_id===device)??null);}).catch(()=>{});return()=>{active=false;};},[api,user,device,location.pathname]);
+  useEffect(()=>{if(!user.permissions.includes('shifts.read'))return;let active=true;api.request('/shifts').then(value=>{if(active)setCurrentShift(value.items.find(row=>!row.closed_at&&row.user_id===user.id&&row.device_id===device)??null);}).catch(()=>{});return()=>{active=false;};},[api,user,device,location.pathname,shiftRevision]);
   const allowed=permission=>user.permissions.includes(permission);
   const path=location.pathname,inventory=path==='/'||path==='/inventory';
   const activeTab=inventory?'inventory':path.slice(1);
@@ -100,10 +101,10 @@ function ServerShell({api,session,preferences,locale,dark,onLogout}) {
   return <CategoryContext.Provider value={organization?.categories??[]}><HeaderSearchSlotContext.Provider value={searchSlot}><div className={`retail-server h-screen flex bg-[#f9f9ff] text-gray-800 ${dark?'retail-dark':''}`} dir={english?'ltr':'rtl'}>
     <Sidebar storeSettings={{storeName:organization?.company.name??'Sham Touch Retail'}} cashier={user.name} shiftStatus={currentShift?'open':'closed'} invoicesCount={0} permissions={user.permissions} advancedSales={modules.some(row=>row.id==='advancedSales'&&row.available)} sessionControls={<>{preferences}<button type="button" onClick={handleLogout}>{english?'Sign out':'تسجيل الخروج'}</button></>} />
     <div className="min-w-0 flex-1 flex flex-col">
-      <AppHeader activeTab={activeTab} shift={{status:currentShift?'open':'closed'}} cashier={user.name} onTabChange={tab=>navigate(`/${tab}`)} searchSlotRef={setSearchSlot} />
+      <AppHeader activeTab={activeTab} shift={{status:currentShift?'open':'closed'}} cashier={user.name} onTabChange={tab=>navigate(`/${tab}`)} searchSlotRef={setSearchSlot} salesControlsRef={setSalesControls} />
       {error&&<p role="alert" className="p-3 text-red-700">{error}</p>}
       <main className="flex-1 min-h-0 overflow-auto">
-        {!organization&&!error?<p role="status" className="p-5">{english?'Loading organization…':'جارٍ تحميل إعدادات الشركة…'}</p>:inventory&&organization?(allowed('catalog.read')?<ServerCatalog api={api} user={user} organization={organization} locale={locale} onCategoriesChanged={categoriesChanged}/>:<p className="p-5">{english?'Permission required':'ليست لديك صلاحية'}</p>):<WorkspaceContent api={api} user={user} organization={organization} english={english} path={path} search={location.search} onShift={()=>navigate('/shift')} onOrganizationChange={()=>setOrgRevision(value=>value+1)}/>}
+        {!organization&&!error?<p role="status" className="p-5">{english?'Loading organization…':'جارٍ تحميل إعدادات الشركة…'}</p>:inventory&&organization?(allowed('catalog.read')?<ServerCatalog api={api} user={user} organization={organization} locale={locale} onCategoriesChanged={categoriesChanged} onStockPolicySaved={({allowNegativeStock})=>setOrganization(previous=>({...previous,company:{...previous.company,allow_negative_stock:allowNegativeStock}}))}/>:<p className="p-5">{english?'Permission required':'ليست لديك صلاحية'}</p>):<WorkspaceContent api={api} user={user} organization={organization} english={english} path={path} search={location.search} salesControls={salesControls} onOrganizationChange={()=>setOrgRevision(value=>value+1)}/>}
       </main>
     </div>
   </div></HeaderSearchSlotContext.Provider></CategoryContext.Provider>;
@@ -114,7 +115,7 @@ function WorkspaceContent(props){
  const navigate=useNavigate();
  if(!organization)return null;
  const allowed=p=>user.permissions.includes(p),params=new URLSearchParams(search),tab=params.get('tab');
- const legacy={'/admin/users':['/users','users'],'/admin/roles':['/users','roles'],'/admin/modules':['/settings','modules'],'/admin/import':['/settings','import'],'/purchase-history':['/purchases','history'],'/payments':['/invoices','payments'],'/devices':['/printing','device'],'/operations':['/settings','backups']};
+ const legacy={'/admin/users':['/users','users'],'/admin/roles':['/users','roles'],'/admin/modules':['/settings','modules'],'/purchase-history':['/purchases','history'],'/payments':['/invoices','payments'],'/devices':['/printing','device'],'/operations':['/settings','backups']};
  if(legacy[path]){const [target,value]=legacy[path];params.set('tab',value);return <Navigate replace to={target+'?'+params}/>;}
  const admin=page=>page==='users'?<Suspense fallback={<p>جارٍ التحميل…</p>}><UsersPage api={api} user={user} organization={organization} english={english}/></Suspense>:<AdminView key={page} api={api} user={user} organization={organization} page={page} english={english}/>;
  if(path==='/printing')return allowed('organization.read')?<Suspense fallback={<p role="status">Loading…</p>}><ThermalPrintingPage api={api} user={user} english={english}/></Suspense>:<p>Permission required</p>;
@@ -124,8 +125,8 @@ function WorkspaceContent(props){
    const extraTabs=printing?[
      ...(allowed('printing.create')?[{id:'device',label:english?'Device and printers':'الجهاز والطابعات',content:<DeviceSettings api={api} english={english}/>}]:[])
    ]:[
+     {id:'warehouses',label:english?'Warehouses':'المخازن',content:<WarehouseSettings api={api} user={user} organization={organization} english={english} onSaved={onOrganizationChange}/>},
      ...(allowed('modules.read')?[{id:'modules',label:english?'Modules':'الوحدات',content:admin('modules')}]:[]),
-     ...(allowed('imports.preview')?[{id:'import',label:english?'Import copy':'استيراد نسخة',content:admin('import')}]:[]),
      ...(allowed('organization.manage')&&user.roles.some(r=>r.is_admin)?[{id:'backups',label:english?'Backup and recovery':'النسخ والاستعادة',content:<OperationsSettings api={api} english={english}/>}]:[])
    ];
    return <FinanceSettings key={path} api={api} user={user} organization={organization} english={english} onSaved={onOrganizationChange} printing={printing} extraTabs={extraTabs}/>;
@@ -144,13 +145,12 @@ function AdminView({api,user,organization,page,english}) {
   const [data,setData]=useState(null),[error,setError]=useState(''),[revision,setRevision]=useState(0);
   const [edit,setEdit]=useState(undefined);
   const allowed=permission=>user.permissions.includes(permission);
-  const permission={modules:'modules.read',users:'users.read',roles:'roles.read',import:'imports.preview'}[page];
+  const permission={modules:'modules.read',users:'users.read',roles:'roles.read'}[page];
   useEffect(()=>{
-    if(page==='import'||!permission||!user.permissions.includes(permission))return;
+    if(!permission||!user.permissions.includes(permission))return;
     let active=true;api.request(`/${page}`).then(value=>{if(active)setData(value);}).catch(failure=>{if(active)setError(failure.message);});return()=>{active=false;};
   },[api,page,permission,user,revision]);
   if(!permission||!allowed(permission))return <p className="p-5">{english?'Permission required':'ليست لديك صلاحية'}</p>;
-  if(page==='import')return <ImportCopy api={api} organization={organization} canCommit={allowed('imports.commit')} english={english} />;
   return <div className="retail-page p-5 space-y-4">
     <PageHeading icon={ShieldCheckIcon} title={english?({modules:'Optional modules',users:'Users',roles:'Roles'})[page]:({modules:'الوحدات الإضافية',users:'المستخدمون',roles:'الأدوار'})[page]}/>
     {['users','roles'].includes(page)&&allowed(page==='users'?'users.manage':'roles.manage')&&<button className="border bg-white rounded-xl p-3" onClick={()=>setEdit(null)}>{english?'Add':'إضافة'}</button>}
@@ -164,20 +164,5 @@ function AdminView({api,user,organization,page,english}) {
       }} />{english?'Business preference':'إعداد النشاط'}</label></div>)}
     </>:<div className="bg-white border rounded-xl divide-y">{data.items.map(entry=><div key={entry.id} className="p-4"><strong>{entry.name}</strong>{entry.username&&<span className="mx-3">{entry.username} · {entry.active?(english?'Active':'فعّال'):(english?'Inactive':'غير فعّال')}</span>}{entry.permissions&&<p className="text-xs text-gray-500 mt-2">{entry.permissions.join(' · ')}</p>}{!entry.is_admin&&allowed(page==='users'?'users.manage':'roles.manage')&&<button className="underline mx-3" onClick={()=>setEdit(entry)}>{english?'Edit access':'تعديل الصلاحيات'}</button>}</div>)}{!data.items.length&&<p className="p-4">{english?'No records':'لا توجد سجلات'}</p>}</div>}
     {edit!==undefined&&<AccessEditor api={api} user={user} organization={organization} page={page} entry={edit} english={english} onClose={()=>setEdit(undefined)} onSaved={()=>{setEdit(undefined);setRevision(value=>value+1);}}/>}
-  </div>;
-}
-
-function ImportCopy({api,organization,canCommit,english}) {
-  const [products,setProducts]=useState(null),[report,setReport]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
-  const [warehouseId,setWarehouseId]=useState(organization?.warehouses[0]?.id??'');
-  const run=async commit=>{
-    setBusy(true);setError('');try{setReport(await api.request(`/imports/${commit?'commit':'preview'}`,{method:'POST',body:{products,warehouseId}}));}catch(failure){setError(failure.message);setReport({valid:false,errors:failure.details??[]});}finally{setBusy(false);}
-  };
-  return <div className="p-5 space-y-4 max-w-2xl"><h1 className="text-lg font-bold">{english?'Import a catalog copy':'استيراد نسخة من الكتالوج'}</h1><p>{english?'Choose an exported JSON copy. Preview checks it without changes. Import preserves the source and applies the entire batch together.':'اختر نسخة JSON مصدّرة. المعاينة تفحصها دون تغيير البيانات، والاستيراد يحفظ الأصل ويطبق الدفعة كاملة.'}</p>
-    <input aria-label={english?'Catalog copy':'نسخة الكتالوج'} type="file" accept=".json,application/json" onChange={async event=>{setReport(null);setError('');try{const file=event.target.files[0];if(!file)return;if(file.size>5*1024*1024)throw new Error('Maximum 5 MB');const parsed=JSON.parse(await file.text());const rows=Array.isArray(parsed)?parsed:parsed.products??parsed['shamtouch:v1:products'];if(!Array.isArray(rows))throw new Error('A products array is required');setProducts(rows);}catch(failure){setProducts(null);setError(failure.message);}}} />
-    <label className="block">{english?'Opening stock warehouse':'مخزن الرصيد الافتتاحي'}<select className="border rounded-lg p-2 mx-2" value={warehouseId} onChange={event=>{setWarehouseId(event.target.value);setReport(null);}}>{organization?.warehouses.map(warehouse=><option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select></label>
-    <div className="flex gap-4"><button className="border rounded-xl p-3" disabled={!products||busy} onClick={()=>run(false)}>{english?'Preview only':'معاينة فقط'}</button><button className="bg-emerald-600 text-white rounded-xl p-3" disabled={!canCommit||!report?.valid||busy} onClick={()=>run(true)}>{english?'Import validated copy':'استيراد النسخة المفحوصة'}</button></div>
-    {error&&<p role="alert" className="text-red-700">{error}</p>}
-    {report&&<div role="status" className="border rounded-xl bg-white p-4"><p>{report.imported!==undefined?(english?`Imported ${report.imported}`:`تم استيراد ${report.imported}`):report.valid?(english?`Valid: ${report.count} products`:`الفحص ناجح: ${report.count} منتج`):(english?'Validation failed':'فشل الفحص')}</p>{report.errors?.map((entry,index)=><p key={index}>{entry.index}: {entry.message}</p>)}</div>}
   </div>;
 }

@@ -5,9 +5,10 @@ export function createApiClient({fetcher=globalThis.fetch,base='/api',onUnauthor
   let csrfToken=null;
   return {
     setCsrfToken(value){csrfToken=value;},
-    async request(path,{method='GET',body,key,signal,epoch,setupToken}={}){
-      const headers={};if(path.startsWith('/local/'))headers['X-Retail-Local']='1';if(setupToken)headers['X-Retail-Setup-Token']=setupToken;if(epoch)headers['X-Retail-Data-Epoch']=epoch;if(body!==undefined)headers['Content-Type']='application/json';if(csrfToken&&!['GET','HEAD'].includes(method))headers['X-CSRF-Token']=csrfToken;if(key)headers['Idempotency-Key']=key;
-      const response=await fetcher(base+path,{method,headers,credentials:'include',signal,body:body===undefined?undefined:JSON.stringify(body)});
+    async request(path,{method='GET',body,key,signal,epoch,setupToken,file,responseType='json'}={}){
+      if(file!==undefined&&body!==undefined)throw Error('Choose JSON or a file body');const headers={};if(path.startsWith('/local/'))headers['X-Retail-Local']='1';if(setupToken)headers['X-Retail-Setup-Token']=setupToken;if(epoch)headers['X-Retail-Data-Epoch']=epoch;if(body!==undefined)headers['Content-Type']='application/json';if(file!==undefined)headers['Content-Type']='application/octet-stream';if(csrfToken&&!['GET','HEAD'].includes(method))headers['X-CSRF-Token']=csrfToken;if(key)headers['Idempotency-Key']=key;
+      const response=await fetcher(base+path,{method,headers,credentials:'include',signal,body:file!==undefined?file:body===undefined?undefined:JSON.stringify(body)});
+      if(responseType==='blob'&&response.ok){if(!response.headers.get('Content-Type')?.includes('application/octet-stream'))throw new ApiError(502,{message:'Invalid backup download response'});return {blob:await response.blob(),filename:response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]??'Retail-backup.retailbackup'};}
       let data;try{data=await response.json();}catch{throw new ApiError(response.status,{message:'استجابة الخادم غير صالحة / Invalid server response'});}
       if(!response.ok){if(response.status===401)onUnauthorized();if(data.error?.code==='ACTIVATION_REQUIRED')onActivationRequired(data.error.details??{});throw new ApiError(response.status,data.error);}
       if(data.csrfToken)csrfToken=data.csrfToken;

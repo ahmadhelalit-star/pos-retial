@@ -23,3 +23,7 @@ test('local printing uses the authenticated API cookie path and CSRF protection'
 test('bad server responses surface errors rather than falling back to browser data',async()=>{
   const api=createApiClient({fetcher:async()=>({status:502,json:async()=>{throw new Error('HTML proxy error');}})});await assert.rejects(api.request('/products'),ApiError);
 });
+
+test('backup upload keeps raw file bytes, cookie authentication and CSRF protection',async()=>{
+ let call;const file=new Blob(['synthetic backup']);const api=createApiClient({fetcher:async(url,options)=>{call={url,options};return {ok:true,json:async()=>({imported:true})};}});api.setCsrfToken('backup-csrf');await api.request('/operations/backups/import',{method:'POST',file});assert.equal(call.options.body,file);assert.equal(call.options.headers['Content-Type'],'application/octet-stream');assert.equal(call.options.headers['X-CSRF-Token'],'backup-csrf');assert.equal(call.options.credentials,'include');
+});

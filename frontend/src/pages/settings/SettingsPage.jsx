@@ -2,7 +2,6 @@ import {receiptDesignFields} from '../../../../shared/receiptDesign.js';
 import { useEffect,useState } from 'react';
 import { StoreProfileForm } from './components/StoreProfileForm';
 import { ReceiptCustomizationForm } from './components/ReceiptCustomizationForm';
-import { PosConfigForm } from './components/PosConfigForm';
 import { ReceiptLivePreview } from './components/ReceiptLivePreview';
 import { DEFAULT_STORE_SETTINGS } from '../../domain/presentationDefaults';
 import { FinanceSettings } from '../../commercial/admin';
@@ -12,7 +11,6 @@ import {
   Cog6ToothIcon,
   BuildingOfficeIcon,
   ReceiptPercentIcon,
-  LockClosedIcon,
   ArrowPathIcon,
 } from '../../components/common/Icons';
 
@@ -27,7 +25,7 @@ export function SettingsPage(props){
 function SettingsEditor({api,user,organization,english,onSaved,settings,printing=false,extraTabs=[]}){
  const [localSettings,setLocalSettings]=useState(settings),[isSavedAlert,setIsSavedAlert]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const location=useLocation(),navigate=useNavigate();
- const baseTabs=printing?[{id:'receipt',label:english?'Cashier receipt customization':'تخصيص فاتورة الكاشير',icon:ReceiptPercentIcon}]:[{id:'profile',label:english?'Store profile':'بيانات المنشأة والمتجر',icon:BuildingOfficeIcon},{id:'pos',label:english?'Cashbox settings':'إعدادات الصندوق والدرج',icon:LockClosedIcon},{id:'finance',label:english?'Currencies and taxes':'العملات والضرائب',icon:ReceiptPercentIcon}];
+ const baseTabs=printing?[{id:'receipt',label:english?'Cashier receipt customization':'تخصيص فاتورة الكاشير',icon:ReceiptPercentIcon}]:[{id:'profile',label:english?'Store profile':'بيانات المنشأة والمتجر',icon:BuildingOfficeIcon},{id:'finance',label:english?'Currencies and taxes':'العملات والضرائب',icon:ReceiptPercentIcon}];
  const tabs=[...baseTabs,...extraTabs.map(tab=>({...tab,icon:Cog6ToothIcon}))],requested=new URLSearchParams(location.search).get('tab'),activeTab=tabs.some(tab=>tab.id===requested)?requested:tabs[0].id;
  const setActiveTab=id=>{const params=new URLSearchParams(location.search);params.set('tab',id);navigate(location.pathname+'?'+params);};
  const updateSettings=value=>{setLocalSettings(value);setIsSavedAlert(false);};
@@ -47,13 +45,13 @@ function SettingsEditor({api,user,organization,english,onSaved,settings,printing
               {printing?(english?'Printing settings':'إعدادات الطباعة'):(english?'Settings':'إعدادات المتجر')}
             </h1>
             <p className="text-xs text-gray-500">
-              {printing?'تصميم الإيصال ومعاينته وإعدادات الجهاز والطابعات':'بيانات المنشأة والوحدات والاستيراد والنسخ الاحتياطي'}
+              {printing?'تصميم الإيصال ومعاينته وإعدادات الجهاز والطابعات':'بيانات المنشأة والعملات والضرائب والميزات الإضافية والنسخ الاحتياطي'}
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        {['profile','pos','receipt'].includes(activeTab)&&<div className="flex items-center gap-2">
+        {['profile','receipt'].includes(activeTab)&&<div className="flex items-center gap-2">
           {isSavedAlert && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold animate-in fade-in">
               <CheckIcon className="w-4 h-4 text-emerald-600" />
@@ -132,12 +130,6 @@ function SettingsEditor({api,user,organization,english,onSaved,settings,printing
                 />
               )}
 
-              {activeTab === 'pos' && (
-                <PosConfigForm serverControlled
-                  settings={localSettings}
-                  onChange={updateSettings}
-                />
-              )}
               {activeTab==='finance'&&<FinanceSettings api={api} user={user} organization={organization} english={english} onSaved={onSaved}/>}
             </fieldset>}
             {extraTabs.find(tab=>tab.id===activeTab)?.content}

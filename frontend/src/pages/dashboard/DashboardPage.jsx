@@ -1,22 +1,109 @@
-import { useEffect,useState } from 'react';
-import { useNavigate,Link } from 'react-router-dom';
-import { DashboardSummaryCards } from './components/DashboardSummaryCards';
-import { SalesTrendChart } from './components/SalesTrendChart';
-import { PaymentMethodsChart } from './components/PaymentMethodsChart';
-import { CategoryBreakdownChart } from './components/CategoryBreakdownChart';
-import { TopProductsTable } from './components/TopProductsTable';
-import { LowStockAlertCard } from './components/LowStockAlertCard';
-import { DocumentChartBarIcon } from '../../components/common/Icons';
-export function DashboardPage({api,english}){
- const [range,setRange]=useState('all'),[report,setReport]=useState(null),[error,setError]=useState('');const navigate=useNavigate();
- useEffect(()=>{let live=true;const params=new URLSearchParams();if(range!=='all'){const start=new Date(),end=new Date();start.setHours(0,0,0,0);end.setHours(24,0,0,0);if(range==='week')start.setDate(start.getDate()-6);if(range==='month')start.setDate(1);params.set('from',start.toISOString());params.set('to',end.toISOString());}api.request('/reports/basic?'+params).then(value=>{if(live){setReport(value);setError('');}}).catch(failure=>{if(live)setError(failure.message);});return()=>{live=false;};},[api,range]);
- const currency=report?.baseCurrency??'',sales=Number(report?.summary.salesBase??0),profit=Number(report?.summary.grossProfitBase??0),count=Number(report?.documents.find(row=>row.kind==='sale')?.count??0);
- const metrics={totalRevenue:sales,netProfit:profit,totalTransactions:count,averageTicket:count?sales/count:0,totalVat:Number(report?.summary.salesTaxBase??0),profitMargin:sales?(profit/sales*100).toFixed(1):0,growthRate:null};
- const dailyData=Array.from({length:7},(_,i)=>{const date=new Date();date.setUTCDate(date.getUTCDate()-6+i);const day=date.toISOString().slice(0,10),row=report?.dashboard?.daily.find(row=>row.day===day);return {dayName:date.toLocaleDateString(english?'en':'ar',{weekday:'short',timeZone:'UTC'}),date:day,sales:Number(row?.sales??0),profit:Number(row?.profit??0)};});
- const topProducts=(report?.dashboard?.topProducts??[]).map(row=>({...row,qtySold:Number(row.quantity),unit:english?'base units':'وحدة أساسية',revenue:Number(row.revenue),profit:Number(row.profit),margin:Number(row.revenue)?(Number(row.profit)/Number(row.revenue)*100).toFixed(1):'0'}));
- const categorySales=(report?.dashboard?.categorySales??[]).map(row=>({...row,amount:Number(row.amount),qty:Number(row.qty)}));
- const paymentBreakdown={};for(const row of report?.payments??[]){if(row.direction!=='in')continue;const value=paymentBreakdown[row.method]??{amount:0,count:0};value.amount+=Number(row.amount_base);value.count+=Number(row.count??0);paymentBreakdown[row.method]=value;}
- return <div className="retail-page retail-original-dashboard h-full overflow-auto bg-gray-50 pb-6"><div className="bg-white px-5 py-4 border-b flex flex-wrap justify-between items-center gap-3"><div className="flex items-center gap-3"><DocumentChartBarIcon className="w-8 h-8 text-emerald-600"/><div><h1 className="text-sm font-black">{english?'Dashboard and analytics':'لوحة التحكم والتحليلات'}</h1><p className="text-xs text-gray-500">{english?'Your actual business figures':'مؤشرات النشاط من سجلات قاعدة البيانات'}</p></div></div><div className="retail-range">{[['today',english?'Today':'اليوم'],['week',english?'Last 7 days':'آخر 7 أيام'],['month',english?'This month':'هذا الشهر'],['all',english?'All time':'جميع الفترات']].map(([id,label])=><button key={id} aria-pressed={range===id} onClick={()=>setRange(id)}>{label}</button>)}<Link className="retail-button" to="/reports">{english?'Detailed reports':'التقارير التفصيلية'}</Link></div></div>
- {error&&<p role="alert" className="p-4 text-red-700">{error}</p>}{!report&&!error?<p role="status" className="p-4">{english?'Loading…':'جارٍ التحميل…'}</p>:report&&<><DashboardSummaryCards metrics={metrics} currency={currency}/><div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4"><div className="lg:col-span-8"><SalesTrendChart dailyData={dailyData} currency={currency}/></div><div className="lg:col-span-4"><PaymentMethodsChart paymentBreakdown={paymentBreakdown} totalSales={Object.values(paymentBreakdown).reduce((sum,row)=>sum+row.amount,0)} currency={currency}/></div></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 px-4"><div className="md:col-span-2 xl:col-span-6"><TopProductsTable topProducts={topProducts} currency={currency}/></div><div className="xl:col-span-3"><CategoryBreakdownChart categorySales={categorySales} totalSales={sales} currency={currency}/></div><div className="xl:col-span-3"><LowStockAlertCard lowStockProducts={report.dashboard?.lowStockProducts} onNavigateToPurchases={()=>navigate('/purchases')}/></div></div></>}
- </div>;
+import {useEffect,useState} from 'react';
+import {Link} from 'react-router-dom';
+import {dashboardPeriodBounds,dashboardTrendPoints,todayDashboardPeriod} from '../../../../shared/dashboard-period.js';
+import {ClockIcon,DocumentChartBarIcon,BanknotesIcon,ShoppingBagIcon,ReceiptPercentIcon,ArrowTrendingUpIcon,ArchiveBoxIcon,CreditCardIcon,UsersIcon} from '../../components/common/Icons';
+import {SalesTrendChart} from './components/SalesTrendChart';
+import './DashboardPage.css';
+
+const fields=['dateFrom','timeFrom','timeTo','dateTo'];
+const savedPeriod=key=>{
+  try{const value=JSON.parse(sessionStorage.getItem(key));if(dashboardPeriodBounds(value))return value;}catch{/* storage unavailable */}
+  return todayDashboardPeriod();
+};
+
+export function DashboardPage({api,user,english}){
+  const t=(ar,en)=>english?en:ar,storageKey=`retail:dashboard-period:${user?.companyId}:${user?.id}`;
+  const [period,setPeriod]=useState(()=>savedPeriod(storageKey)),[draft,setDraft]=useState(period),[revision,setRevision]=useState(0),[result,setResult]=useState(null);
+  const bounds=dashboardPeriodBounds(period),query=new URLSearchParams({...bounds,trend:'1'}).toString(),key=`${query}:${revision}`;
+  const report=result?.key===key?result.report:null,error=result?.key===key?result.error:null;
+  const validDraft=Boolean(dashboardPeriodBounds(draft));
+  const change=(field,value)=>{
+    const next={...draft,[field]:value};setDraft(next);
+    if(dashboardPeriodBounds(next))setPeriod(next);
+  };
+  const today=()=>{const value=todayDashboardPeriod();setDraft(value);setPeriod(value);setRevision(n=>n+1);};
+  useEffect(()=>{try{sessionStorage.setItem(storageKey,JSON.stringify(period));}catch{/* storage unavailable */}},[storageKey,period]);
+  useEffect(()=>{
+    let live=true,request;
+    const load=async()=>{
+      request?.abort();const controller=new AbortController();request=controller;
+      try{const value=await api.request(`/reports/basic?${query}`,{signal:controller.signal});if(live&&!controller.signal.aborted)setResult({key,report:value});}
+      catch(failure){if(live&&!controller.signal.aborted)setResult({key,error:failure.message});}
+    };
+    const initial=setTimeout(load,200),refresh=setInterval(load,60000);
+    return()=>{live=false;clearTimeout(initial);clearInterval(refresh);request?.abort();};
+  },[api,key,query]);
+  const currency=report?.baseCurrency??'',digits=report?.decimals??2;
+  const number=new Intl.NumberFormat(english?'en-GB':'ar-EG',{maximumFractionDigits:3});
+  const moneyFormat=new Intl.NumberFormat(english?'en-GB':'ar-EG',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+  const money=value=>`${moneyFormat.format(Number(value??0))} ${currency}`;
+  const sales=report?.documents.find(row=>row.kind==='sale'),count=Number(sales?.count??0),dashboard=report?.dashboard;
+  const metrics=report?[
+    [t('مبيعات الفترة','Period sales'),money(report.summary.salesBase),t('بعد المرتجعات','After returns'),BanknotesIcon,'blue'],
+    [t('صافي المشتريات','Net purchases'),money(report.summary.purchasesBase),t('بعد مرتجعات الشراء','After purchase returns'),ShoppingBagIcon,'blue'],
+    [t('الربح الإجمالي للمنتجات','Gross product profit'),money(report.summary.grossProfitBase),t('بعد خصم تكلفة المنتجات','After product costs'),ArrowTrendingUpIcon,'green'],
+    [t('فواتير البيع','Sales invoices'),number.format(count),t('الفواتير المعتمدة خلال الفترة','Posted during this period'),DocumentChartBarIcon,'blue'],
+    [t('ضريبة المبيعات','Sales tax'),money(report.summary.salesTaxBase),t('بعد ضريبة المرتجعات','After tax on returns'),ReceiptPercentIcon,'amber'],
+  ]:[];
+  const payments=new Map(),labels={cash:t('نقدي','Cash'),card:t('بطاقة','Card'),transfer:t('تحويل بنكي','Bank transfer')};
+  for(const row of report?.payments??[]){if(row.direction==='in')payments.set(row.method,(payments.get(row.method)??0)+Number(row.amount_base));}
+  return <div className="retail-dashboard retail-original-dashboard" dir={english?'ltr':'rtl'}>
+    <section className="dashboard-period" aria-labelledby="dashboard-period-title">
+      <div className="dashboard-period-heading"><span className="dashboard-icon"><ClockIcon/></span><div><h1 id="dashboard-period-title">{t('الفترة الزمنية','Time period')}</h1><p>{t('بتوقيت القاهرة','Cairo time')}</p></div></div>
+      <div className="dashboard-period-fields">{fields.map((field,index)=><label key={field}>{[t('من تاريخ','From date'),t('من وقت','From time'),t('إلى وقت','To time'),t('إلى تاريخ','To date')][index]}<input type={field.startsWith('date')?'date':'time'} required value={draft[field]} onChange={event=>change(field,event.target.value)}/></label>)}<button type="button" className="dashboard-today" onClick={today}>{t('اليوم','Today')}</button></div>
+      {!validDraft&&<p className="dashboard-error" role="alert">{t('اختر تاريخًا ووقتًا صالحين، على ألا تسبق النهاية البداية. تُعرض آخر فترة صحيحة.','Choose valid dates and times with the end on or after the start. Showing the last valid period.')}</p>}
+    </section>
+    {error&&<p role="alert" className="dashboard-error">{error} <button type="button" onClick={()=>setRevision(n=>n+1)}>{t('إعادة المحاولة','Retry')}</button></p>}
+    {!report&&!error&&<p className="dashboard-panel" role="status">{t('جارٍ تحميل لوحة التحكم…','Loading dashboard…')}</p>}
+    {report&&<>
+      <div className="dashboard-kpis">{metrics.map(([label,value,helper,Icon,tone])=><article key={label} className={`dashboard-kpi ${tone}`}><div><Icon/><span>{label}</span></div><strong>{value}</strong><small>{helper}</small></article>)}</div>
+      <div className="dashboard-main-grid">
+        <TrendChart rows={dashboardTrendPoints(dashboard.trend??[],bounds,dashboard.granularity)} granularity={dashboard.granularity} money={money} english={english} t={t}/>
+        <Panel title={t('الأصناف الأكثر مبيعًا','Top products')} subtitle={t('أعلى 5 أصناف حسب إيراد الفترة','Top five by revenue in this period')} icon={ShoppingBagIcon}>
+          {dashboard.topProducts.length?<div className="dashboard-table"><table><thead><tr>{[t('الصنف','Product'),t('الكمية','Quantity'),t('الإيراد','Revenue'),t('الربح','Profit')].map(label=><th key={label}>{label}</th>)}</tr></thead><tbody>{dashboard.topProducts.map(row=><tr key={row.id}><td>{row.name}</td><td>{number.format(Number(row.quantity))}</td><td>{money(row.revenue)}</td><td>{money(row.profit)}</td></tr>)}</tbody></table></div>:<Empty t={t}/>}
+        </Panel>
+      </div>
+      <div className="dashboard-bottom-grid">
+        <Panel title={t('أرصدة الحسابات','Account balances')} subtitle={t('حتى نهاية الفترة المحددة','As of the end of the selected period')} icon={UsersIcon}>
+          <AccountBalances accounts={report.accounts ?? []} money={money} number={number} t={t}/>
+        </Panel>
+        <Panel title={t('التحصيل حسب طريقة الدفع','Receipts by payment method')} subtitle={t('المقبوضات المسجلة خلال الفترة','Incoming payments recorded in this period')} icon={CreditCardIcon}><Breakdown rows={[...payments].map(([method,value])=>[labels[method]??method,value])} money={money} t={t}/></Panel>
+        <Panel title={t('تنبيهات المخزون','Stock alerts')} subtitle={t('الأرصدة الحالية، مستقلة عن الفترة','Current balances, independent of the period')} icon={ArchiveBoxIcon}>
+          {dashboard.lowStockProducts.length?<ul className="dashboard-stock">{dashboard.lowStockProducts.map(row=><li key={row.id}><span>{row.name}</span><strong>{number.format(Number(row.stock))} {row.unit}</strong></li>)}</ul>:<p className="dashboard-empty">{t('لا توجد أصناف منخفضة الرصيد.','No low-stock products.')}</p>}
+          <Link className="dashboard-today dashboard-stock-link" to="/purchases">{t('فتح المشتريات','Open purchases')}</Link>
+        </Panel>
+      </div>
+    </>}
+  </div>;
+}
+
+function Panel({title,subtitle,icon:Icon,children}){
+  return <section className="dashboard-panel"><header><span className="dashboard-icon"><Icon/></span><div><h3>{title}</h3><p>{subtitle}</p></div></header>{children}</section>;
+}
+function Empty({t}){return <p className="dashboard-empty">{t('لا توجد حركة في الفترة المحددة.','No activity in the selected period.')}</p>;}
+function AccountBalances({accounts,money,number,t}){
+  if(!accounts.length)return <p className="dashboard-empty">{t('لا توجد أرصدة حسابات.','No account balances.')}</p>;
+  return <div className="dashboard-table"><table>
+    <thead><tr><th>{t('الحسابات','Accounts')}</th><th>{t('مستحق','Due')}</th><th>{t('دائن','Credit')}</th></tr></thead>
+    <tbody>{accounts.map(row=><tr key={row.kind}>
+      <td>{row.kind==='customer'?t('العملاء','Customers'):t('الموردون','Suppliers')} · {number.format(Number(row.accounts))}</td>
+      <td>{money(row.due_base)}</td><td>{money(row.credit_base)}</td>
+    </tr>)}</tbody>
+  </table></div>;
+}
+function Breakdown({rows,money,t}){
+  if(!rows.length)return <Empty t={t}/>;
+  const max=Math.max(1,...rows.map(([,value])=>Math.abs(value)));
+  return <ul className="dashboard-breakdown">{rows.map(([name,value])=><li key={name}><div><span>{name}</span><strong>{money(value)}</strong></div><div className="dashboard-meter" aria-hidden="true"><span className={value<0?'negative':''} style={{width:`${100*Math.abs(value)/max}%`}}/></div></li>)}</ul>;
+}
+function TrendChart({rows=[],granularity,english,money,t}){
+  const labels={hour:t('بالساعة','Hourly'),day:t('يومي','Daily'),week:t('أسبوعي','Weekly'),month:t('شهري','Monthly'),year:t('سنوي','Yearly')};
+  const locale=english?'en-GB':'ar-EG',dayFormat=new Intl.DateTimeFormat(locale,{timeZone:'UTC',...(granularity==='hour'?{hour:'2-digit',minute:'2-digit'}:granularity==='year'?{year:'numeric'}:granularity==='month'?{month:'short',year:'2-digit'}:{day:'numeric',month:'short'})});
+  const dailyData=rows.map(row=>({
+    date:row.bucket,
+    dayName:dayFormat.format(new Date(row.bucket+'Z')),
+    sales:Number(row.sales),
+    profit:Number(row.profit),
+  }));
+  return <SalesTrendChart dailyData={dailyData} english={english} formatMoney={money} periodLabel={labels[granularity]}/>;
 }

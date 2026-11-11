@@ -1,5 +1,9 @@
 # Egyptian pound base currency
 
+## Removing unused settings
+
+Currency and tax rows include a Delete button for users with `organization.manage`, with confirmation. The API removes only an unused company currency setting or unused tax configuration and records an audit entry. It never removes the global currency definition, products or financial history. Base currency deletion is blocked; product, document, payment, order and balance references block currency deletion with usage counts. Linked products block tax deletion until their tax assignment is changed; historical invoice tax snapshots retain their original values. Catalog locking serializes removal with product edits/imports, and row locking serializes currency removal with financial operations. Tests use synthetic data and intercepted browser requests; no live currencies or taxes were deleted during this work.
+
 The Finance tab at `/settings?tab=finance` shows currencies by name and code, including **جنيه مصري (EGP)**, with a base currency selector. The currency editor explains rates as `1 selected currency = N base currency`. The base currency rate is fixed at 1. Existing custom currency codes remain available; none are renamed or removed implicitly.
 
 Changing the base after transactions is an accounting migration, not an ordinary company-field update. The API rejects that change when documents, stock movements, shifts, payments, partner openings or orders exist. Current-currency saves are harmless no-ops. Changing a genuinely empty company is serialized against financial writes, requires management permission, and rejects a conflicting configured FX rate.

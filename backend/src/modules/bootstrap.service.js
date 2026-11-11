@@ -19,7 +19,7 @@ export async function bootstrap(pool, input, { localFirstAdmin = false } = {}) {
     await db.query('INSERT INTO company_currencies(company_id,code,rate) VALUES($1,$2,1)',[companyId,values.currency]);
     await db.query("INSERT INTO branches(id,company_id,name) VALUES($1,$2,'Main')",[branchId,companyId]);
     await db.query("INSERT INTO warehouses(id,company_id,branch_id,name) VALUES($1,$2,$3,'Main')",[warehouseId,companyId,branchId]);
-    await db.query('INSERT INTO users(id,company_id,username,name,password_hash) VALUES($1,$2,$3,$4,$5)',[userId,companyId,values.username,values.name??values.username,passwordHash]);
+    await db.query('INSERT INTO users(id,company_id,username,name,password_hash,is_primary_admin) VALUES($1,$2,$3,$4,$5,true)',[userId,companyId,values.username,values.name??values.username,passwordHash]);
     for (const permission of PERMISSIONS) await db.query('INSERT INTO permissions(id) VALUES($1) ON CONFLICT DO NOTHING',[permission]);
     const roleIds={};
     for (const [name,permissions] of Object.entries(DEFAULT_ROLES)) {

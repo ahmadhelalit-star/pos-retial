@@ -25,6 +25,7 @@ export function InventoryPage({
   financialOptions,
   onPrepareLabels,
   onOpenCategories,
+  stockPolicyControl,
 }) {
   useLocale();
   const [localSearch, setLocalSearch] = useState('');
@@ -121,6 +122,7 @@ export function InventoryPage({
         searchPortalTarget={headerSearchSlot}
         canCreate={allowed('catalog.create')}
         onOpenCategories={onOpenCategories}
+        stockPolicyControl={stockPolicyControl}
       />
 
       {/* Products Table */}

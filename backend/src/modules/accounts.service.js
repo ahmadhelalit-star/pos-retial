@@ -29,6 +29,8 @@ export async function requireShift(db,user,id,deviceId,{owner=true,open=true,war
 }
 export const openShiftSchema=z.object({cashboxId:z.string().uuid(),deviceId:z.string().min(8).max(100),opening:nonnegative}).strict();
 export async function openShift(pool,user,key,input){const body=openShiftSchema.parse(input);return transaction(pool,db=>idempotent(db,user,key,'shift.open',body,async()=>{
+  const account=(await db.query('SELECT active,deleted_at FROM users WHERE company_id=$1 AND id=$2 FOR SHARE',[user.companyId,user.id])).rows[0];
+  if(!account?.active||account.deleted_at)fail(403,'USER_UNAVAILABLE','حساب المستخدم غير متاح.');
   const box=(await db.query('SELECT * FROM cashboxes WHERE company_id=$1 AND id=$2',[user.companyId,body.cashboxId])).rows[0];if(!box||!user.branches.includes(box.branch_id))fail(403,'CASHBOX_DENIED','Cashbox outside user scope');
   const id=randomUUID();await db.query('INSERT INTO shifts(company_id,id,cashbox_id,user_id,device_id,opening) VALUES($1,$2,$3,$4,$5,$6)',[user.companyId,id,body.cashboxId,user.id,body.deviceId,body.opening]);await audit(db,user,'shift.open',id,body);return {id,...body};
 }));}

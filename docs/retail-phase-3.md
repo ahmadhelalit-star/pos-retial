@@ -1,3 +1,5 @@
+> Update 2026-11-10: The legacy catalog and commercial import features have been removed, including their Settings tab and API endpoints. References below describe the historical phase only. Backup and restore remain available. Existing migration history, archive tables and financial records are preserved. Legacy permission IDs remain compatible with saved roles but no longer expose import functionality.
+
 # Sham Touch Retail — Phase 3
 
 تاريخ التنفيذ والتحقق: 2026-11-07. مسار المشروع: `C:\Users\Iway\Desktop\retial`.

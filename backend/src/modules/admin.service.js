@@ -6,6 +6,7 @@ import { PERMISSIONS } from './registry.js';
 import { hashPassword } from './auth.service.js';
 import { passwordSchema,usernameSchema } from './bootstrap.service.js';
 import { audit } from './common.js';
+import {loadUser} from './auth.repository.js';
 
 const roleSchema = z.object({name:z.string().trim().min(1).max(100),permissions:z.array(z.enum(PERMISSIONS)).max(100)}).strict();
 const userSchema = z.object({username:usernameSchema.optional(),phone:z.string().max(50).optional(),name:z.string().trim().min(1).max(200),password:passwordSchema.optional(),active:z.boolean().default(true),roleIds:z.array(z.string().uuid()).min(1).max(20),branches:z.array(z.string().uuid()).min(1).max(100),warehouses:z.array(z.string().uuid()).min(1).max(100)}).strict();
@@ -35,11 +36,26 @@ export async function saveRole(pool,user,id,input) {
 export async function saveUser(pool,user,id,input) {
   const data=userSchema.parse(input);
   if (!id && !data.password) fail(400,'PASSWORD_REQUIRED','Password required');
-  if (data.branches.some(value=>!user.branches.includes(value)) || data.warehouses.some(value=>!user.warehouses.includes(value))) fail(403,'SCOPE_GRANT_DENIED','Cannot grant a wider branch/warehouse scope');
+  const isAdmin=user.roles.some(role=>role.is_admin);
+  if (data.branches.some(value=>!user.branches.includes(value)) || (!isAdmin&&data.warehouses.some(value=>!user.warehouses.includes(value)))) fail(403,'SCOPE_GRANT_DENIED','Cannot grant a wider branch/warehouse scope');
   let loginName=data.username??(id?null:'local_'+randomUUID());
   const passwordHash=data.password?await hashPassword(data.password):null;
   return transaction(pool,async db=>{
     await lockCompany(db,user);
+    if(id){
+      const target=(await db.query('SELECT is_primary_admin,deleted_at FROM users WHERE company_id=$1 AND id=$2 FOR UPDATE',[user.companyId,id])).rows[0];
+      if(!target||target.deleted_at)fail(404,'NOT_FOUND','User not found');
+      if(target.is_primary_admin){
+        if(id!==user.id)fail(403,'PRIMARY_ADMIN_PROTECTED','المدير الأساسي يعدّل بياناته بنفسه.');
+        const current=await loadUser(db,id);
+        const same=(left,right)=>JSON.stringify([...new Set(left)].sort())===JSON.stringify([...new Set(right)].sort());
+        if(!data.active||!same(data.roleIds,current.roles.map(role=>role.id))||!same(data.branches,current.branches)||!same(data.warehouses,current.warehouses))fail(409,'PRIMARY_ADMIN_PROTECTED','صلاحيات المدير الأساسي وتفعيله ثابتة.');
+        const result=(await db.query('UPDATE users SET name=$3,phone=COALESCE($4,phone),password_hash=COALESCE($5,password_hash) WHERE company_id=$1 AND id=$2 RETURNING username',[user.companyId,id,data.name,data.phone??null,passwordHash])).rows[0];
+        if(passwordHash)await db.query('DELETE FROM sessions WHERE user_id=$1',[id]);
+        await audit(db,user,'user.save',id,{primaryAdmin:true});
+        return {id,username:result.username,name:data.name,active:true};
+      }
+    }
     for (const roleId of new Set(data.roleIds)) {
       const role=(await db.query('SELECT * FROM roles WHERE company_id=$1 AND id=$2',[user.companyId,roleId])).rows[0];
       if (!role) fail(400,'INVALID_ROLE','Role outside company');
@@ -63,5 +79,21 @@ export async function saveUser(pool,user,id,input) {
     for (const warehouseId of new Set(data.warehouses)) await db.query('INSERT INTO user_warehouses VALUES($1,$2,$3)',[user.companyId,id,warehouseId]);
     await protectAdmin(db,user.companyId); await audit(db,user,'user.save',id,{active:data.active,roleIds:data.roleIds});
     return {id,username:loginName,name:data.name,active:data.active};
+  });
+}
+
+export async function deleteUser(pool,user,id){
+  const targetId=z.string().uuid().parse(id);
+  if(!user.is_primary_admin)fail(403,'PRIMARY_ADMIN_REQUIRED','حذف المستخدمين متاح للمدير الأساسي فقط.');
+  return transaction(pool,async db=>{
+    await lockCompany(db,user);
+    const target=(await db.query('SELECT is_primary_admin,deleted_at FROM users WHERE company_id=$1 AND id=$2 FOR UPDATE',[user.companyId,targetId])).rows[0];
+    if(!target||target.deleted_at)fail(404,'NOT_FOUND','User not found');
+    if(target.is_primary_admin||targetId===user.id)fail(409,'PRIMARY_ADMIN_PROTECTED','لا يمكن حذف المدير الأساسي.');
+    if((await db.query('SELECT 1 FROM shifts WHERE company_id=$1 AND user_id=$2 AND closed_at IS NULL LIMIT 1',[user.companyId,targetId])).rowCount)fail(409,'USER_SHIFT_OPEN','أغلق وردية المستخدم قبل حذفه.');
+    await db.query('UPDATE users SET active=false,deleted_at=now() WHERE company_id=$1 AND id=$2',[user.companyId,targetId]);
+    await db.query('DELETE FROM sessions WHERE user_id=$1',[targetId]);
+    await audit(db,user,'user.delete',targetId);
+    return {deleted:true,id:targetId};
   });
 }

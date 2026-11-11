@@ -25,7 +25,6 @@ const PAGE_META = {
   'admin/modules': { title: 'الوحدات الإضافية', subtitle: 'الترخيص وإعدادات النشاط', icon: DocumentChartBarIcon },
   'admin/users': { title: 'المستخدمون', subtitle: 'حسابات مستخدمي Retail', icon: UsersIcon },
   'admin/roles': { title: 'الأدوار والصلاحيات', subtitle: 'الصلاحيات المطبقة من الخادم', icon: UsersIcon },
-  'admin/import': { title: 'استيراد نسخة', subtitle: 'فحص نسخة الكتالوج واستيرادها', icon: ArchiveBoxIcon },
   dashboard: {
     title: 'لوحة التحكم',
     subtitle: 'نظرة عامة على الأداء والمبيعات والأرباح',
@@ -84,6 +83,7 @@ export function AppHeader({
   cashier = 'سامر النجار',
   onTabChange,
   searchSlotRef,
+  salesControlsRef,
 }) {
   useLocale();
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -152,8 +152,8 @@ export function AppHeader({
   });
 
   return (
-    <header className="no-print grid min-h-16 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#c5c5d3] bg-white px-3 py-2 sm:gap-3 lg:px-5">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <header className={`no-print grid min-h-16 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#c5c5d3] bg-white px-3 py-2 sm:gap-3 lg:px-5 ${activeTab==='sales'?'retail-sales-header':''}`}>
+      {activeTab==='sales'?<div ref={salesControlsRef} className="retail-sales-controls-slot"/>:<div className="flex min-w-0 items-center gap-2.5">
         <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f0f3ff] text-[#00236f] sm:flex">
           <PageIcon className="h-[18px] w-[18px]" />
         </div>
@@ -165,9 +165,9 @@ export function AppHeader({
             {t(meta.subtitle)}
           </p>
         </div>
-      </div>
+      </div>}
 
-      <div className="flex min-w-0 items-center justify-center px-1 sm:px-2">
+      <div className="retail-header-center flex min-w-0 items-center justify-center px-1 sm:px-2">
         <div ref={searchSlotRef} className="w-full max-w-[540px]" />
       </div>
 

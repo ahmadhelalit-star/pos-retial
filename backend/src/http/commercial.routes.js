@@ -14,9 +14,9 @@ import { moduleAccess } from '../modules/registry.js';
 import { getProduct } from '../modules/products.repository.js';
 import { createProductLine } from '../../../shared/catalog.js';
 import { registerPrintRoutes } from '../modules/printing.service.js';
-import { registerLegacyRoutes } from '../modules/legacy-commercial.service.js';
 import { allocateCredit } from '../modules/credit-allocation.service.js';
 import { D,round,companyCurrency } from '../modules/money.js';
+import {dashboardTrend} from '../modules/dashboard-trend.service.js';
 
 export function commercialRoutes({pool,licenseProvider,config}){
   const router=Router();
@@ -82,7 +82,8 @@ export function commercialRoutes({pool,licenseProvider,config}){
   route('get','/organization/presentation','organization.read',async(req,res)=>res.json(await readPresentation(pool,req.user.companyId)));
   route('put','/organization/presentation','organization.manage',async(req,res)=>res.json(await transaction(pool,db=>savePresentation(db,req.user,req.body))));
   route('get','/reports/basic','reports.read',async(req,res)=>{
-    const query=z.object({from:z.iso.datetime().optional(),to:z.iso.datetime().optional()}).strict().parse(req.query),values=[req.user.companyId,req.user.warehouses,query.from??'1970-01-01T00:00:00Z',query.to??'9999-01-01T00:00:00Z'];
+    const query=z.object({from:z.iso.datetime().optional(),to:z.iso.datetime().optional(),trend:z.literal('1').optional()}).strict().parse(req.query),values=[req.user.companyId,req.user.warehouses,query.from??'1970-01-01T00:00:00Z',query.to??'9999-01-01T00:00:00Z'];
+    if(query.trend&&(!query.from||!query.to||Date.parse(query.from)>=Date.parse(query.to)))fail(400,'INVALID_PERIOD','A valid start and end are required for the dashboard trend');
     const documents=(await pool.query("SELECT kind,count(*) count,sum(total_base) total_base,sum(tax*exchange_rate) tax_base,sum((subtotal-discount)*exchange_rate) net_base,sum(cost_base) cost_base FROM commercial_documents WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[]) AND created_at>=$3 AND created_at<$4 GROUP BY kind",values)).rows;
     const stock=(await pool.query('SELECT COALESCE(sum(quantity*average_cost),0) valuation,COALESCE(sum(quantity),0) quantity FROM stock_balances WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[])',[req.user.companyId,req.user.warehouses])).rows[0];
     const payments=(await pool.query('SELECT method,direction,currency,count(*) count,sum(p.amount) amount,sum(p.amount_base) amount_base,sum(p.fx_base) fx_base FROM payments p JOIN shifts s ON s.company_id=p.company_id AND s.id=p.shift_id JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE p.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND p.created_at>=$3 AND p.created_at<$4 GROUP BY method,direction,currency',[req.user.companyId,req.user.branches,values[2],values[3]])).rows;
@@ -97,7 +98,7 @@ export function commercialRoutes({pool,licenseProvider,config}){
       WHERE e.company_id=$1 AND e.created_at<$4 AND (d.warehouse_id=ANY($2::uuid[]) OR c.branch_id=ANY($3::uuid[]) OR (e.opening_id IS NOT NULL AND $5)) GROUP BY p.kind,e.partner_id)
       SELECT kind,count(*) accounts,COALESCE(sum(GREATEST(balance,0)),0) due_base,COALESCE(sum(GREATEST(-balance,0)),0) credit_base FROM scoped GROUP BY kind`,[req.user.companyId,req.user.warehouses,req.user.branches,values[3],req.user.roles.some(role=>role.is_admin)])).rows;
     const shifts=(await pool.query('SELECT (s.closed_at IS NOT NULL) closed,count(*) count FROM shifts s JOIN cashboxes c ON c.company_id=s.company_id AND c.id=s.cashbox_id WHERE s.company_id=$1 AND c.branch_id=ANY($2::uuid[]) AND s.opened_at>=$3 AND s.opened_at<$4 GROUP BY (s.closed_at IS NOT NULL)',[req.user.companyId,req.user.branches,values[2],values[3]])).rows;
-    const daily=(await pool.query(`SELECT (created_at AT TIME ZONE 'UTC')::date::text AS "day",
+    const daily=query.trend?[]:(await pool.query(`SELECT (created_at AT TIME ZONE 'UTC')::date::text AS "day",
       sum(CASE WHEN kind='sale' THEN total_base ELSE -total_base END) sales,
       sum((CASE WHEN kind='sale' THEN 1 ELSE -1 END)*((subtotal-discount)*exchange_rate-cost_base)) profit
       FROM commercial_documents WHERE company_id=$1 AND warehouse_id=ANY($2::uuid[]) AND kind IN('sale','sale_return') AND created_at>=GREATEST($3::timestamptz,date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'-interval '6 days') AND created_at<$4 GROUP BY 1 ORDER BY 1`,values)).rows;
@@ -115,7 +116,8 @@ export function commercialRoutes({pool,licenseProvider,config}){
     const lowStockProducts=(await pool.query(`SELECT p.id,p.name,p.sku barcode,p.data->>'unit' unit,COALESCE(sum(s.quantity),0) stock
       FROM products p LEFT JOIN stock_balances s ON s.company_id=p.company_id AND s.product_id=p.id AND s.warehouse_id=ANY($2::uuid[])
       WHERE p.company_id=$1 AND p.type='stock' AND p.archived_at IS NULL GROUP BY p.company_id,p.id HAVING COALESCE(sum(s.quantity),0)<=10 ORDER BY stock,p.name LIMIT 30`,values.slice(0,2))).rows;
-    res.json({documents,stock,payments,summary,accounts,shifts,dashboard:{daily,topProducts,categorySales,lowStockProducts},baseCurrency:baseCurrency.code,decimals:baseCurrency.decimals,allocationFxBase:allocationFx,from:values[2],to:values[3]});
+    const trend=query.trend?await dashboardTrend(pool,values):{};
+    res.json({documents,stock,payments,summary,accounts,shifts,dashboard:{daily,topProducts,categorySales,lowStockProducts,...trend},baseCurrency:baseCurrency.code,decimals:baseCurrency.decimals,allocationFxBase:allocationFx,from:values[2],to:values[3]});
   });
   route('get','/products/scan/:code','catalog.read',async(req,res)=>{
     const code=z.string().regex(/^\d{13}$/).parse(req.params.code),digits=code.split('').map(Number);if((10-digits.slice(0,12).reduce((sum,value,index)=>sum+value*(index%2?3:1),0)%10)%10!==digits[12]||code[0]!=='2')fail(400,'INVALID_SCALE_BARCODE','Expected a valid weighted EAN-13 barcode');
@@ -128,6 +130,6 @@ export function commercialRoutes({pool,licenseProvider,config}){
   route('post','/quotations/:id/convert','modules.advancedSales',async(req,res)=>res.json(await convertQuotation(pool,req.user,req.headers['idempotency-key'],req.params.id)),advanced);
   route('post','/orders/:id/deliver','modules.advancedSales',async(req,res)=>res.json(await deliverOrder(pool,req.user,req.headers['idempotency-key'],req.params.id,req.body)),advanced);
   route('post','/orders/:id/invoice','modules.advancedSales',async(req,res)=>res.json(await invoiceOrder(pool,req.user,req.headers['idempotency-key'],req.params.id,req.body)),advanced);
-  registerPrintRoutes({router,route,pool});registerLegacyRoutes({route,pool});
+  registerPrintRoutes({router,route,pool});
   return router;
 }

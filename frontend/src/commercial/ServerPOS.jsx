@@ -1,4 +1,5 @@
 import { useState,useEffect,useMemo,useRef,useCallback } from 'react';
+import {createPortal} from 'react-dom';
 import { ProductGrid } from '../pages/sales/components/ProductGrid';
 import { CartItem } from '../pages/sales/components/CartItem';
 import { ProductChoiceModal } from '../pages/sales/components/ProductChoiceModal';
@@ -10,6 +11,7 @@ import { RemoteSelect } from './RemoteSelect';
 import { EmptyState } from './ConnectedUI';
 import { ShoppingBagIcon,CreditCardIcon,StorefrontIcon,TagIcon,TrashIcon } from '../components/common/Icons';
 import { draftStore,recoveryKey,initialCartCurrency } from './recovery';
+import '../pages/sales/CashierAppearance.css';
 
 export function ServerPOS(props){
   const [state,setState]=useState(null),[error,setError]=useState('');
@@ -24,7 +26,7 @@ export function ServerPOS(props){
   if(!state)return <p role="status" className="p-5">{props.english?'Recovering cashier…':'جارٍ استعادة الكاشير…'}</p>;
   return <CashierSession {...props} recovery={state}/>;
 }
-function CashierSession({api,user,organization,english=false,onShift,recovery}){
+function CashierSession({api,user,organization,english=false,headerControls,recovery}){
   const [mobileTab,setMobileTab]=useState('products'),[discountOpen,setDiscountOpen]=useState(false);
   const [query,setQuery]=useState({q:'',category:'all',page:1}),[catalog,setCatalog]=useState({items:[],total:0}),[error,setError]=useState(''),[connection,setConnection]=useState(true),[choice,setChoice]=useState(null);
   const [warehouseId,setWarehouseId]=useState(recovery.draft?.warehouseId??organization.warehouses[0]?.id??''),[currency,setCurrency]=useState(initialCartCurrency(recovery.draft,organization.company.base_currency)),[partnerId,setPartnerId]=useState(recovery.draft?.partnerId??'');
@@ -50,9 +52,26 @@ function CashierSession({api,user,organization,english=false,onShift,recovery}){
   const currentQuote=quote?.requestFingerprint===JSON.stringify(body)?quote:null;
   const advanced=modules.some(module=>module.id==='advancedSales'&&module.available);
   return <div className="retail-cashier h-full min-h-0 flex flex-col overflow-hidden">
-    <div className="retail-cashier-status"><span role="status" className={connection?'text-emerald-700':'text-red-700'}>{connection?(english?'Connected to server':'متصل بالسيرفر'):(english?'Disconnected — no sale will be posted offline':'الاتصال مقطوع — لن تُسجّل مبيعات دون السيرفر')}</span><span>{shift?(english?'Shift open':'الوردية مفتوحة'):(english?'Shift closed':'الوردية مغلقة')}</span><button className="underline" onClick={onShift}>{english?'Manage shift':'إدارة الوردية'}</button>
-      <select aria-label="Warehouse" disabled={Boolean(cart.items.length)||Boolean(pending)} value={warehouseId} onChange={event=>setWarehouseId(event.target.value)}>{organization.warehouses.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select><select aria-label="Invoice currency" disabled={Boolean(pending)} value={currency} onChange={event=>setCurrency(event.target.value)}>{organization.currencies.map(row=><option key={row.code}>{row.code}</option>)}</select>
-    </div>
+    {headerControls&&createPortal(
+      <div className="retail-sales-controls">
+        <span role="status" className="retail-sales-connection" data-connected={connection} title={connection?(english?'Connected to server':'متصل بالسيرفر'):(english?'Disconnected':'الاتصال مقطوع')}>
+          <span className="sr-only">{connection?(english?'Connected to server':'متصل بالسيرفر'):(english?'Disconnected':'الاتصال مقطوع')}</span>
+        </span>
+        <label>
+          <span>{english?'Warehouse':'المخزن'}</span>
+          <select aria-label={english?'Warehouse':'المخزن'} disabled={Boolean(cart.items.length)||Boolean(pending)} value={warehouseId} onChange={event=>setWarehouseId(event.target.value)}>
+            {organization.warehouses.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>{english?'Currency':'العملة'}</span>
+          <select aria-label={english?'Invoice currency':'العملة'} disabled={Boolean(pending)} value={currency} onChange={event=>setCurrency(event.target.value)}>
+            {organization.currencies.map(row=><option key={row.code} value={row.code}>{row.code}</option>)}
+          </select>
+        </label>
+      </div>,headerControls
+    )}
+    {!connection&&<p role="alert" className="retail-cashier-offline">{english?'Disconnected. Sales are paused until the server reconnects.':'الاتصال مقطوع. البيع متوقف لحد ما يرجع الاتصال بالسيرفر.'}</p>}
     {error&&<p role="alert" className="bg-red-50 text-red-700 p-3 text-sm">{error}</p>}
     {pending&&<div className="p-3 bg-amber-50 text-amber-900 text-sm">{english?'Save result is uncertain. Cart is locked until retrying the same request.':'نتيجة الحفظ غير مؤكدة. السلة مقفلة إلى أن تعيد المحاولة بنفس الطلب.'}<button disabled={busy} className="underline mx-3" onClick={()=>send(pending).catch(()=>{})}>{english?'Retry same request':'إعادة نفس الطلب'}</button></div>}
     <div className="retail-cashier-split flex-1 min-h-0 flex overflow-hidden relative">
@@ -73,7 +92,7 @@ function CashierSession({api,user,organization,english=false,onShift,recovery}){
 
 function Checkout({quote,currencies,creditAllowed,english,busy,onSubmit,onClose}){
   const [method,setMethod]=useState('cash'),[rows,setRows]=useState([{method:'cash',currency:quote.currency,amount:quote.total}]),[error,setError]=useState('');
-  return <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><form className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4" onSubmit={async event=>{event.preventDefault();setError('');try{await onSubmit(method==='credit'?[]:rows.filter(row=>Number(row.amount)>0).map(row=>({...row,amount:Number(row.amount)})));}catch(error){setError(error.message);}}}>
+  return <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><form className="retail-checkout bg-white rounded-3xl max-w-lg w-full p-6 space-y-4" onSubmit={async event=>{event.preventDefault();setError('');try{await onSubmit(method==='credit'?[]:rows.filter(row=>Number(row.amount)>0).map(row=>({...row,amount:Number(row.amount)})));}catch(error){setError(error.message);}}}>
     <h2 className="font-bold text-xl">{english?'Payment':'الدفع'} · {quote.total} {quote.currency}</h2>{error&&<p role="alert" className="text-red-700">{error}</p>}<select aria-label="Payment method" className="w-full border rounded-xl p-3" value={method} disabled={busy} onChange={event=>{const value=event.target.value;setMethod(value);if(value!=='credit')setRows([{method:value==='mixed'?'cash':value,currency:quote.currency,amount:quote.total}]);}}><option value="cash">{english?'Cash':'نقدي'}</option><option value="card">{english?'Card':'بطاقة'}</option><option value="mixed">{english?'Mixed / partial':'مختلط / جزئي'}</option>{creditAllowed&&<option value="credit">{english?'Credit':'آجل'}</option>}</select>
     {method!=='credit'&&rows.map((row,index)=><div key={index} className="grid grid-cols-3 gap-2"><select aria-label={`Tender method ${index+1}`} disabled={busy} className="border rounded-lg p-2" value={row.method} onChange={event=>setRows(previous=>previous.map((entry,i)=>i===index?{...entry,method:event.target.value}:entry))}><option value="cash">{english?'Cash':'نقدي'}</option><option value="card">{english?'Card':'بطاقة'}</option><option value="transfer">{english?'Transfer':'تحويل'}</option></select><select aria-label={`Tender currency ${index+1}`} className="border rounded-lg p-2" disabled={busy} value={row.currency} onChange={event=>setRows(previous=>previous.map((entry,i)=>i===index?{...entry,currency:event.target.value}:entry))}>{currencies.map(config=><option key={config.code}>{config.code}</option>)}</select><input aria-label={`Tender amount ${index+1}`} className="border rounded-lg p-2" required type="number" step="any" min="0" disabled={busy} value={row.amount} onChange={event=>setRows(previous=>previous.map((entry,i)=>i===index?{...entry,amount:event.target.value}:entry))}/></div>)}
     {method==='mixed'&&<button type="button" disabled={busy} className="underline" onClick={()=>setRows(previous=>[...previous,{method:'card',currency:quote.currency,amount:'0'}])}>{english?'Add tender':'إضافة دفعة'}</button>}

@@ -10,7 +10,7 @@ export function ProductListRow({ product, categoryIcon, onAddToCart }) {
       type="button"
       onClick={() => onAddToCart(product)}
       title={product.name}
-      className="group flex h-14 w-full items-center gap-3 overflow-hidden rounded-xl border border-[#c5c5d3]/70 bg-white px-3 text-right transition-all duration-150 hover:border-[#00236f]/40 hover:bg-[#f0f3ff]/50 hover:shadow-sm active:scale-[0.995] cursor-pointer select-none"
+      className="retail-sales-product group flex h-14 w-full items-center gap-3 overflow-hidden rounded-xl border border-[#c5c5d3]/70 bg-white px-3 text-right transition-all duration-150 hover:border-[#00236f]/40 hover:bg-[#f0f3ff]/50 hover:shadow-sm active:scale-[0.995] cursor-pointer select-none"
     >
       <span
         className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-base sm:flex ${product.color || 'border-gray-200 bg-gray-50'}`}

@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';import {resolve} from 'node:path';import {fileURLToPath} from 'node:url';import {createLocalPrinting} from '../local-printing.mjs';
+test('restored database epoch holds pending old print jobs for review without deleting or sending them',async()=>{
+ const directory=resolve(fileURLToPath(new URL('../../.developer/printing-tests/',import.meta.url)),randomUUID()),company=randomUUID(),id=randomUUID();let renders=0,sends=0;const options={directory,pool:{},origin:'http://127.0.0.1',render:async()=>{renders++;return [];},spool:async()=>{sends++;}};
+ const before=createLocalPrinting({...options,epoch:'before-restore'});const previous=await before.context(company);await previous.queue.enqueue({id,kind:'receipt',format:'80mm',payload:{number:'old-invoice'}},'Synthetic printer');before.close();const after=createLocalPrinting({...options,epoch:'after-restore'});
+ try{const context=await after.context(company),record=await context.queue.read(id);assert.equal(record.state,'uncertain');assert.equal(record.job.payload.number,'old-invoice');assert.equal(context.config.epoch,'after-restore');await context.queue.work();assert.equal(renders,0);assert.equal(sends,0);}finally{after.close();}
+});

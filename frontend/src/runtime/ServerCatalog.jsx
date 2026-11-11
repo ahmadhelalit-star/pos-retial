@@ -4,8 +4,9 @@ const InventoryPage = lazy(() => import('../pages/inventory/InventoryPage'));
 const CategoriesPanel = lazy(() => import('../pages/inventory/CategoriesPanel'));
 import { productQuery } from '../services/apiClient';
 import { LabelPrinting } from '../commercial/views';
+import {StockPolicySettings} from '../pages/inventory/StockPolicySettings';
 
-export function ServerCatalog({api,user,organization,locale,onCategoriesChanged}) {
+export function ServerCatalog({api,user,organization,locale,onCategoriesChanged,onStockPolicySaved}) {
   const location=useLocation();
   const navigate=useNavigate(),categoryTab=new URLSearchParams(location.search).get('tab')==='categories';
   const openTab=tab=>{const parameters=new URLSearchParams(location.search);parameters.delete('labels');if(tab==='categories')parameters.set('tab',tab);else parameters.delete('tab');navigate({pathname:location.pathname,search:parameters.toString()});};
@@ -41,7 +42,7 @@ export function ServerCatalog({api,user,organization,locale,onCategoriesChanged}
     {error&&<div role="alert" className="m-3 p-3 rounded-xl bg-red-50 text-red-700">{error} <button onClick={refresh}>{english?'Retry':'إعادة المحاولة'}</button></div>}
     {loading&&<p role="status" className="p-2 text-center">{english?'Loading…':'جارٍ التحميل…'}</p>}
     {!error&&<div className={`flex-1 min-h-0 ${loading?'opacity-50 pointer-events-none':''}`}>
-      <Suspense fallback={<p role="status">{english?'Loading…':'جارٍ التحميل…'}</p>}><InventoryPage key={location.key} initialLabelsOpen={new URLSearchParams(location.search).get('labels')==='1'} serverTotal={result.total} products={result.items} serverQuery={query} onServerQueryChange={changeQuery} permissions={user.permissions} ledgerMode financialOptions={organization} onPrepareLabels={product=>setLabelProduct(product)} onSaveProduct={save} onLoadVariantBalances={loadVariantBalances} onDeleteProduct={archive} onOpenCategories={()=>openTab('categories')} onAdjustStock={id=>setMovementProduct(result.items.find(product=>product.id===id))} /></Suspense>
+      <Suspense fallback={<p role="status">{english?'Loading…':'جارٍ التحميل…'}</p>}><InventoryPage stockPolicyControl={<StockPolicySettings api={api} user={user} company={organization.company} english={english} onSaved={onStockPolicySaved}/>} key={location.key} initialLabelsOpen={new URLSearchParams(location.search).get('labels')==='1'} serverTotal={result.total} products={result.items} serverQuery={query} onServerQueryChange={changeQuery} permissions={user.permissions} ledgerMode financialOptions={organization} onPrepareLabels={product=>setLabelProduct(product)} onSaveProduct={save} onLoadVariantBalances={loadVariantBalances} onDeleteProduct={archive} onOpenCategories={()=>openTab('categories')} onAdjustStock={id=>setMovementProduct(result.items.find(product=>product.id===id))} /></Suspense>
     </div>}
     <div className="flex items-center justify-center gap-5 p-3 bg-white border-t text-sm">
       <button disabled={query.page<=1||loading} onClick={()=>changeQuery({page:query.page-1})}>{english?'Previous':'السابق'}</button>

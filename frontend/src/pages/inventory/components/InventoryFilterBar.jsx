@@ -16,6 +16,7 @@ export function InventoryFilterBar({
   searchPortalTarget,
   canCreate = true,
   onOpenCategories,
+  stockPolicyControl,
 }) {
   useLocale();
   const categories=useCategories();
@@ -50,7 +51,7 @@ export function InventoryFilterBar({
         {searchPortalTarget ? createPortal(searchField, searchPortalTarget) : searchField}
 
         {/* Add Product Button & Reset */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-fit max-w-full" style={{marginRight:'auto',marginLeft:0}}>
           {onOpenCategories&&<button type="button" onClick={onOpenCategories} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#c5c5d3] text-[#00236f] bg-[#f0f3ff] text-xs font-bold whitespace-nowrap">{t('التصنيفات')}</button>}
           {isFiltered && (
             <button
@@ -72,6 +73,7 @@ export function InventoryFilterBar({
             <PlusIcon className="w-4 h-4" />
             <span>{t("إضافة منتج جديد")}</span>
           </button>
+          {stockPolicyControl}
         </div>
       </div>
 

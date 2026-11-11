@@ -10,7 +10,7 @@ export function CartItem({ item, onIncrement, onDecrement, onRemove, onDiscountC
   const [showDiscount, setShowDiscount] = useState(discountPercent > 0);
 
   return (
-    <article className="rounded-xl border border-transparent px-2 py-1.5 transition-colors select-none hover:border-[#c5c5d3] hover:bg-[#f0f3ff]/60">
+    <article className="retail-cart-item rounded-xl border border-transparent px-2 py-1.5 transition-colors select-none hover:border-[#c5c5d3] hover:bg-[#f0f3ff]/60">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
         <h4 className="min-w-0 truncate text-sm font-semibold text-gray-800">
           {item.name}
